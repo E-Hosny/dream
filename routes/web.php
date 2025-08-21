@@ -9,11 +9,13 @@ Route::get("/", function () {
     return redirect()->route('login');
 });
 
+
+
 Route::get("/language/{locale}", [LanguageController::class, "change"])
     ->name("language.change")
     ->where("locale", "[a-z]{2}");
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'role.redirect'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
@@ -21,6 +23,113 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Admin Routes
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+        
+        // Users management
+        Route::resource('users', App\Http\Controllers\Admin\UserController::class);
+        
+        // Teachers management  
+        Route::get('/teachers', [App\Http\Controllers\Admin\UserController::class, 'teachers'])->name('teachers.index');
+        
+        // Students management
+        Route::get('/students', [App\Http\Controllers\Admin\UserController::class, 'students'])->name('students.index');
+        
+        // Courses management
+        Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);
+        
+        Route::get('/reports', function () {
+            return Inertia::render('Admin/Reports/Index');
+        })->name('reports.index');
+        
+        Route::get('/settings', function () {
+            return Inertia::render('Admin/Settings/Index');
+        })->name('settings.index');
+    });
+
+    // Teacher Routes
+    Route::prefix('teacher')->name('teacher.')->group(function () {
+        Route::get('/dashboard', function () {
+            return Inertia::render('Teacher/Dashboard');
+        })->name('dashboard');
+        
+        Route::get('/courses', function () {
+            return Inertia::render('Teacher/Courses/Index');
+        })->name('courses.index');
+        
+        Route::get('/lessons', function () {
+            return Inertia::render('Teacher/Lessons/Index');
+        })->name('lessons.index');
+        
+        Route::get('/assessments', function () {
+            return Inertia::render('Teacher/Assessments/Index');
+        })->name('assessments.index');
+        
+        Route::get('/students', function () {
+            return Inertia::render('Teacher/Students/Index');
+        })->name('students.index');
+        
+        Route::get('/grades', function () {
+            return Inertia::render('Teacher/Grades/Index');
+        })->name('grades.index');
+        
+        Route::get('/reports', function () {
+            return Inertia::render('Teacher/Reports/Index');
+        })->name('reports.index');
+        
+        Route::get('/calendar', function () {
+            return Inertia::render('Teacher/Calendar/Index');
+        })->name('calendar.index');
+    });
+
+    // Student Routes
+    Route::prefix('student')->name('student.')->group(function () {
+        Route::get('/dashboard', function () {
+            return Inertia::render('Student/Dashboard');
+        })->name('dashboard');
+        
+        Route::get('/courses', function () {
+            return Inertia::render('Student/Courses/Index');
+        })->name('courses.index');
+        
+        Route::get('/courses/browse', function () {
+            return Inertia::render('Student/Courses/Browse');
+        })->name('courses.browse');
+        
+        Route::get('/lessons', function () {
+            return Inertia::render('Student/Lessons/Index');
+        })->name('lessons.index');
+        
+        Route::get('/assignments', function () {
+            return Inertia::render('Student/Assignments/Index');
+        })->name('assignments.index');
+        
+        Route::get('/schedule', function () {
+            return Inertia::render('Student/Schedule/Index');
+        })->name('schedule.index');
+        
+        Route::get('/grades', function () {
+            return Inertia::render('Student/Grades/Index');
+        })->name('grades.index');
+        
+        Route::get('/progress', function () {
+            return Inertia::render('Student/Progress/Index');
+        })->name('progress.index');
+        
+        Route::get('/certificates', function () {
+            return Inertia::render('Student/Certificates/Index');
+        })->name('certificates.index');
+        
+        Route::get('/library', function () {
+            return Inertia::render('Student/Library/Index');
+        })->name('library.index');
+        
+        Route::get('/help', function () {
+            return Inertia::render('Student/Help/Index');
+        })->name('help.index');
+    });
 });
 
 require __DIR__."/auth.php";

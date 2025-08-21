@@ -46,6 +46,9 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard', absolute: false));
+        // إعطاء دور الطالب افتراضياً للمستخدمين الجدد
+        $user->assignRole('student');
+
+        return redirect(route('student.dashboard', absolute: false));
     }
 }
