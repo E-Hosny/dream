@@ -147,24 +147,40 @@ const submit = () => {
         </div>
 
         <!-- Create Form -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <form @submit.prevent="submit" class="p-6 space-y-8">
+        <div class="bg-white rounded-2xl shadow-xl border-0 overflow-hidden backdrop-blur-sm bg-white/95">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-8 py-6">
+                <h2 class="text-xl font-semibold text-white">{{ currentLocale === 'ar' ? 'بيانات الكورس الجديد' : 'New Course Information' }}</h2>
+                <p class="text-emerald-100 mt-1">{{ currentLocale === 'ar' ? 'أدخل جميع بيانات الكورس التعليمي' : 'Enter all educational course details' }}</p>
+            </div>
+            <form @submit.prevent="submit" class="p-8 space-y-8">
                 <!-- Basic Information -->
                 <div>
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">{{ t('basic_info') }}</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Title -->
-                        <div>
-                            <label for="title" class="block text-sm font-medium text-gray-700 mb-2">{{ t('title') }}</label>
-                            <input
-                                id="title"
-                                v-model="form.title"
-                                type="text"
-                                class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
-                                :class="{ 'border-red-500': form.errors.title }"
-                                required
-                            >
-                            <div v-if="form.errors.title" class="mt-1 text-sm text-red-600">
+                        <div class="group">
+                            <label for="title" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-emerald-600">
+                                {{ t('title') }}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-4 rtl:pl-0 rtl:pr-4 pointer-events-none">
+                                    <svg class="w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                                    </svg>
+                                </div>
+                                <input
+                                    id="title"
+                                    v-model="form.title"
+                                    type="text"
+                                    class="w-full pl-12 rtl:pl-4 rtl:pr-12 pr-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                                    :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.title }"
+                                    required
+                                >
+                            </div>
+                            <div v-if="form.errors.title" class="mt-2 flex items-center text-sm text-red-600">
+                                <svg class="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
                                 {{ form.errors.title }}
                             </div>
                         </div>
@@ -411,21 +427,29 @@ const submit = () => {
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex items-center justify-end space-x-4 rtl:space-x-reverse pt-6 border-t border-gray-200">
-                    <Link :href="route('admin.courses.index')" class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition-all duration-200">
-                        {{ t('cancel') }}
-                    </Link>
-                    <button
-                        type="submit"
-                        :disabled="form.processing"
-                        class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <svg v-if="form.processing" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        {{ form.processing ? (currentLocale === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : t('create') }}
-                    </button>
+                <div class="bg-gray-50 -mx-8 -mb-8 px-8 py-6 mt-8">
+                    <div class="flex items-center justify-between">
+                        <Link :href="route('admin.courses.index')" class="group flex items-center px-6 py-3 text-gray-600 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md">
+                            <svg class="w-5 h-5 mr-2 rtl:mr-0 rtl:ml-2 group-hover:-translate-x-1 rtl:group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            {{ t('cancel') }}
+                        </Link>
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="group flex items-center px-8 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl hover:from-emerald-700 hover:to-teal-700 focus:ring-4 focus:ring-emerald-300 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-lg transform hover:scale-105 active:scale-95"
+                        >
+                            <svg v-if="form.processing" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <svg v-else class="w-5 h-5 mr-2 rtl:mr-0 rtl:ml-2 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            {{ form.processing ? (currentLocale === 'ar' ? 'جاري الإنشاء...' : 'Creating...') : t('create') }}
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -93,7 +93,7 @@ const deleteUser = (user) => {
         </div>
 
         <!-- Filters -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="bg-white rounded-2xl shadow-lg border-0 p-6 mb-6 backdrop-blur-sm bg-white/95">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('search') }}</label>
@@ -124,7 +124,7 @@ const deleteUser = (user) => {
         </div>
 
         <!-- Users Table -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-xl border-0 overflow-hidden backdrop-blur-sm bg-white/95">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">

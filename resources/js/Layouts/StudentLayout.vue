@@ -152,17 +152,17 @@ const studentMenuItems = [
 </script>
 
 <template>
-    <div class="flex h-screen bg-gray-50" :dir="isRTL ? 'rtl' : 'ltr'">
+    <div class="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/50" :dir="isRTL ? 'rtl' : 'ltr'">
         <!-- Sidebar -->
         <div 
             :class="[
-                'fixed inset-y-0 z-50 flex w-64 flex-col transition-transform duration-300 ease-in-out lg:translate-x-0',
+                'fixed inset-y-0 z-50 flex w-64 flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
                 isRTL ? 'right-0' : 'left-0',
                 showingSidebar ? 'translate-x-0' : (isRTL ? 'translate-x-64' : '-translate-x-64')
             ]"
         >
             <!-- Sidebar content -->
-            <div class="flex flex-col overflow-y-auto bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 pb-4 shadow-xl">
+            <div class="flex flex-col h-full overflow-y-auto bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 shadow-2xl">
                 <!-- Logo -->
                 <div class="flex h-16 flex-shrink-0 items-center px-4 bg-blue-950/50">
                     <div class="flex items-center">
@@ -232,7 +232,8 @@ const studentMenuItems = [
         </div>
 
         <!-- Main content -->
-        <div :class="['flex flex-1 flex-col overflow-hidden', showingSidebar ? (isRTL ? 'mr-64' : 'ml-64') : '']">
+        <div class="flex flex-1 flex-col min-h-screen lg:ml-0"
+             :class="[showingSidebar && 'lg:ml-0']">
             <!-- Top navigation -->
             <header class="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-4 shadow-sm">
                 <div class="flex items-center">
