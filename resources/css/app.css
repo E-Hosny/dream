@@ -57,3 +57,68 @@
     margin-right: 0;
     margin-left: 0.5rem;
 }
+
+[dir="rtl"] .space-x-3 > * + * {
+    margin-left: 0;
+    margin-right: 0.75rem;
+}
+
+/* RTL Icon Positioning in Input Fields */
+[dir="rtl"] .pl-10 {
+    padding-left: 1rem;
+    padding-right: 2.5rem;
+}
+
+[dir="rtl"] .pr-10 {
+    padding-right: 1rem;
+    padding-left: 2.5rem;
+}
+
+/* RTL Spinner Animation */
+[dir="rtl"] .animate-spin {
+    animation: spin-rtl 1s linear infinite;
+}
+
+@keyframes spin-rtl {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+/* RTL Hover Translations */
+[dir="rtl"] .group-hover\:translate-x-1 {
+    transform: translateX(-0.25rem);
+}
+
+[dir="rtl"] .group-hover\:-translate-x-1 {
+    transform: translateX(0.25rem);
+}
+
+/* RTL Transform Origins */
+[dir="rtl"] .transform {
+    transform-origin: center;
+}
+
+/* RTL Icon margins in buttons */
+[dir="rtl"] .mr-2 {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+[dir="rtl"] .mr-3 {
+    margin-right: 0;
+    margin-left: 0.75rem;
+}
+
+[dir="rtl"] .ml-1 {
+    margin-left: 0;
+    margin-right: 0.25rem;
+}
+
+[dir="rtl"] .-ml-1 {
+    margin-left: 0;
+    margin-right: -0.25rem;
+}
