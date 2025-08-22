@@ -143,7 +143,7 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
         <!-- Dashboard Content - Only show when there are courses -->
         <div v-else>
             <!-- Stats Overview -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <!-- Total Courses -->
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
@@ -191,6 +191,23 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                         <div class="ml-4 rtl:ml-0 rtl:mr-4 flex-1">
                             <h3 class="text-lg font-semibold text-gray-900">{{ stats.totalStudents }}</h3>
                             <p class="text-sm text-gray-500">{{ t('total_students') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Students -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="ml-4 rtl:ml-0 rtl:mr-4 flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ stats.completedStudents || 0 }}</h3>
+                            <p class="text-sm text-gray-500">{{ currentLocale === 'en' ? 'Completed Students' : 'الطلاب المكتملين' }}</p>
                         </div>
                     </div>
                 </div>
@@ -245,6 +262,40 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
                                 </svg>
                                 <span class="text-sm text-gray-600">{{ t('course_students') }}: <strong>{{ course.enrollments?.length || 0 }}</strong></span>
+                            </div>
+                            
+                            <!-- Students List -->
+                            <div v-if="course.enrollments && course.enrollments.length > 0" class="col-span-2 mt-3 p-3 bg-gray-50 rounded-lg">
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">{{ currentLocale === 'en' ? 'Students' : 'الطلاب' }}:</h4>
+                                <div class="space-y-2">
+                                    <div v-for="enrollment in course.enrollments" :key="enrollment.id" 
+                                         class="flex items-center justify-between p-2 bg-white rounded border">
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                            <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                                                <span class="text-sm font-medium text-emerald-600">{{ enrollment.student.name.charAt(0) }}</span>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">{{ enrollment.student.name }}</p>
+                                                <p class="text-xs text-gray-500">{{ enrollment.student.email }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full"
+                                                  :class="{
+                                                      'bg-blue-100 text-blue-800': enrollment.status === 'enrolled',
+                                                      'bg-green-100 text-green-800': enrollment.status === 'completed',
+                                                      'bg-red-100 text-red-800': enrollment.status === 'dropped'
+                                                  }">
+                                                {{ enrollment.status === 'enrolled' ? (currentLocale === 'en' ? 'Enrolled' : 'مسجل') :
+                                                   enrollment.status === 'completed' ? (currentLocale === 'en' ? 'Completed' : 'مكتمل') :
+                                                   enrollment.status === 'dropped' ? (currentLocale === 'en' ? 'Dropped' : 'منسحب') : enrollment.status }}
+                                            </span>
+                                            <span v-if="enrollment.progress !== null" class="text-xs text-gray-600">
+                                                {{ enrollment.progress }}%
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="flex items-center space-x-2 rtl:space-x-reverse">

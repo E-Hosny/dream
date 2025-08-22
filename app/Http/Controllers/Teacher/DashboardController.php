@@ -18,7 +18,7 @@ class DashboardController extends Controller
         // جلب الكورسات التي يدرسها المعلم
         $courses = $teacher->teachingCourses()
             ->with(['enrollments' => function($query) {
-                $query->where('status', 'enrolled');
+                $query->with('student'); // إضافة بيانات الطالب
             }])
             ->get();
         
@@ -27,6 +27,12 @@ class DashboardController extends Controller
             'activeCourses' => $courses->where('status', 'published')->count(),
             'totalStudents' => $courses->sum(function($course) {
                 return $course->enrollments->count();
+            }),
+            'enrolledStudents' => $courses->sum(function($course) {
+                return $course->enrollments->where('status', 'enrolled')->count();
+            }),
+            'completedStudents' => $courses->sum(function($course) {
+                return $course->enrollments->where('status', 'completed')->count();
             }),
         ];
         
