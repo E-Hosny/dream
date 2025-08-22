@@ -152,78 +152,102 @@ const t = (key) => {
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Recent Activity -->
-            <div class="lg:col-span-2">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-semibold text-gray-900">{{ t('recent_activity') }}</h2>
-                        <button class="text-sm text-indigo-600 hover:text-indigo-500 font-medium">{{ t('view_all') }}</button>
-                    </div>
-                    
-                    <div class="space-y-4">
-                        <div v-for="activity in recentActivities" :key="activity.message" class="flex items-center space-x-4 rtl:space-x-reverse p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div :class="[
-                                'flex items-center justify-center h-10 w-10 rounded-full',
-                                activity.type === 'user_registered' ? 'bg-blue-100 text-blue-600' :
-                                activity.type === 'course_published' ? 'bg-emerald-100 text-emerald-600' :
-                                activity.type === 'enrollment' ? 'bg-purple-100 text-purple-600' :
-                                'bg-orange-100 text-orange-600'
-                            ]">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path v-if="activity.icon === 'user-plus'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                                    <path v-else-if="activity.icon === 'book'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                                    <path v-else-if="activity.icon === 'users'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a.75.75 0 01-.75.75H5.25a.75.75 0 010-1.5h13.5a.75.75 0 01.75.75z"></path>
-                                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
-                                </svg>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900">{{ activity.message }}</p>
-                                <p class="text-xs text-gray-500">{{ activity.time }}</p>
-                            </div>
-                        </div>
-                        
-                        <div v-if="!recentActivities || recentActivities.length === 0" class="text-center py-8">
-                            <p class="text-gray-500">{{ currentLocale === 'ar' ? 'لا توجد أنشطة حديثة' : 'No recent activities' }}</p>
-                        </div>
-                    </div>
-                </div>
+        <!-- Quick Actions Section - Center of the page -->
+        <div class="mb-12">
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-900 mb-3">{{ t('quick_actions') }}</h2>
+                <p class="text-gray-600">{{ currentLocale === 'ar' ? 'إدارة منصة إيدو دريم بسهولة وسرعة' : 'Manage EduDream platform easily and quickly' }}</p>
             </div>
-
-            <!-- Quick Actions -->
-            <div>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">{{ t('quick_actions') }}</h2>
-                    
-                    <div class="space-y-3">
-                        <Link :href="route('admin.users.create')" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <svg class="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Add User Card -->
+                <Link :href="route('admin.users.create')" class="group">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-center h-16 w-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto mb-6 group-hover:from-indigo-600 group-hover:to-purple-700 transition-all duration-300">
+                            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                             </svg>
-                            {{ t('add_user') }}
-                        </Link>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ t('add_user') }}</h3>
+                        <p class="text-sm text-gray-500">{{ currentLocale === 'ar' ? 'إضافة مستخدم جديد للنظام' : 'Add a new user to the system' }}</p>
+                    </div>
+                </Link>
 
-                        <Link :href="route('admin.courses.create')" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <svg class="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Create Course Card -->
+                <Link :href="route('admin.courses.create')" class="group">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-center h-16 w-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mx-auto mb-6 group-hover:from-emerald-600 group-hover:to-teal-700 transition-all duration-300">
+                            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
                             </svg>
-                            {{ t('create_course') }}
-                        </Link>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ t('create_course') }}</h3>
+                        <p class="text-sm text-gray-500">{{ currentLocale === 'ar' ? 'إنشاء كورس جديد للمنصة' : 'Create a new course for the platform' }}</p>
+                    </div>
+                </Link>
 
-                        <Link :href="route('admin.users.index')" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <svg class="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Manage Users Card -->
+                <Link :href="route('admin.users.index')" class="group">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-center h-16 w-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl mx-auto mb-6 group-hover:from-blue-600 group-hover:to-cyan-700 transition-all duration-300">
+                            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a.75.75 0 01-.75.75H5.25a.75.75 0 010-1.5h13.5a.75.75 0 01.75.75z"></path>
                             </svg>
-                            {{ currentLocale === 'ar' ? 'إدارة المستخدمين' : 'Manage Users' }}
-                        </Link>
-
-                        <Link :href="route('admin.courses.index')" class="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-lg hover:from-orange-700 hover:to-red-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <svg class="h-5 w-5 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                            </svg>
-                            {{ currentLocale === 'ar' ? 'إدارة الكورسات' : 'Manage Courses' }}
-                        </Link>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ currentLocale === 'ar' ? 'إدارة المستخدمين' : 'Manage Users' }}</h3>
+                        <p class="text-sm text-gray-500">{{ currentLocale === 'ar' ? 'عرض وإدارة جميع المستخدمين' : 'View and manage all users' }}</p>
                     </div>
+                </Link>
+
+                <!-- Manage Courses Card -->
+                <Link :href="route('admin.courses.index')" class="group">
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center hover:shadow-xl hover:scale-105 transition-all duration-300">
+                        <div class="flex items-center justify-center h-16 w-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl mx-auto mb-6 group-hover:from-orange-600 group-hover:to-red-700 transition-all duration-300">
+                            <svg class="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{ currentLocale === 'ar' ? 'إدارة الكورسات' : 'Manage Courses' }}</h3>
+                        <p class="text-sm text-gray-500">{{ currentLocale === 'ar' ? 'عرض وإدارة جميع الكورسات' : 'View and manage all courses' }}</p>
+                    </div>
+                </Link>
+            </div>
+        </div>
+
+        <!-- Recent Activity Section - Small section at bottom -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">{{ t('recent_activity') }}</h2>
+                <button class="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition-colors">{{ t('view_all') }}</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div v-for="activity in (recentActivities || []).slice(0, 6)" :key="activity.message" class="flex items-center space-x-3 rtl:space-x-reverse p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div :class="[
+                        'flex items-center justify-center h-8 w-8 rounded-full flex-shrink-0',
+                        activity.type === 'user_registered' ? 'bg-blue-100 text-blue-600' :
+                        activity.type === 'course_published' ? 'bg-emerald-100 text-emerald-600' :
+                        activity.type === 'enrollment' ? 'bg-purple-100 text-purple-600' :
+                        'bg-orange-100 text-orange-600'
+                    ]">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path v-if="activity.icon === 'user-plus'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                            <path v-else-if="activity.icon === 'book'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
+                            <path v-else-if="activity.icon === 'users'" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a.75.75 0 01-.75.75H5.25a.75.75 0 010-1.5h13.5a.75.75 0 01.75.75z"></path>
+                            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">{{ activity.message }}</p>
+                        <p class="text-xs text-gray-500">{{ activity.time }}</p>
+                    </div>
+                </div>
+                
+                <div v-if="!recentActivities || recentActivities.length === 0" class="col-span-full text-center py-6">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <p class="text-gray-500 text-sm">{{ currentLocale === 'ar' ? 'لا توجد أنشطة حديثة' : 'No recent activities' }}</p>
                 </div>
             </div>
         </div>
