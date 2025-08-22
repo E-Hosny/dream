@@ -51,9 +51,7 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
 
     // Teacher Routes
     Route::prefix('teacher')->name('teacher.')->group(function () {
-        Route::get('/dashboard', function () {
-            return Inertia::render('Teacher/Dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [App\Http\Controllers\Teacher\DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('/courses', function () {
             return Inertia::render('Teacher/Courses/Index');
