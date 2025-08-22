@@ -40,6 +40,10 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         // Courses management
         Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);
         
+        // Enrollments management
+        Route::resource('enrollments', App\Http\Controllers\Admin\EnrollmentController::class);
+        Route::post('/enrollments/bulk', [App\Http\Controllers\Admin\EnrollmentController::class, 'bulkEnroll'])->name('enrollments.bulk');
+        
         Route::get('/reports', function () {
             return Inertia::render('Admin/Reports/Index');
         })->name('reports.index');
@@ -131,3 +135,7 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
 });
 
 require __DIR__."/auth.php";
+
+
+
+

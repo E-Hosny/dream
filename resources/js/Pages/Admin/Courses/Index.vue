@@ -234,6 +234,9 @@ const getLevelColor = (level) => {
                                     <Link :href="route('admin.courses.edit', course.id)" class="text-blue-600 hover:text-blue-900">
                                         {{ t('edit') }}
                                     </Link>
+                                    <Link :href="route('admin.enrollments.index', { course_id: course.id })" class="text-purple-600 hover:text-purple-900">
+                                        {{ currentLocale === 'ar' ? 'التسجيلات' : 'Enrollments' }}
+                                    </Link>
                                     <button @click="deleteCourse(course)" class="text-red-600 hover:text-red-900">
                                         {{ t('delete') }}
                                     </button>
@@ -271,8 +274,9 @@ const getLevelColor = (level) => {
                                         ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' 
                                         : 'text-gray-400 cursor-not-allowed'
                             ]"
-                            v-html="link.label"
-                        />
+                        >
+                            <span v-html="link.label"></span>
+                        </Link>
                     </div>
                 </div>
             </div>
