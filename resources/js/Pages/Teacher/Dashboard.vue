@@ -220,20 +220,20 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                     <span class="text-sm text-gray-500">{{ courses.length }} {{ currentLocale === 'en' ? 'course(s)' : 'كورس' }}</span>
                 </div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-6">
                     <div v-for="course in courses" :key="course.id" class="border border-gray-200 rounded-lg p-6 hover:border-emerald-300 transition-colors">
                         <!-- Course Header -->
-                        <div class="flex items-start justify-between mb-4">
+                        <div class="flex items-start justify-between mb-6">
                             <div class="flex-1">
-                                <h3 class="text-xl font-bold text-gray-900 mb-2">{{ course.localized_title }}</h3>
-                                <p class="text-gray-600 text-sm line-clamp-2">{{ course.localized_description }}</p>
+                                <h3 class="text-2xl font-bold text-gray-900 mb-3">{{ currentLocale === 'ar' ? course.title : course.titleEn }}</h3>
+                                <p class="text-gray-600 text-base line-clamp-2">{{ currentLocale === 'ar' ? course.description : course.descriptionEn }}</p>
                             </div>
-                            <div class="flex flex-col items-end space-y-2 rtl:space-y-reverse">
-                                <span class="px-3 py-1 text-xs font-medium rounded-full" 
+                            <div class="flex flex-col items-end space-y-3 rtl:space-x-reverse">
+                                <span class="px-4 py-2 text-sm font-medium rounded-full" 
                                       :class="course.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
                                     {{ course.status === 'published' ? (currentLocale === 'en' ? 'Published' : 'منشور') : (currentLocale === 'en' ? 'Draft' : 'مسودة') }}
                                 </span>
-                                <span class="px-3 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+                                <span class="px-4 py-2 text-sm font-medium rounded-full bg-purple-100 text-purple-800">
                                     {{ course.level === 'beginner' ? (currentLocale === 'en' ? 'Beginner' : 'مبتدئ') : 
                                        course.level === 'intermediate' ? (currentLocale === 'en' ? 'Intermediate' : 'متوسط') : 
                                        course.level === 'advanced' ? (currentLocale === 'en' ? 'Advanced' : 'متقدم') : course.level }}
@@ -242,107 +242,167 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                         </div>
 
                         <!-- Course Details Grid -->
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
+                                <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="text-sm text-gray-600">{{ t('course_price') }}: <strong>${{ course.price }}</strong></span>
-                            </div>
-                            
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span class="text-sm text-gray-600">{{ t('course_duration') }}: <strong>{{ course.duration_hours }}h</strong></span>
-                            </div>
-                            
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
-                                </svg>
-                                <span class="text-sm text-gray-600">{{ t('course_students') }}: <strong>{{ course.enrollments?.length || 0 }}</strong></span>
-                            </div>
-                            
-                            <!-- Students List -->
-                            <div v-if="course.enrollments && course.enrollments.length > 0" class="col-span-2 mt-3 p-3 bg-gray-50 rounded-lg">
-                                <h4 class="text-sm font-medium text-gray-700 mb-2">{{ currentLocale === 'en' ? 'Students' : 'الطلاب' }}:</h4>
-                                <div class="space-y-2">
-                                    <div v-for="enrollment in course.enrollments" :key="enrollment.id" 
-                                         class="flex items-center justify-between p-2 bg-white rounded border">
-                                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                            <div class="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                                                <span class="text-sm font-medium text-emerald-600">{{ enrollment.student.name.charAt(0) }}</span>
-                                            </div>
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-900">{{ enrollment.student.name }}</p>
-                                                <p class="text-xs text-gray-500">{{ enrollment.student.email }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                            <span class="px-2 py-1 text-xs font-medium rounded-full"
-                                                  :class="{
-                                                      'bg-blue-100 text-blue-800': enrollment.status === 'enrolled',
-                                                      'bg-green-100 text-green-800': enrollment.status === 'completed',
-                                                      'bg-red-100 text-red-800': enrollment.status === 'dropped'
-                                                  }">
-                                                {{ enrollment.status === 'enrolled' ? (currentLocale === 'en' ? 'Enrolled' : 'مسجل') :
-                                                   enrollment.status === 'completed' ? (currentLocale === 'en' ? 'Completed' : 'مكتمل') :
-                                                   enrollment.status === 'dropped' ? (currentLocale === 'en' ? 'Dropped' : 'منسحب') : enrollment.status }}
-                                            </span>
-                                            <span v-if="enrollment.progress !== null" class="text-xs text-gray-600">
-                                                {{ enrollment.progress }}%
-                                            </span>
-                                        </div>
-                                    </div>
+                                <div>
+                                    <p class="text-sm text-gray-500">{{ t('course_price') }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">${{ course.price }}</p>
                                 </div>
                             </div>
                             
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">{{ t('course_duration') }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ course.duration_hours }}h</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
+                                <svg class="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-gray-500">{{ t('course_students') }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ course.enrollments?.length || 0 }}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
+                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 002.25 2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 012.25 2.25v7.5"></path>
                                 </svg>
-                                <span class="text-sm text-gray-600">{{ t('course_start_date') }}: <strong>{{ course.start_date ? new Date(course.start_date).toLocaleDateString() : 'N/A' }}</strong></span>
+                                <div>
+                                    <p class="text-sm text-gray-500">{{ t('course_start_date') }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ course.start_date ? new Date(course.start_date).toLocaleDateString() : 'N/A' }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Students List -->
+                        <div v-if="course.enrollments && course.enrollments.length > 0" class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-4">{{ currentLocale === 'en' ? 'Enrolled Students' : 'الطلاب المسجلين' }}:</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div v-for="enrollment in course.enrollments" :key="enrollment.id" 
+                                     class="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors">
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                                            <span class="text-sm font-medium text-emerald-600">{{ enrollment.student.name.charAt(0) }}</span>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">{{ enrollment.student.name }}</p>
+                                            <p class="text-xs text-gray-500">{{ enrollment.student.email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-end space-y-2">
+                                        <span class="px-3 py-1 text-xs font-medium rounded-full"
+                                              :class="{
+                                                  'bg-blue-100 text-blue-800': enrollment.status === 'enrolled',
+                                                  'bg-green-100 text-green-800': enrollment.status === 'completed',
+                                                  'bg-red-100 text-red-800': enrollment.status === 'dropped'
+                                              }">
+                                            {{ enrollment.status === 'enrolled' ? (currentLocale === 'en' ? 'Enrolled' : 'مسجل') :
+                                               enrollment.status === 'completed' ? (currentLocale === 'en' ? 'Completed' : 'مكتمل') :
+                                               enrollment.status === 'dropped' ? (currentLocale === 'en' ? 'Dropped' : 'منسحب') : enrollment.status }}
+                                        </span>
+                                        <span v-if="enrollment.progress !== null" class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                                            {{ enrollment.progress }}%
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Course Requirements & Outcomes -->
-                        <div class="space-y-3 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div v-if="course.requirements && course.requirements.length > 0">
-                                <h4 class="text-sm font-medium text-gray-700 mb-1">{{ t('course_requirements') }}:</h4>
-                                <ul class="text-xs text-gray-600 space-y-1">
-                                    <li v-for="(req, index) in course.requirements" :key="index" class="flex items-center">
-                                        <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-2 rtl:mr-0 rtl:ml-2"></span>
-                                        {{ req }}
-                                    </li>
-                                </ul>
+                                <h4 class="text-lg font-semibold text-gray-700 mb-3">{{ t('course_requirements') }}:</h4>
+                                <div class="space-y-2">
+                                    <div v-for="(req, index) in course.requirements" :key="index" 
+                                         class="flex items-center space-x-2 rtl:space-x-reverse p-3 bg-gray-50 rounded-lg">
+                                        <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                        <span class="text-sm text-gray-700">{{ req }}</span>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div v-if="course.learning_outcomes && course.learning_outcomes.length > 0">
-                                <h4 class="text-sm font-medium text-gray-700 mb-1">{{ t('course_outcomes') }}:</h4>
-                                <ul class="text-xs text-gray-600 space-y-1">
-                                    <li v-for="(outcome, index) in course.learning_outcomes" :key="index" class="flex items-center">
-                                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 rtl:mr-0 rtl:ml-2"></span>
-                                        {{ outcome }}
-                                    </li>
-                                </ul>
+                                <h4 class="text-lg font-semibold text-gray-700 mb-3">{{ t('course_outcomes') }}:</h4>
+                                <div class="space-y-2">
+                                    <div v-for="(outcome, index) in course.learning_outcomes" :key="index" 
+                                         class="flex items-center space-x-2 rtl:space-x-reverse p-3 bg-gray-50 rounded-lg">
+                                        <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                        <span class="text-sm text-gray-700">{{ outcome }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Course Actions -->
-                        <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                        <div class="flex items-center justify-between pt-6 border-t border-gray-200 mb-6">
                             <div class="text-sm text-gray-500">
                                 {{ currentLocale === 'en' ? 'Created' : 'تم الإنشاء' }}: {{ new Date(course.created_at).toLocaleDateString() }}
                             </div>
-                            <div class="flex space-x-2 rtl:space-x-reverse">
+                            <div class="flex space-x-3 rtl:space-x-reverse">
                                 <a :href="`/admin/courses/${course.id}`" 
-                                   class="px-3 py-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-colors">
+                                   class="px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors">
                                     {{ t('view_course') }}
                                 </a>
                                 <a :href="`/admin/courses/${course.id}/edit`" 
-                                   class="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors">
+                                   class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
                                     {{ t('edit_course') }}
                                 </a>
+                            </div>
+                        </div>
+
+                        <!-- Course Schedules -->
+                        <div v-if="course.schedules && course.schedules.length > 0" class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-4">{{ currentLocale === 'en' ? 'Course Schedule' : 'جدول الكورس' }}:</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div v-for="schedule in course.schedules" :key="schedule.id" 
+                                     class="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                        <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <div>
+                                            <p class="text-sm font-medium text-blue-900">{{ schedule.day }}</p>
+                                            <p class="text-sm text-blue-700">{{ schedule.start_time }} - {{ schedule.end_time }}</p>
+                                        </div>
+                                    </div>
+                                    <span :class="`px-3 py-1 text-xs rounded-full ${schedule.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`">
+                                        {{ schedule.is_active ? (currentLocale === 'en' ? 'Active' : 'نشط') : (currentLocale === 'en' ? 'Inactive' : 'غير نشط') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next Session -->
+                        <div v-if="course.nextSchedule" class="mb-6">
+                            <h4 class="text-lg font-semibold text-gray-700 mb-4">{{ currentLocale === 'en' ? 'Next Session' : 'الموعد التالي' }}:</h4>
+                            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                                    <div class="flex-shrink-0">
+                                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-lg font-semibold text-blue-900">
+                                            {{ course.nextSchedule.day }} {{ currentLocale === 'ar' ? 'الساعة' : 'at' }} {{ course.nextSchedule.time }}
+                                        </p>
+                                        <p class="text-sm text-blue-700">
+                                            {{ course.nextSchedule.nextOccurrence }}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

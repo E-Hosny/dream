@@ -53,6 +53,31 @@ class Course extends Model
                     ->withTimestamps();
     }
 
+    // العلاقة مع مواعيد الكورس
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(CourseSchedule::class);
+    }
+
+    // الحصول على الموعد التالي للكورس
+    public function getNextScheduleAttribute()
+    {
+        $nextSchedule = null;
+        $nextTime = null;
+        
+        foreach ($this->schedules as $schedule) {
+            if ($schedule->is_active) {
+                $nextOccurrence = $schedule->next_occurrence;
+                if (!$nextTime || $nextOccurrence < $nextTime) {
+                    $nextTime = $nextOccurrence;
+                    $nextSchedule = $schedule;
+                }
+            }
+        }
+        
+        return $nextSchedule;
+    }
+
     // Accessors
     public function getLocalizedTitleAttribute()
     {

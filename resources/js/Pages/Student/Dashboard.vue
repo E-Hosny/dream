@@ -112,6 +112,48 @@ const getStatusText = (status) => {
                             {{ t('view_course') }}
                         </button>
                     </div>
+                    
+                    <!-- Next Schedule -->
+                    <div v-if="enrollment.nextSchedule" class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                            <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-medium text-blue-900">
+                                    {{ currentLocale === 'ar' ? 'الموعد التالي:' : 'Next Session:' }}
+                                </p>
+                                <p class="text-sm text-blue-700">
+                                    {{ enrollment.nextSchedule.day }} {{ currentLocale === 'ar' ? 'الساعة' : 'at' }} {{ enrollment.nextSchedule.time }}
+                                </p>
+                                <p class="text-xs text-blue-600">
+                                    {{ enrollment.nextSchedule.nextOccurrence }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Course Schedule -->
+                    <div v-if="enrollment.schedules && enrollment.schedules.length > 0" class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-3">{{ currentLocale === 'ar' ? 'جدول الكورس:' : 'Course Schedule:' }}</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div v-for="schedule in enrollment.schedules" :key="schedule.id" 
+                                 class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                    <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ schedule.day }}</p>
+                                        <p class="text-xs text-gray-600">{{ schedule.start_time }} - {{ schedule.end_time }}</p>
+                                    </div>
+                                </div>
+                                <span :class="`px-2 py-1 text-xs rounded-full ${schedule.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`">
+                                    {{ schedule.is_active ? (currentLocale === 'ar' ? 'نشط' : 'Active') : (currentLocale === 'ar' ? 'غير نشط' : 'Inactive') }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             

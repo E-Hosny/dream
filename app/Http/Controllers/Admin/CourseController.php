@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\User;
+use App\Models\CourseSchedule;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -62,16 +63,34 @@ class CourseController extends Controller
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'requirements' => ['nullable', 'array'],
             'learning_outcomes' => ['nullable', 'array'],
+            'schedules' => ['nullable', 'array'],
+            'schedules.*.day_of_week' => ['required', 'in:saturday,sunday,monday,tuesday,wednesday,thursday,friday'],
+            'schedules.*.start_time' => ['required', 'date_format:H:i'],
+            'schedules.*.end_time' => ['required', 'date_format:H:i', 'after:schedules.*.start_time'],
         ]);
 
-        Course::create($validated);
+        $schedules = $validated['schedules'] ?? [];
+        unset($validated['schedules']);
+
+        $course = Course::create($validated);
+
+        // إنشاء مواعيد الكورس
+        foreach ($schedules as $schedule) {
+            CourseSchedule::create([
+                'course_id' => $course->id,
+                'day_of_week' => $schedule['day_of_week'],
+                'start_time' => $schedule['start_time'],
+                'end_time' => $schedule['end_time'],
+                'is_active' => true,
+            ]);
+        }
 
         return redirect()->route('admin.courses.index')->with('success', 'تم إنشاء الكورس بنجاح');
     }
 
     public function show(Course $course)
     {
-        $course->load(['instructor', 'enrollments.student']);
+        $course->load(['instructor', 'enrollments.student', 'schedules']);
         
         return Inertia::render('Admin/Courses/Show', [
             'course' => $course
@@ -80,7 +99,7 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
-        $course->load('instructor');
+        $course->load(['instructor', 'schedules']);
         $teachers = User::role('teacher')->get(['id', 'name']);
         
         return Inertia::render('Admin/Courses/Edit', [
@@ -106,9 +125,29 @@ class CourseController extends Controller
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'requirements' => ['nullable', 'array'],
             'learning_outcomes' => ['nullable', 'array'],
+            'schedules' => ['nullable', 'array'],
+            'schedules.*.day_of_week' => ['required', 'in:saturday,sunday,monday,tuesday,wednesday,thursday,friday'],
+            'schedules.*.start_time' => ['required', 'date_format:H:i'],
+            'schedules.*.end_time' => ['required', 'date_format:H:i', 'after:schedules.*.start_time'],
         ]);
 
+        $schedules = $validated['schedules'] ?? [];
+        unset($validated['schedules']);
+
         $course->update($validated);
+
+        // تحديث مواعيد الكورس
+        $course->schedules()->delete(); // حذف المواعيد القديمة
+        
+        foreach ($schedules as $schedule) {
+            CourseSchedule::create([
+                'course_id' => $course->id,
+                'day_of_week' => $schedule['day_of_week'],
+                'start_time' => $schedule['start_time'],
+                'end_time' => $schedule['end_time'],
+                'is_active' => true,
+            ]);
+        }
 
         return redirect()->route('admin.courses.index')->with('success', 'تم تحديث الكورس بنجاح');
     }
