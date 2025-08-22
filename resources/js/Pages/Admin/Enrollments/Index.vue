@@ -489,7 +489,7 @@ const getStatusText = (status) => {
 
 const formatDate = (date) => {
     if (!date) return '-'
-    return new Date(date).toLocaleDateString('ar-SA')
+    return new Date(date).toLocaleDateString('ar-SA-u-ca-gregory')
 }
 
 const getLevelText = (level) => {

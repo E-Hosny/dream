@@ -174,7 +174,7 @@ const deleteUser = (user) => {
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ new Date(user.created_at).toLocaleDateString() }}
+                                {{ new Date(user.created_at).toLocaleDateString(currentLocale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US') }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right rtl:text-left text-sm font-medium">
                                 <div class="flex space-x-2 rtl:space-x-reverse">

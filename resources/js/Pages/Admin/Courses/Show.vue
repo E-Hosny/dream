@@ -77,7 +77,7 @@
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                             {{ t('price') }}
                                         </label>
-                                        <p class="text-gray-900 dark:text-white">${{ course.price }}</p>
+                                        <p class="text-gray-900 dark:text-white">{{ formatCurrency(course.price) }}</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -538,7 +538,16 @@ const getEnrollmentStatusClass = (status) => {
 
 const formatDate = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA' : 'en-US');
+    // استخدام التقويم الميلادي دائماً (gregory) بدلاً من الهجري
+    return new Date(date).toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US');
+};
+
+const formatCurrency = (price) => {
+    if (price === null || price === undefined) return 'N/A';
+    return new Intl.NumberFormat(currentLocale.value === 'ar' ? 'ar-EG' : 'en-US', {
+        style: 'currency',
+        currency: 'EGP' // Assuming EGP for Egyptian Pound
+    }).format(price);
 };
 
 const deleteCourse = () => {

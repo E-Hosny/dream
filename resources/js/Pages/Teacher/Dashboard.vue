@@ -91,6 +91,14 @@ const courses = computed(() => props.courses || []);
 const hasData = computed(() => props.hasData || false);
 const teacherName = computed(() => props.teacherName || user.value?.name);
 const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat(currentLocale.value, {
+        style: 'currency',
+        currency: 'EGP', // Assuming EGP for Egyptian Pound
+    }).format(amount);
+};
 </script>
 
 <template>
@@ -249,7 +257,7 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                                 </svg>
                                 <div>
                                     <p class="text-sm text-gray-500">{{ t('course_price') }}</p>
-                                    <p class="text-lg font-semibold text-gray-900">${{ course.price }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ formatCurrency(course.price) }}</p>
                                 </div>
                             </div>
                             
@@ -279,7 +287,7 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                                 </svg>
                                 <div>
                                     <p class="text-sm text-gray-500">{{ t('course_start_date') }}</p>
-                                    <p class="text-lg font-semibold text-gray-900">{{ course.start_date ? new Date(course.start_date).toLocaleDateString() : 'N/A' }}</p>
+                                    <p class="text-lg font-semibold text-gray-900">{{ course.start_date ? new Date(course.start_date).toLocaleDateString(currentLocale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US') : 'N/A' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -346,7 +354,7 @@ const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
                         <!-- Course Actions -->
                         <div class="flex items-center justify-between pt-6 border-t border-gray-200 mb-6">
                             <div class="text-sm text-gray-500">
-                                {{ currentLocale === 'en' ? 'Created' : 'تم الإنشاء' }}: {{ new Date(course.created_at).toLocaleDateString() }}
+                                {{ currentLocale === 'en' ? 'Created' : 'تم الإنشاء' }}: {{ new Date(course.created_at).toLocaleDateString(currentLocale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US') }}
                             </div>
                             <div class="flex space-x-3 rtl:space-x-reverse">
                                 <a :href="`/admin/courses/${course.id}`" 
