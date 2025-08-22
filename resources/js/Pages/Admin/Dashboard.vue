@@ -72,12 +72,6 @@ const t = (key) => {
     <Head :title="t('admin_dashboard')" />
 
     <AdminLayout>
-        <!-- Debug Info -->
-        <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
-            <p class="text-sm text-yellow-800">Debug: User roles = {{ user.roles?.join(', ') || 'No roles' }}</p>
-            <p class="text-sm text-yellow-800">Debug: Current locale = {{ currentLocale }}</p>
-        </div>
-
         <!-- Page Header -->
         <div class="mb-8">
             <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ t('admin_dashboard') }}</h1>

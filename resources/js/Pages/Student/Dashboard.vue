@@ -97,11 +97,11 @@ const getStatusText = (status) => {
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex-1">
                             <h3 class="text-xl font-semibold text-gray-900 mb-2">
-                                {{ currentLocale === 'ar' ? enrollment.course.title : enrollment.course.titleEn }}
+                                {{ currentLocale === 'ar' ? enrollment.title : enrollment.titleEn }}
                             </h3>
                             <div class="flex items-center space-x-4 rtl:space-x-reverse">
                                 <span class="text-sm text-gray-600">
-                                    {{ currentLocale === 'en' ? 'by' : 'بواسطة' }} {{ enrollment.course.instructor }}
+                                    {{ currentLocale === 'en' ? 'by' : 'بواسطة' }} {{ enrollment.instructor }}
                                 </span>
                                 <span :class="`px-3 py-1 text-xs font-medium rounded-full ${getStatusColor(enrollment.status)}`">
                                     {{ getStatusText(enrollment.status) }}
@@ -111,34 +111,6 @@ const getStatusText = (status) => {
                         <button class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg">
                             {{ t('view_course') }}
                         </button>
-                    </div>
-                    
-                    <!-- Progress Section -->
-                    <div class="mb-4">
-                        <div class="flex items-center justify-between text-sm mb-2">
-                            <span class="text-gray-600 font-medium">{{ t('progress') }}</span>
-                            <span class="text-gray-500">{{ enrollment.progress }}% {{ t('completed') }}</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-3">
-                            <div :class="`h-3 rounded-full bg-gradient-to-r ${enrollment.color}`" 
-                                 :style="`width: ${enrollment.progress}%`"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Course Details -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <span class="text-gray-600">{{ t('last_accessed') }}: {{ enrollment.lastAccessed }}</span>
-                        </div>
-                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
-                            </svg>
-                            <span class="text-gray-600">{{ t('next_lesson') }}: {{ currentLocale === 'ar' ? enrollment.nextLesson : enrollment.nextLessonEn }}</span>
-                        </div>
                     </div>
                 </div>
             </div>

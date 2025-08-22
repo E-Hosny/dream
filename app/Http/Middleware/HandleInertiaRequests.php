@@ -33,13 +33,6 @@ class HandleInertiaRequests extends Middleware
         $locale = app()->getLocale();
         $sessionLocale = session('locale');
         
-        Log::info('HandleInertiaRequests share', [
-            'app_locale' => $locale,
-            'session_locale' => $sessionLocale,
-            'request_url' => $request->url(),
-            'user_agent' => $request->userAgent()
-        ]);
-        
         return [
             ...parent::share($request),
             'auth' => [
@@ -54,11 +47,6 @@ class HandleInertiaRequests extends Middleware
             'locale' => $locale,
             'language' => __('app.language'),
             'available_locales' => config('app.available_locales'),
-            'debug_info' => [
-                'session_locale' => $sessionLocale,
-                'app_locale' => $locale,
-                'config_locale' => config('app.locale'),
-            ],
         ];
     }
 }
