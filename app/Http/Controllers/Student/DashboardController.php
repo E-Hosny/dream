@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\CourseEnrollment;
 use Illuminate\Support\Facades\Auth;
+use App\Models\ZoomMeeting;
 
 class DashboardController extends Controller
 {
@@ -57,6 +58,41 @@ class DashboardController extends Controller
         return Inertia::render('Student/Dashboard', [
             'enrollments' => $enrollments,
             'locale' => app()->getLocale(),
+        ]);
+    }
+
+    /**
+     * الحصول على الاجتماعات النشطة للطالب
+     */
+    public function getActiveMeetings()
+    {
+        $user = Auth::user();
+        
+        // جلب الاجتماعات النشطة للكورسات المسجل فيها الطالب
+        $meetings = ZoomMeeting::with(['course', 'zoomAccount'])
+            ->whereHas('course.enrollments', function ($query) use ($user) {
+                $query->where('student_id', $user->id);
+            })
+            ->whereIn('status', ['started', 'created']) // تحديث الفلتر ليشمل الاجتماعات المنشأة والنشطة
+            ->orderBy('start_time', 'desc')
+            ->get()
+            ->map(function ($meeting) {
+                return [
+                    'id' => $meeting->id,
+                    'course_title' => $meeting->course->title_ar ?? $meeting->course->title,
+                    'topic' => $meeting->topic,
+                    'start_time' => $meeting->start_time->format('Y-m-d H:i'),
+                    'duration' => $meeting->duration,
+                    'join_url' => $meeting->join_url,
+                    'password' => $meeting->password,
+                    'status' => $meeting->status,
+                    'status_text' => $meeting->status === 'started' ? 'نشط' : 'مجدول'
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'meetings' => $meetings
         ]);
     }
 

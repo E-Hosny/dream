@@ -132,6 +132,38 @@ const startInstantMeeting = (course) => {
     showStartMeetingModal.value = true;
 };
 
+// بدء اجتماع موجود
+const startMeeting = async (meetingId) => {
+    try {
+        const response = await fetch(`/zoom-meetings/${meetingId}/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(currentLocale.value === 'ar' ? 'تم بدء الاجتماع بنجاح!' : 'Meeting started successfully!');
+            
+            // فتح Zoom في نافذة جديدة
+            if (data.start_url) {
+                window.open(data.start_url, '_blank');
+            }
+            
+            // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء بدء الاجتماع');
+        }
+    } catch (error) {
+        console.error('Error starting meeting:', error);
+        alert('حدث خطأ أثناء بدء الاجتماع');
+    }
+};
+
 const submitMeeting = async () => {
     if (!meetingForm.value.course_id || !meetingForm.value.topic) {
         alert(currentLocale.value === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
@@ -155,17 +187,9 @@ const submitMeeting = async () => {
         if (data.success) {
             alert(currentLocale.value === 'ar' ? 'تم بدء الاجتماع بنجاح!' : 'Meeting started successfully!');
             
-            // Debug: طباعة البيانات المستلمة
-            console.log('Meeting data received:', data);
-            console.log('Start URL:', data.data?.start_url);
-            
             // فتح Zoom في نافذة جديدة
             if (data.data && data.data.start_url) {
-                console.log('Opening Zoom URL:', data.data.start_url);
                 window.open(data.data.start_url, '_blank');
-            } else {
-                console.error('Start URL not found in response');
-                alert('خطأ: لم يتم العثور على رابط Zoom');
             }
             
             showStartMeetingModal.value = false;

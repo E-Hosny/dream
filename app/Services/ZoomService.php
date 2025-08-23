@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use App\Models\ZoomMeeting;
 
 class ZoomService
 {
@@ -206,5 +207,62 @@ class ZoomService
     private function generatePassword()
     {
         return strtoupper(substr(md5(uniqid()), 0, 8));
+    }
+
+    /**
+     * إنشاء رابط انضمام للضيوف (الطلاب)
+     */
+    public function generateGuestJoinUrl($meetingId, $password = null)
+    {
+        try {
+            Log::info('Generating guest join URL for meeting ID: ' . $meetingId);
+            Log::info('Password: ' . ($password ?: 'null'));
+            
+            // بدلاً من استدعاء Zoom API، نستخدم البيانات المحفوظة
+            // نحتاج إلى الحصول على معلومات الاجتماع من قاعدة البيانات
+            
+            // البحث عن الاجتماع في قاعدة البيانات
+            $meeting = \App\Models\ZoomMeeting::where('zoom_meeting_id', $meetingId)->first();
+            
+            if (!$meeting) {
+                Log::error('Meeting not found in database with zoom_meeting_id: ' . $meetingId);
+                return [
+                    'success' => false,
+                    'message' => 'الاجتماع غير موجود في قاعدة البيانات'
+                ];
+            }
+            
+            Log::info('Meeting found in database: ' . json_encode($meeting->toArray()));
+            
+            // إنشاء رابط انضمام للضيوف
+            $guestJoinUrl = $meeting->join_url;
+            Log::info('Original join URL from database: ' . $guestJoinUrl);
+            
+            // إذا كان هناك كلمة مرور، أضفها للرابط
+            if ($password) {
+                $separator = strpos($guestJoinUrl, '?') !== false ? '&' : '?';
+                $guestJoinUrl .= $separator . 'pwd=' . $password;
+                Log::info('Password added to URL: ' . $guestJoinUrl);
+            }
+            
+            $result = [
+                'success' => true,
+                'guest_join_url' => $guestJoinUrl,
+                'meeting_id' => $meetingId,
+                'password' => $password
+            ];
+            
+            Log::info('Guest join URL generated successfully from database: ' . json_encode($result));
+            return $result;
+            
+        } catch (\Exception $e) {
+            Log::error('Exception in generateGuestJoinUrl: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return [
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ];
+        }
     }
 }

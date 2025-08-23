@@ -118,8 +118,10 @@ Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingCo
     });
 
     // Student Routes
-    Route::prefix('student')->name('student.')->group(function () {
-        Route::get('/dashboard', [App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
+    Route::prefix('student')->name('student.')->middleware(['auth', 'role:student'])->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/active-meetings', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetings'])->name('active-meetings');
+        Route::post('/meetings/{meeting}/guest-join', [\App\Http\Controllers\ZoomMeetingController::class, 'generateGuestJoinUrl'])->name('guest-join');
         
         Route::get('/courses', function () {
             return Inertia::render('Student/Courses/Index');
@@ -164,6 +166,24 @@ Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingCo
 });
 
 require __DIR__."/auth.php";
+
+// Zoom Meeting Routes
+Route::prefix('zoom-meetings')->name('zoom-meetings.')->middleware(['auth'])->group(function () {
+    Route::get('/', [\App\Http\Controllers\ZoomMeetingController::class, 'index'])->name('index');
+    Route::get('/create', [\App\Http\Controllers\ZoomMeetingController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\ZoomMeetingController::class, 'store'])->name('store');
+    Route::get('/{meeting}', [\App\Http\Controllers\ZoomMeetingController::class, 'show'])->name('show');
+    Route::get('/{meeting}/edit', [\App\Http\Controllers\ZoomMeetingController::class, 'edit'])->name('edit');
+    Route::put('/{meeting}', [\App\Http\Controllers\ZoomMeetingController::class, 'update'])->name('update');
+    Route::delete('/{meeting}', [\App\Http\Controllers\ZoomMeetingController::class, 'destroy'])->name('destroy');
+    
+    // بدء وإنهاء الاجتماعات
+    Route::post('/{meeting}/start', [\App\Http\Controllers\ZoomMeetingController::class, 'start'])->name('start');
+    Route::post('/{meeting}/end', [\App\Http\Controllers\ZoomMeetingController::class, 'end'])->name('end');
+    
+    // اجتماع فوري
+    Route::post('/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])->name('start-instant');
+});
 
 
 

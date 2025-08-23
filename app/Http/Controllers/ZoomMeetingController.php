@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\ZoomAccount;
+use App\Models\CourseEnrollment;
 
 class ZoomMeetingController extends Controller
 {
@@ -255,6 +256,15 @@ class ZoomMeetingController extends Controller
     public function start(ZoomMeeting $meeting)
     {
         try {
+            // التحقق من أن المستخدم هو المعلم المسؤول عن الكورس
+            if (!Auth::user()->hasRole('teacher') || 
+                $meeting->course->instructor_id !== Auth::id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح لك ببدء هذا الاجتماع'
+                ], 403);
+            }
+
             $meeting->update([
                 'status' => 'started',
                 'updated_by' => Auth::id()
@@ -390,7 +400,7 @@ class ZoomMeetingController extends Controller
                 'join_url' => $meeting['join_url'],
                 'start_url' => $meeting['start_url'],
                 'password' => $meeting['password'],
-                'status' => 'created',
+                'status' => 'started', // تغيير من 'created' إلى 'started'
                 'host_email' => $teacher->email, // إضافة host_email
                 'created_by' => $teacher->id, // إضافة created_by
                 'updated_by' => $teacher->id  // إضافة updated_by
@@ -416,6 +426,84 @@ class ZoomMeetingController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء بدء الاجتماع: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * إنشاء رابط انضمام للضيف (الطالب)
+     */
+    public function generateGuestJoinUrl(ZoomMeeting $meeting)
+    {
+        try {
+            Log::info('generateGuestJoinUrl called for meeting ID: ' . $meeting->id);
+            Log::info('Meeting data: ' . json_encode([
+                'id' => $meeting->id,
+                'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                'course_id' => $meeting->course_id,
+                'topic' => $meeting->topic,
+                'password' => $meeting->password
+            ]));
+            
+            // التحقق من أن المستخدم طالب
+            if (!Auth::user()->hasRole('student')) {
+                Log::warning('User is not a student: ' . Auth::id());
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح لك بالوصول لهذا الرابط'
+                ], 403);
+            }
+
+            // التحقق من أن الطالب مسجل في الكورس
+            $enrollment = CourseEnrollment::where('student_id', Auth::id())
+                ->where('course_id', $meeting->course_id)
+                ->first();
+
+            if (!$enrollment) {
+                Log::warning('Student not enrolled in course. Student ID: ' . Auth::id() . ', Course ID: ' . $meeting->course_id);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'أنت غير مسجل في هذا الكورس'
+                ], 403);
+            }
+
+            Log::info('Student enrollment verified successfully');
+
+            // إنشاء رابط انضمام للضيف
+            Log::info('Calling ZoomService::generateGuestJoinUrl with meeting ID: ' . $meeting->zoom_meeting_id);
+            
+            $guestUrl = $this->zoomService->generateGuestJoinUrl(
+                $meeting->zoom_meeting_id, // استخدام zoom_meeting_id بدلاً من id
+                $meeting->password
+            );
+
+            Log::info('ZoomService response: ' . json_encode($guestUrl));
+
+            if ($guestUrl['success']) {
+                $response = [
+                    'success' => true,
+                    'guest_join_url' => $guestUrl['guest_join_url'],
+                    'meeting_id' => $meeting->id,
+                    'password' => $meeting->password
+                ];
+                
+                Log::info('Successfully generated guest join URL: ' . json_encode($response));
+                return response()->json($response);
+            }
+
+            Log::error('Failed to generate guest join URL: ' . $guestUrl['message']);
+            return response()->json([
+                'success' => false,
+                'message' => $guestUrl['message']
+            ], 400);
+
+        } catch (\Exception $e) {
+            Log::error('Guest Join URL Generation Error: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنشاء رابط الانضمام: ' . $e->getMessage()
             ], 500);
         }
     }
