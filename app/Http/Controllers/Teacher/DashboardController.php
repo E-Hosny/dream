@@ -81,6 +81,12 @@ class DashboardController extends Controller
             'teacherName' => $user->name,
             'teacherEmail' => $user->email,
             'locale' => app()->getLocale(),
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'zoom_account_id' => $user->zoom_account_id,
+            ],
         ]);
     }
 }

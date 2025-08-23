@@ -24,6 +24,7 @@ class User extends Authenticatable
         "name",
         "email",
         "password",
+        "zoom_account_id",
     ];
 
     /**
@@ -66,6 +67,12 @@ class User extends Authenticatable
     public function courseEnrollments(): HasMany
     {
         return $this->hasMany(CourseEnrollment::class, 'student_id');
+    }
+
+    // العلاقة مع Zoom Account
+    public function zoomAccount(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(ZoomAccount::class, 'zoom_account_id');
     }
 
     // Scopes

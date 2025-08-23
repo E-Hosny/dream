@@ -51,7 +51,35 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::get('/settings', function () {
             return Inertia::render('Admin/Settings/Index');
         })->name('settings.index');
+
+        // Zoom Meetings Management
+        Route::resource('zoom-meetings', \App\Http\Controllers\ZoomMeetingController::class);
+        Route::post('/zoom-meetings/{meeting}/start', [\App\Http\Controllers\ZoomMeetingController::class, 'start'])->name('zoom-meetings.start');
+        Route::post('/zoom-meetings/{meeting}/end', [\App\Http\Controllers\ZoomMeetingController::class, 'end'])->name('zoom-meetings.end');
+        Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])->name('zoom-meetings.start-instant');
+        Route::get('/zoom-meetings/upcoming', [\App\Http\Controllers\ZoomMeetingController::class, 'upcoming'])->name('zoom-meetings.upcoming');
+        
+        // Zoom Accounts Management
+        Route::resource('zoom-accounts', \App\Http\Controllers\Admin\ZoomAccountController::class);
+        Route::post('/zoom-accounts/{account}/toggle-status', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'toggleStatus'])->name('zoom-accounts.toggle-status');
+        Route::get('/zoom-accounts/available', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'available'])->name('zoom-accounts.available');
+        
+        // Teacher Zoom Account Linking
+        Route::post('/teachers/{teacher}/link-zoom-account', [\App\Http\Controllers\Admin\UserController::class, 'linkZoomAccount'])->name('teachers.link-zoom-account');
+        Route::post('/teachers/{teacher}/unlink-zoom-account', [\App\Http\Controllers\Admin\UserController::class, 'unlinkZoomAccount'])->name('teachers.unlink-zoom-account');
+        
+            // API Routes for Zoom
+    Route::get('/api/courses/{course}/schedules', function ($course) {
+        return \App\Models\CourseSchedule::where('course_id', $course)
+            ->where('is_active', true)
+            ->get();
     });
+});
+
+// General Zoom Meeting Routes (accessible from anywhere)
+Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])
+    ->name('zoom-meetings.start-instant')
+    ->middleware(['auth']);
 
     // Teacher Routes
     Route::prefix('teacher')->name('teacher.')->group(function () {
@@ -84,6 +112,9 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::get('/calendar', function () {
             return Inertia::render('Teacher/Calendar/Index');
         })->name('calendar.index');
+        
+        // Zoom Meeting Routes for Teachers
+        Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])->name('zoom-meetings.start-instant');
     });
 
     // Student Routes

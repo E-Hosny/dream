@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\ZoomAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -124,7 +125,7 @@ class UserController extends Controller
     public function teachers(Request $request)
     {
         $teachers = User::role('teacher')
-            ->with(['roles', 'teachingCourses'])
+            ->with(['roles', 'teachingCourses', 'zoomAccount'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('email', 'like', "%{$search}%");
@@ -133,8 +134,11 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $zoomAccounts = ZoomAccount::active()->with('teachers')->get(['id', 'name', 'email', 'is_active']);
+
         return Inertia::render('Admin/Teachers/Index', [
             'teachers' => $teachers,
+            'zoomAccounts' => $zoomAccounts,
             'filters' => $request->only(['search'])
         ]);
     }
@@ -155,5 +159,69 @@ class UserController extends Controller
             'students' => $students,
             'filters' => $request->only(['search'])
         ]);
+    }
+
+    /**
+     * ربط المعلم بحساب Zoom
+     */
+    public function linkZoomAccount(Request $request, User $teacher)
+    {
+        $request->validate([
+            'zoom_account_id' => 'required|exists:zoom_accounts,id'
+        ]);
+
+        // التحقق من أن المستخدم معلم
+        if (!$teacher->hasRole('teacher')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يمكن ربط حسابات Zoom بالمعلمين فقط'
+            ], 400);
+        }
+
+        // التحقق من أن الحساب متاح
+        $zoomAccount = ZoomAccount::find($request->zoom_account_id);
+        if ($zoomAccount->teachers()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذا الحساب مرتبط بمعلم آخر'
+            ], 400);
+        }
+
+        try {
+            $teacher->update(['zoom_account_id' => $request->zoom_account_id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم ربط المعلم بحساب Zoom بنجاح',
+                'zoom_account' => $zoomAccount->only(['id', 'name', 'email'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء ربط الحساب'
+            ], 500);
+        }
+    }
+
+    /**
+     * إلغاء ربط المعلم بحساب Zoom
+     */
+    public function unlinkZoomAccount(User $teacher)
+    {
+        try {
+            $teacher->update(['zoom_account_id' => null]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إلغاء ربط المعلم بحساب Zoom بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إلغاء ربط الحساب'
+            ], 500);
+        }
     }
 }

@@ -1,7 +1,7 @@
 <script setup>
 import TeacherLayout from '@/Layouts/TeacherLayout.vue';
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'en');
@@ -18,6 +18,7 @@ const props = defineProps({
     hasData: Boolean,
     teacherName: String,
     teacherEmail: String,
+    user: Object,
 });
 
 // Translation helper
@@ -92,12 +93,93 @@ const hasData = computed(() => props.hasData || false);
 const teacherName = computed(() => props.teacherName || user.value?.name);
 const teacherEmail = computed(() => props.teacherEmail || user.value?.email);
 
+// استخدام user من props أو من auth
+const currentUser = computed(() => props.user || user.value);
+
+// Debug logging
+console.log('Teacher Dashboard - Props:', props);
+console.log('Teacher Dashboard - Current User:', currentUser.value);
+console.log('Teacher Dashboard - Auth User:', user.value);
+
+// Meeting state
+const showStartMeetingModal = ref(false);
+const selectedCourse = ref(null);
+const meetingForm = ref({
+    course_id: '',
+    course_schedule_id: '',
+    topic: '',
+    duration: 60
+});
+const meetingLoading = ref(false);
+
 // Helper function to format currency
 const formatCurrency = (amount) => {
     return new Intl.NumberFormat(currentLocale.value, {
         style: 'currency',
         currency: 'EGP', // Assuming EGP for Egyptian Pound
     }).format(amount);
+};
+
+// Start meeting functions
+const startInstantMeeting = (course) => {
+    selectedCourse.value = course;
+    meetingForm.value = {
+        course_id: course.id,
+        course_schedule_id: course.nextSchedule?.id || null,
+        topic: `${course.title_ar || course.title} - اجتماع فوري`,
+        duration: 60
+    };
+    showStartMeetingModal.value = true;
+};
+
+const submitMeeting = async () => {
+    if (!meetingForm.value.course_id || !meetingForm.value.topic) {
+        alert(currentLocale.value === 'ar' ? 'يرجى ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+        return;
+    }
+
+    meetingLoading.value = true;
+
+    try {
+        const response = await fetch('/zoom-meetings/start-instant', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify(meetingForm.value)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(currentLocale.value === 'ar' ? 'تم بدء الاجتماع بنجاح!' : 'Meeting started successfully!');
+            
+            // Debug: طباعة البيانات المستلمة
+            console.log('Meeting data received:', data);
+            console.log('Start URL:', data.data?.start_url);
+            
+            // فتح Zoom في نافذة جديدة
+            if (data.data && data.data.start_url) {
+                console.log('Opening Zoom URL:', data.data.start_url);
+                window.open(data.data.start_url, '_blank');
+            } else {
+                console.error('Start URL not found in response');
+                alert('خطأ: لم يتم العثور على رابط Zoom');
+            }
+            
+            showStartMeetingModal.value = false;
+            // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء بدء الاجتماع');
+        }
+    } catch (error) {
+        console.error('Error starting meeting:', error);
+        alert('حدث خطأ أثناء بدء الاجتماع');
+    } finally {
+        meetingLoading.value = false;
+    }
 };
 </script>
 
@@ -394,26 +476,125 @@ const formatCurrency = (amount) => {
                         <div v-if="course.nextSchedule" class="mb-6">
                             <h4 class="text-lg font-semibold text-gray-700 mb-4">{{ currentLocale === 'en' ? 'Next Session' : 'الموعد التالي' }}:</h4>
                             <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                <div class="flex items-center space-x-4 rtl:space-x-reverse">
-                                    <div class="flex-shrink-0">
-                                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="text-lg font-semibold text-blue-900">
+                                                {{ course.nextSchedule.day }} {{ currentLocale === 'ar' ? 'الساعة' : 'at' }} {{ course.nextSchedule.time }}
+                                            </p>
+                                            <p class="text-sm text-blue-700">
+                                                {{ course.nextSchedule.nextOccurrence }}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div class="flex-1">
-                                        <p class="text-lg font-semibold text-blue-900">
-                                            {{ course.nextSchedule.day }} {{ currentLocale === 'ar' ? 'الساعة' : 'at' }} {{ course.nextSchedule.time }}
-                                        </p>
-                                        <p class="text-sm text-blue-700">
-                                            {{ course.nextSchedule.nextOccurrence }}
-                                        </p>
+                                    
+                                    <!-- Start Meeting Button -->
+                                    <button
+                                        v-if="currentUser && currentUser.zoom_account_id"
+                                        @click="startInstantMeeting(course)"
+                                        class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors flex items-center space-x-2 rtl:space-x-reverse"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        <span>{{ currentLocale === 'ar' ? 'ابدأ الآن' : 'Start Now' }}</span>
+                                    </button>
+                                    
+                                    <!-- Debug Info -->
+                                    <div v-if="!currentUser || !currentUser.zoom_account_id" class="text-sm text-gray-500 mt-2">
+                                        {{ currentLocale === 'ar' ? 'لا يمكن بدء الاجتماع - لا يوجد حساب Zoom مرتبط' : 'Cannot start meeting - No Zoom account linked' }}
+                                        <br>
+                                        <small>Debug: currentUser={{ currentUser ? 'exists' : 'null' }}, zoom_account_id={{ currentUser?.zoom_account_id || 'null' }}</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Meeting Modal -->
+        <div v-if="showStartMeetingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        {{ currentLocale === 'ar' ? 'ابدأ اجتماع Zoom' : 'Start Zoom Meeting' }}
+                    </h3>
+                    
+                    <form @submit.prevent="submitMeeting">
+                        <!-- Course Info -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ currentLocale === 'ar' ? 'الكورس' : 'Course' }}
+                            </label>
+                            <div class="px-3 py-2 bg-gray-100 rounded-md text-gray-700">
+                                {{ selectedCourse?.title_ar || selectedCourse?.title }}
+                            </div>
+                        </div>
+
+                        <!-- Topic -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ currentLocale === 'ar' ? 'عنوان الاجتماع' : 'Meeting Topic' }}
+                            </label>
+                            <input
+                                v-model="meetingForm.topic"
+                                type="text"
+                                required
+                                :placeholder="currentLocale === 'ar' ? 'أدخل عنوان الاجتماع' : 'Enter meeting topic'"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <!-- Duration -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ currentLocale === 'ar' ? 'مدة الاجتماع (دقائق)' : 'Duration (minutes)' }}
+                            </label>
+                            <select
+                                v-model="meetingForm.duration"
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="30">30 {{ currentLocale === 'ar' ? 'دقيقة' : 'minutes' }}</option>
+                                <option value="45">45 {{ currentLocale === 'ar' ? 'دقيقة' : 'minutes' }}</option>
+                                <option value="60">60 {{ currentLocale === 'ar' ? 'دقيقة' : 'minutes' }}</option>
+                                <option value="90">90 {{ currentLocale === 'ar' ? 'دقيقة' : 'minutes' }}</option>
+                                <option value="120">120 {{ currentLocale === 'ar' ? 'دقيقة' : 'minutes' }}</option>
+                            </select>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex justify-end space-x-3 rtl:space-x-reverse">
+                            <button
+                                type="button"
+                                @click="showStartMeetingModal = false"
+                                class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                            >
+                                {{ currentLocale === 'ar' ? 'إلغاء' : 'Cancel' }}
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="meetingLoading"
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <span v-if="meetingLoading">
+                                    {{ currentLocale === 'ar' ? 'جاري البدء...' : 'Starting...' }}
+                                </span>
+                                <span v-else>
+                                    {{ currentLocale === 'ar' ? 'ابدأ الآن' : 'Start Now' }}
+                                </span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

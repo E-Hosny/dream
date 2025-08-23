@@ -59,6 +59,12 @@ class Course extends Model
         return $this->hasMany(CourseSchedule::class);
     }
 
+    // العلاقة مع اجتماعات Zoom
+    public function zoomMeetings(): HasMany
+    {
+        return $this->hasMany(ZoomMeeting::class);
+    }
+
     // الحصول على الموعد التالي للكورس
     public function getNextScheduleAttribute()
     {
