@@ -71,39 +71,33 @@ class CourseSchedule extends Model
         $currentDay = strtolower($today->format('l'));
         $currentTime = $today->format('H:i:s');
         
+        // تحويل اسم اليوم إلى رقم (0 = الأحد، 6 = السبت)
+        $dayMap = [
+            'sunday' => 0,
+            'monday' => 1,
+            'tuesday' => 2,
+            'wednesday' => 3,
+            'thursday' => 4,
+            'friday' => 5,
+            'saturday' => 6,
+        ];
+        
+        $currentDayNum = $today->dayOfWeek; // 0 = الأحد، 6 = السبت
+        $targetDayNum = $dayMap[$this->day_of_week];
+        
         // إذا كان اليوم الحالي هو يوم الكورس والوقت لم يمر بعد
-        if ($currentDay === $this->day_of_week && $currentTime < $this->start_time) {
-            return $today->setTimeFrom($this->start_time);
+        if ($currentDayNum === $targetDayNum && $currentTime < $this->start_time->format('H:i:s')) {
+            return $today->copy()->setTimeFrom($this->start_time);
         }
         
-        // البحث عن اليوم التالي
-        $nextDay = $today->copy();
-        $daysToAdd = 0;
+        // حساب الأيام المطلوبة للوصول إلى اليوم التالي
+        $daysToAdd = ($targetDayNum - $currentDayNum + 7) % 7;
         
-        switch ($this->day_of_week) {
-            case 'saturday':
-                $daysToAdd = $currentDay === 'friday' ? 1 : (6 - $today->dayOfWeek + 6) % 7;
-                break;
-            case 'sunday':
-                $daysToAdd = $currentDay === 'saturday' ? 1 : (7 - $today->dayOfWeek) % 7;
-                break;
-            case 'monday':
-                $daysToAdd = $currentDay === 'sunday' ? 1 : (8 - $today->dayOfWeek) % 7;
-                break;
-            case 'tuesday':
-                $daysToAdd = $currentDay === 'monday' ? 1 : (9 - $today->dayOfWeek) % 7;
-                break;
-            case 'wednesday':
-                $daysToAdd = $currentDay === 'tuesday' ? 1 : (10 - $today->dayOfWeek) % 7;
-                break;
-            case 'thursday':
-                $daysToAdd = $currentDay === 'wednesday' ? 1 : (11 - $today->dayOfWeek) % 7;
-                break;
-            case 'friday':
-                $daysToAdd = $currentDay === 'thursday' ? 1 : (12 - $today->dayOfWeek) % 7;
-                break;
+        // إذا كان اليوم الحالي هو يوم الكورس والوقت قد مر، ننتقل للأسبوع التالي
+        if ($daysToAdd === 0 && $currentTime >= $this->start_time->format('H:i:s')) {
+            $daysToAdd = 7;
         }
         
-        return $nextDay->addDays($daysToAdd)->setTimeFrom($this->start_time);
+        return $today->copy()->addDays($daysToAdd)->setTimeFrom($this->start_time);
     }
 }
