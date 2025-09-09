@@ -218,38 +218,53 @@ class ZoomService
             Log::info('Generating guest join URL for meeting ID: ' . $meetingId);
             Log::info('Password: ' . ($password ?: 'null'));
             
-            // بدلاً من استدعاء Zoom API، نستخدم البيانات المحفوظة
-            // نحتاج إلى الحصول على معلومات الاجتماع من قاعدة البيانات
-            
-            // البحث عن الاجتماع في قاعدة البيانات
+            // البحث عن الاجتماع في قاعدة البيانات بـ zoom_meeting_id
             $meeting = \App\Models\ZoomMeeting::where('zoom_meeting_id', $meetingId)->first();
             
             if (!$meeting) {
                 Log::error('Meeting not found in database with zoom_meeting_id: ' . $meetingId);
+                
+                // تجربة البحث بـ ID العادي كخطة بديلة
+                $meeting = \App\Models\ZoomMeeting::where('id', $meetingId)->first();
+                
+                if (!$meeting) {
+                    Log::error('Meeting not found with regular ID either: ' . $meetingId);
                 return [
                     'success' => false,
                     'message' => 'الاجتماع غير موجود في قاعدة البيانات'
                 ];
             }
             
-            Log::info('Meeting found in database: ' . json_encode($meeting->toArray()));
+                Log::info('Meeting found using regular ID instead of zoom_meeting_id');
+            }
+            
+            Log::info('Meeting found in database: ID=' . $meeting->id . ', zoom_meeting_id=' . $meeting->zoom_meeting_id . ', status=' . $meeting->status);
+            
+            // التحقق من حالة الاجتماع
+            if ($meeting->status !== 'started') {
+                Log::warning('Meeting is not started. Current status: ' . $meeting->status);
+                return [
+                    'success' => false,
+                    'message' => 'الاجتماع ليس نشطاً حالياً'
+                ];
+            }
             
             // إنشاء رابط انضمام للضيوف
             $guestJoinUrl = $meeting->join_url;
             Log::info('Original join URL from database: ' . $guestJoinUrl);
             
             // إذا كان هناك كلمة مرور، أضفها للرابط
-            if ($password) {
+            if ($meeting->password) {
                 $separator = strpos($guestJoinUrl, '?') !== false ? '&' : '?';
-                $guestJoinUrl .= $separator . 'pwd=' . $password;
+                $guestJoinUrl .= $separator . 'pwd=' . $meeting->password;
                 Log::info('Password added to URL: ' . $guestJoinUrl);
             }
             
             $result = [
                 'success' => true,
                 'guest_join_url' => $guestJoinUrl,
-                'meeting_id' => $meetingId,
-                'password' => $password
+                'meeting_id' => $meeting->zoom_meeting_id,
+                'password' => $meeting->password
             ];
             
             Log::info('Guest join URL generated successfully from database: ' . json_encode($result));

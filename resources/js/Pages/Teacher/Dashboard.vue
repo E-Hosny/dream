@@ -50,6 +50,10 @@ const t = (key) => {
             total_courses: 'Total Courses',
             active_courses: 'Active Courses',
             total_students: 'Total Students',
+            start_meeting: 'Start Meeting',
+            end_meeting: 'End Meeting',
+            meeting_active: 'Meeting Active',
+            meeting_topic: 'Topic',
         },
         ar: {
             teacher_dashboard: 'لوحة تحكم المعلم',
@@ -77,6 +81,10 @@ const t = (key) => {
             total_courses: 'إجمالي الكورسات',
             active_courses: 'الكورسات النشطة',
             total_students: 'إجمالي الطلاب',
+            start_meeting: 'ابدأ الاجتماع',
+            end_meeting: 'إنهاء الاجتماع',
+            meeting_active: 'اجتماع نشط',
+            meeting_topic: 'الموضوع',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -203,6 +211,36 @@ const submitMeeting = async () => {
         alert('حدث خطأ أثناء بدء الاجتماع');
     } finally {
         meetingLoading.value = false;
+    }
+};
+
+// إنهاء الاجتماع
+const endMeeting = async (courseId) => {
+    if (!confirm(currentLocale.value === 'ar' ? 'هل أنت متأكد من إنهاء الاجتماع؟' : 'Are you sure you want to end the meeting?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/teacher/courses/${courseId}/end-meeting`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(currentLocale.value === 'ar' ? 'تم إنهاء الاجتماع بنجاح!' : 'Meeting ended successfully!');
+            // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء إنهاء الاجتماع');
+        }
+    } catch (error) {
+        console.error('Error ending meeting:', error);
+        alert('حدث خطأ أثناء إنهاء الاجتماع');
     }
 };
 </script>
@@ -519,23 +557,59 @@ const submitMeeting = async () => {
                                         </div>
                                     </div>
                                     
-                                    <!-- Start Meeting Button -->
-                                    <button
-                                        v-if="currentUser && currentUser.zoom_account_id"
-                                        @click="startInstantMeeting(course)"
-                                        class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors flex items-center space-x-2 rtl:space-x-reverse"
-                                    >
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                        </svg>
-                                        <span>{{ currentLocale === 'ar' ? 'ابدأ الآن' : 'Start Now' }}</span>
-                                    </button>
-                                    
-                                    <!-- Debug Info -->
-                                    <div v-if="!currentUser || !currentUser.zoom_account_id" class="text-sm text-gray-500 mt-2">
-                                        {{ currentLocale === 'ar' ? 'لا يمكن بدء الاجتماع - لا يوجد حساب Zoom مرتبط' : 'Cannot start meeting - No Zoom account linked' }}
-                                        <br>
-                                        <small>Debug: currentUser={{ currentUser ? 'exists' : 'null' }}, zoom_account_id={{ currentUser?.zoom_account_id || 'null' }}</small>
+                                    <!-- Active Meeting Info -->
+                                    <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                                <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600 text-white">
+                                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <p class="text-sm font-medium text-green-900">{{ t('meeting_active') }}</p>
+                                                    <p class="text-xs text-green-700">{{ t('meeting_topic') }}: {{ course.activeMeeting.topic }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                <svg class="w-2 h-2 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                                                    <circle cx="4" cy="4" r="4" />
+                                                </svg>
+                                                {{ currentLocale === 'ar' ? 'نشط' : 'Live' }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Meeting Control Buttons -->
+                                    <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse">
+                                        <!-- End Meeting Button -->
+                                        <button
+                                            v-if="course.hasActiveMeeting"
+                                            @click="endMeeting(course.id)"
+                                            class="px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors flex items-center space-x-2 rtl:space-x-reverse"
+                                        >
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728"></path>
+                                            </svg>
+                                            <span>{{ t('end_meeting') }}</span>
+                                        </button>
+                                        
+                                        <!-- Start Meeting Button -->
+                                        <button
+                                            v-if="!course.hasActiveMeeting && currentUser && currentUser.zoom_account_id"
+                                            @click="startInstantMeeting(course)"
+                                            class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors flex items-center space-x-2 rtl:space-x-reverse"
+                                        >
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                            <span>{{ t('start_meeting') }}</span>
+                                        </button>
+                                        
+                                        <!-- Debug Info -->
+                                        <div v-if="!course.hasActiveMeeting && (!currentUser || !currentUser.zoom_account_id)" class="text-sm text-gray-500">
+                                            {{ currentLocale === 'ar' ? 'لا يوجد حساب Zoom مرتبط' : 'No Zoom account linked' }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

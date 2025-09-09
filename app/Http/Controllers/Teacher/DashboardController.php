@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Course;
+use App\Models\ZoomMeeting;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -14,12 +15,20 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         
-        // جلب الكورسات التي يدرسها المعلم مع المواعيد
+        // تنظيف الاجتماعات القديمة أولاً
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // جلب الكورسات التي يدرسها المعلم مع المواعيد والاجتماعات النشطة
         $courses = Course::with(['schedules', 'enrollments.student'])
             ->where('instructor_id', $user->id)
             ->get()
             ->map(function ($course) {
                 $nextSchedule = $course->next_schedule;
+                
+                // البحث عن اجتماع نشط للكورس
+                $activeMeeting = ZoomMeeting::where('course_id', $course->id)
+                    ->activeAndValid()
+                    ->first();
                 
                 return [
                     'id' => $course->id,
@@ -61,6 +70,15 @@ class DashboardController extends Controller
                         'time' => $nextSchedule->start_time->format('H:i'),
                         'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans()
                     ] : null,
+                    'activeMeeting' => $activeMeeting ? [
+                        'id' => $activeMeeting->id,
+                        'topic' => $activeMeeting->topic,
+                        'start_time' => $activeMeeting->start_time->format('Y-m-d H:i:s'),
+                        'duration' => $activeMeeting->duration,
+                        'status' => $activeMeeting->status,
+                        'zoom_meeting_id' => $activeMeeting->zoom_meeting_id,
+                    ] : null,
+                    'hasActiveMeeting' => $activeMeeting !== null,
                     'created_at' => $course->created_at,
                 ];
             });
@@ -88,5 +106,66 @@ class DashboardController extends Controller
                 'zoom_account_id' => $user->zoom_account_id,
             ],
         ]);
+    }
+    
+    /**
+     * إنهاء اجتماع نشط لكورس معين
+     */
+    public function endMeeting(Request $request, $courseId)
+    {
+        $user = Auth::user();
+        
+        try {
+            // التحقق من أن المعلم يملك هذا الكورس
+            $course = Course::where('id', $courseId)
+                ->where('instructor_id', $user->id)
+                ->first();
+                
+            if (!$course) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح لك بإنهاء اجتماع هذا الكورس'
+                ], 403);
+            }
+            
+            // البحث عن الاجتماع النشط للكورس
+            $activeMeeting = ZoomMeeting::where('course_id', $courseId)
+                ->activeAndValid()
+                ->first();
+                
+            if (!$activeMeeting) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يوجد اجتماع نشط لهذا الكورس'
+                ], 404);
+            }
+            
+            // إنهاء الاجتماع
+            $activeMeeting->update([
+                'status' => 'ended',
+                'updated_by' => $user->id,
+                'updated_at' => now()
+            ]);
+            
+            \Log::info("Meeting ended by teacher. Meeting ID: {$activeMeeting->id}, Course ID: {$courseId}, Teacher ID: {$user->id}");
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنهاء الاجتماع بنجاح',
+                'meeting' => [
+                    'id' => $activeMeeting->id,
+                    'topic' => $activeMeeting->topic,
+                    'status' => 'ended'
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error ending meeting: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنهاء الاجتماع'
+            ], 500);
+        }
     }
 }

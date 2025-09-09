@@ -155,4 +155,25 @@ class ZoomMeeting extends Model
                     ->where('start_time', '<=', now()->addDays($days))
                     ->where('status', 'scheduled');
     }
+
+    public function scopeActiveAndValid($query)
+    {
+        return $query->where('status', 'started')
+                    ->where('created_at', '>', now()->subHours(8)) // الاجتماعات التي لا تزيد عن 8 ساعات
+                    ->where(function($query) {
+                        // إما أن يكون start_time في المستقبل أو خلال الساعات الماضية القليلة
+                        $query->where('start_time', '>', now()->subHours(4))
+                              ->orWhere('start_time', '<=', now()->addHours(1));
+                    });
+    }
+
+    /**
+     * تنظيف الاجتماعات القديمة
+     */
+    public static function cleanupOldMeetings()
+    {
+        return static::where('status', 'started')
+            ->where('created_at', '<', now()->subHours(8))
+            ->update(['status' => 'ended', 'updated_at' => now()]);
+    }
 }

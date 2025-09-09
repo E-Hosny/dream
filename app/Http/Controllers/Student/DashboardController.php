@@ -47,6 +47,8 @@ class DashboardController extends Controller
                         'time' => $nextSchedule->start_time->format('H:i'),
                         'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans()
                     ] : null,
+                    'course_id' => $enrollment->course->id,
+                    'hasActiveMeeting' => $this->hasActiveMeeting($enrollment->course->id),
                     'course' => [
                         'title' => $enrollment->course->title_ar,
                         'titleEn' => $enrollment->course->title,
@@ -115,6 +117,117 @@ class DashboardController extends Controller
             return 'from-blue-500 to-indigo-600';
         } else {
             return 'from-gray-500 to-gray-600';
+        }
+    }
+
+    /**
+     * فحص وجود اجتماع نشط للكورس
+     */
+    private function hasActiveMeeting($courseId)
+    {
+        // تنظيف الاجتماعات القديمة أولاً
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // فحص الاجتماعات النشطة والصالحة للكورس
+        $hasActive = ZoomMeeting::where('course_id', $courseId)
+            ->activeAndValid()
+            ->exists();
+            
+        // إضافة log للتتبع
+        \Log::info("Checking active meeting for course {$courseId}: " . ($hasActive ? 'YES' : 'NO'));
+        
+        return $hasActive;
+    }
+
+    /**
+     * جلب حالة الاجتماع النشط للكورس
+     */
+    public function getActiveMeetingStatus($courseId)
+    {
+        \Log::info("Getting active meeting status for course: {$courseId}");
+        
+        // تنظيف الاجتماعات القديمة أولاً
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // فحص وجود اجتماعات نشطة للكورس
+        $activeMeetings = ZoomMeeting::where('course_id', $courseId)
+            ->activeAndValid()
+            ->get();
+            
+        \Log::info("Found {$activeMeetings->count()} valid active meetings for course {$courseId}");
+        
+        $hasActiveMeeting = $activeMeetings->isNotEmpty();
+        
+        return response()->json([
+            'success' => true,
+            'hasActiveMeeting' => $hasActiveMeeting,
+            'debug' => [
+                'course_id' => $courseId,
+                'meetings_count' => $activeMeetings->count(),
+                'meetings' => $activeMeetings->map(function($meeting) {
+                    return [
+                        'id' => $meeting->id,
+                        'topic' => $meeting->topic,
+                        'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
+                        'start_time' => $meeting->start_time->format('Y-m-d H:i:s')
+                    ];
+                })->toArray()
+            ]
+        ]);
+    }
+
+    /**
+     * جلب الاجتماع النشط للكورس
+     */
+    public function getActiveMeetingForCourse($courseId)
+    {
+        $user = Auth::user();
+        \Log::info("Student {$user->id} requesting active meeting for course {$courseId}");
+        
+        // التأكد من أن الطالب مسجل في هذا الكورس
+        $isEnrolled = CourseEnrollment::where('student_id', $user->id)
+            ->where('course_id', $courseId)
+            ->exists();
+            
+        if (!$isEnrolled) {
+            \Log::warning("Student {$user->id} is not enrolled in course {$courseId}");
+            return response()->json([
+                'success' => false,
+                'message' => 'غير مسجل في هذا الكورس'
+            ]);
+        }
+        
+        // تنظيف الاجتماعات القديمة أولاً
+        ZoomMeeting::cleanupOldMeetings();
+        
+        $meeting = ZoomMeeting::with(['course'])
+            ->where('course_id', $courseId)
+            ->activeAndValid()
+            ->first();
+            
+        if ($meeting) {
+            \Log::info("Found active meeting for course {$courseId}: Meeting ID {$meeting->id}, Zoom Meeting ID: {$meeting->zoom_meeting_id}");
+            
+            return response()->json([
+                'success' => true,
+                'meeting' => [
+                    'id' => $meeting->id,
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'topic' => $meeting->topic,
+                    'course_title' => $meeting->course->title_ar ?? $meeting->course->title,
+                    'start_time' => $meeting->start_time->format('Y-m-d H:i'),
+                    'duration' => $meeting->duration,
+                    'password' => $meeting->password,
+                    'status' => $meeting->status,
+                    'join_url' => $meeting->join_url
+                ]
+            ]);
+        } else {
+            \Log::info("No active meeting found for course {$courseId}");
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يوجد اجتماع نشط لهذا الكورس'
+            ]);
         }
     }
 }

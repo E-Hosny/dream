@@ -388,6 +388,14 @@ class ZoomMeetingController extends Controller
             
             Log::info('Meeting created successfully:', $meeting);
 
+            // إنهاء أي اجتماعات قديمة نشطة لنفس الكورس قبل بدء اجتماع جديد
+            if ($request->input('course_id')) {
+                ZoomMeeting::where('course_id', $request->input('course_id'))
+                    ->where('status', 'started')
+                    ->where('created_at', '<', now()->subHours(2))
+                    ->update(['status' => 'ended', 'updated_at' => now()]);
+            }
+
             // حفظ بيانات الاجتماع في قاعدة البيانات
             $zoomMeeting = ZoomMeeting::create([
                 'course_id' => $request->input('course_id'), // إضافة course_id
@@ -442,8 +450,19 @@ class ZoomMeetingController extends Controller
                 'zoom_meeting_id' => $meeting->zoom_meeting_id,
                 'course_id' => $meeting->course_id,
                 'topic' => $meeting->topic,
-                'password' => $meeting->password
+                'password' => $meeting->password,
+                'status' => $meeting->status,
+                'join_url' => $meeting->join_url
             ]));
+            
+            // التحقق من حالة الاجتماع
+            if ($meeting->status !== 'started') {
+                Log::warning('Meeting is not started. Current status: ' . $meeting->status);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الاجتماع ليس نشطاً حالياً'
+                ], 400);
+            }
             
             // التحقق من أن المستخدم طالب
             if (!Auth::user()->hasRole('student')) {
