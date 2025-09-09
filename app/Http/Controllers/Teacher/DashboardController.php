@@ -141,11 +141,12 @@ class DashboardController extends Controller
             }
             
             // إنهاء الاجتماع
-            $activeMeeting->update([
-                'status' => 'ended',
-                'updated_by' => $user->id,
-                'updated_at' => now()
-            ]);
+        $activeMeeting->update([
+            'status' => 'ended',
+            'actual_end_time' => now(), // الوقت الفعلي لانتهاء الاجتماع
+            'updated_by' => $user->id,
+            'updated_at' => now()
+        ]);
             
             \Log::info("Meeting ended by teacher. Meeting ID: {$activeMeeting->id}, Course ID: {$courseId}, Teacher ID: {$user->id}");
             
@@ -167,5 +168,79 @@ class DashboardController extends Controller
                 'message' => 'حدث خطأ أثناء إنهاء الاجتماع'
             ], 500);
         }
+    }
+    
+    /**
+     * عرض تفاصيل الكورس للمعلم
+     */
+    public function showCourse($courseId)
+    {
+        $user = Auth::user();
+        
+        // التحقق من أن المعلم يملك هذا الكورس
+        $course = Course::with(['schedules', 'enrollments.student'])
+            ->where('id', $courseId)
+            ->where('instructor_id', $user->id)
+            ->first();
+            
+        if (!$course) {
+            return redirect()->route('teacher.dashboard')->with('error', 'غير مصرح لك بعرض هذا الكورس');
+        }
+        
+        // تنظيف الاجتماعات القديمة
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // جلب الاجتماعات المرتبطة بهذا الكورس
+        $meetings = ZoomMeeting::where('course_id', $courseId)
+            ->orderBy('start_time', 'desc')
+            ->get()
+            ->map(function ($meeting) {
+                return [
+                    'id' => $meeting->id,
+                    'topic' => $meeting->topic,
+                    'start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : ($meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null),
+                    'end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
+                    'duration' => $meeting->duration,
+                    'status' => $meeting->status,
+                    'status_text' => $meeting->status_text,
+                    'status_color' => $meeting->status_color,
+                    'join_url' => $meeting->join_url,
+                    'start_url' => $meeting->start_url,
+                    'password' => $meeting->password,
+                    'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                ];
+            });
+            
+        // البحث عن اجتماع نشط
+        $activeMeeting = ZoomMeeting::where('course_id', $courseId)
+            ->activeAndValid()
+            ->first();
+            
+        $courseData = [
+            'id' => $course->id,
+            'title' => $course->title_ar,
+            'titleEn' => $course->title,
+            'activeMeeting' => $activeMeeting ? [
+                'id' => $activeMeeting->id,
+                'topic' => $activeMeeting->topic,
+                'start_time' => $activeMeeting->actual_start_time ? $activeMeeting->actual_start_time->format('Y-m-d H:i:s') : $activeMeeting->start_time->format('Y-m-d H:i:s'),
+                'duration' => $activeMeeting->duration,
+                'status' => $activeMeeting->status,
+            ] : null,
+            'hasActiveMeeting' => $activeMeeting !== null,
+        ];
+        
+        return Inertia::render('Teacher/Courses/Show', [
+            'course' => $courseData,
+            'meetings' => $meetings,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'zoom_account_id' => $user->zoom_account_id,
+            ],
+            'locale' => app()->getLocale(),
+        ]);
     }
 }

@@ -116,6 +116,7 @@ Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingCo
         // Zoom Meeting Routes for Teachers
         Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])->name('zoom-meetings.start-instant');
         Route::post('/courses/{course}/end-meeting', [\App\Http\Controllers\Teacher\DashboardController::class, 'endMeeting'])->name('courses.end-meeting');
+        Route::get('/courses/{course}', [\App\Http\Controllers\Teacher\DashboardController::class, 'showCourse'])->name('courses.show');
     });
 
     // Student Routes
@@ -124,6 +125,7 @@ Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingCo
         Route::get('/active-meetings', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetings'])->name('active-meetings');
         Route::get('/courses/{course}/active-meeting-status', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingStatus'])->name('active-meeting-status');
         Route::get('/courses/{course}/active-meeting', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingForCourse'])->name('active-meeting');
+        Route::get('/courses/{course}', [\App\Http\Controllers\Student\DashboardController::class, 'showCourse'])->name('courses.show');
         Route::post('/meetings/{meeting}/guest-join', [\App\Http\Controllers\ZoomMeetingController::class, 'generateGuestJoinUrl'])->name('guest-join');
         
         Route::get('/courses', function () {

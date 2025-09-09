@@ -15,6 +15,8 @@ class ZoomMeeting extends Model
         'zoom_meeting_id',
         'topic',
         'start_time',
+        'actual_start_time',
+        'actual_end_time',
         'duration',
         'join_url',
         'start_url',
@@ -30,6 +32,8 @@ class ZoomMeeting extends Model
 
     protected $casts = [
         'start_time' => 'datetime',
+        'actual_start_time' => 'datetime',
+        'actual_end_time' => 'datetime',
         'settings' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'

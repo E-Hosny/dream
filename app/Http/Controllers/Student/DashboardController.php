@@ -230,4 +230,80 @@ class DashboardController extends Controller
             ]);
         }
     }
+    
+    /**
+     * عرض تفاصيل الكورس للطالب
+     */
+    public function showCourse($courseId)
+    {
+        $user = Auth::user();
+        
+        // التحقق من أن الطالب مسجل في هذا الكورس
+        $enrollment = CourseEnrollment::with(['course.instructor', 'course.schedules'])
+            ->where('student_id', $user->id)
+            ->where('course_id', $courseId)
+            ->first();
+            
+        if (!$enrollment) {
+            return redirect()->route('student.dashboard')->with('error', 'غير مسجل في هذا الكورس');
+        }
+        
+        $course = $enrollment->course;
+        
+        // تنظيف الاجتماعات القديمة
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // جلب الاجتماعات المرتبطة بهذا الكورس
+        $meetings = ZoomMeeting::where('course_id', $courseId)
+            ->whereIn('status', ['started', 'ended', 'scheduled']) // الطالب يرى الاجتماعات المنتهية أيضاً
+            ->orderBy('start_time', 'desc')
+            ->get()
+            ->map(function ($meeting) {
+                return [
+                    'id' => $meeting->id,
+                    'topic' => $meeting->topic,
+                    'start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : ($meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null),
+                    'end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
+                    'duration' => $meeting->duration,
+                    'status' => $meeting->status,
+                    'status_text' => $meeting->status_text,
+                    'status_color' => $meeting->status_color,
+                    'password' => $meeting->password,
+                    'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
+                    'can_join' => $meeting->status === 'started',
+                ];
+            });
+            
+        // البحث عن اجتماع نشط
+        $activeMeeting = ZoomMeeting::where('course_id', $courseId)
+            ->activeAndValid()
+            ->first();
+            
+        $nextSchedule = $course->next_schedule;
+        
+        $courseData = [
+            'id' => $course->id,
+            'title' => $course->title_ar,
+            'titleEn' => $course->title,
+            'activeMeeting' => $activeMeeting ? [
+                'id' => $activeMeeting->id,
+                'topic' => $activeMeeting->topic,
+                'start_time' => $activeMeeting->actual_start_time ? $activeMeeting->actual_start_time->format('Y-m-d H:i:s') : $activeMeeting->start_time->format('Y-m-d H:i:s'),
+                'duration' => $activeMeeting->duration,
+                'status' => $activeMeeting->status,
+            ] : null,
+            'hasActiveMeeting' => $activeMeeting !== null,
+        ];
+        
+        return Inertia::render('Student/Courses/Show', [
+            'course' => $courseData,
+            'meetings' => $meetings,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'locale' => app()->getLocale(),
+        ]);
+    }
 }

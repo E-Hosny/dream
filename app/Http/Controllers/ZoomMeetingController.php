@@ -404,6 +404,7 @@ class ZoomMeetingController extends Controller
                 'zoom_account_id' => $teacher->zoom_account_id,
                 'topic' => $meetingData['topic'],
                 'start_time' => now(),
+                'actual_start_time' => now(), // الوقت الفعلي لبداية الاجتماع
                 'duration' => $meetingData['duration'],
                 'join_url' => $meeting['join_url'],
                 'start_url' => $meeting['start_url'],

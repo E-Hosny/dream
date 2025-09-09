@@ -1,6 +1,6 @@
 <script setup>
 import TeacherLayout from '@/Layouts/TeacherLayout.vue';
-import { Head, usePage } from '@inertiajs/vue3';
+import { Head, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const page = usePage();
@@ -501,10 +501,14 @@ const endMeeting = async (courseId) => {
                                 {{ currentLocale === 'en' ? 'Created' : 'تم الإنشاء' }}: {{ new Date(course.created_at).toLocaleDateString(currentLocale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US') }}
                             </div>
                             <div class="flex space-x-3 rtl:space-x-reverse">
-                                <a :href="`/admin/courses/${course.id}`" 
-                                   class="px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors">
+                                <Link :href="route('teacher.courses.show', course.id)"
+                                      class="px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                    </svg>
                                     {{ t('view_course') }}
-                                </a>
+                                </Link>
                                 <a :href="`/admin/courses/${course.id}/edit`" 
                                    class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
                                     {{ t('edit_course') }}
