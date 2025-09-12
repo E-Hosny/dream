@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
@@ -13,7 +13,7 @@ const hasRole = (role) => {
     return userRoles.value.includes(role);
 };
 
-const showingSidebar = ref(true);
+const showingSidebar = ref(false);
 const showingMobileMenu = ref(false);
 
 const switchLanguage = (locale) => {
@@ -24,6 +24,28 @@ const switchLanguage = (locale) => {
         replace: true,
     });
 };
+
+// Handle responsive sidebar
+const handleResize = () => {
+    if (window.innerWidth >= 1024) { // lg breakpoint
+        showingSidebar.value = true;
+    } else {
+        showingSidebar.value = false;
+    }
+};
+
+onMounted(() => {
+    // Set initial sidebar state based on screen size
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
+});
+
+onUnmounted(() => {
+    // Remove resize listener
+    window.removeEventListener('resize', handleResize);
+});
 
 // Translation helper
 const t = (key) => {
@@ -134,6 +156,13 @@ const adminMenuItems = [
 
 <template>
     <div class="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/50" :dir="isRTL ? 'rtl' : 'ltr'">
+        <!-- Mobile Sidebar Overlay -->
+        <div 
+            v-if="showingSidebar" 
+            class="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+            @click="showingSidebar = false"
+        ></div>
+
         <!-- Sidebar -->
         <div 
             :class="[
@@ -229,7 +258,7 @@ const adminMenuItems = [
                     </button>
 
                     <!-- Search -->
-                    <div class="relative ml-4 rtl:ml-0 rtl:mr-4">
+                    <div class="relative ml-4 rtl:ml-0 rtl:mr-4 hidden sm:block">
                         <div class="pointer-events-none absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-3 rtl:pl-0 rtl:pr-3">
                             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -238,14 +267,21 @@ const adminMenuItems = [
                         <input
                             type="text"
                             :placeholder="t('search')"
-                            class="block w-80 rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="block w-full max-w-xs lg:max-w-md xl:max-w-lg rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
                     </div>
+                    
+                    <!-- Mobile Search Button -->
+                    <button class="sm:hidden ml-2 rtl:ml-0 rtl:mr-2 p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
                 </div>
 
-                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                <div class="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse">
                     <!-- Language Switcher -->
-                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                         <button
                             @click="switchLanguage('en')"
                             :class="[
@@ -270,6 +306,14 @@ const adminMenuItems = [
                         </button>
                     </div>
 
+                    <!-- Mobile Language Switcher -->
+                    <button 
+                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
+                    >
+                        <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
+                    </button>
+
                     <!-- Notifications -->
                     <button class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,8 +331,8 @@ const adminMenuItems = [
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-sm font-semibold text-white">
                                 {{ user.name.charAt(0) }}
                             </div>
-                            <span class="ml-2 rtl:ml-0 rtl:mr-2 text-sm font-medium text-gray-700">{{ user.name }}</span>
-                            <svg class="ml-1 rtl:ml-0 rtl:mr-1 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span class="hidden sm:block ml-2 rtl:ml-0 rtl:mr-2 text-sm font-medium text-gray-700 max-w-32 truncate">{{ user.name }}</span>
+                            <svg class="hidden sm:block ml-1 rtl:ml-0 rtl:mr-1 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -296,7 +340,7 @@ const adminMenuItems = [
                         <!-- Dropdown menu -->
                         <div 
                             v-show="showingMobileMenu"
-                            class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                            class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
                         >
                             <Link :href="route('profile.edit')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 {{ t('profile') }}
@@ -310,7 +354,7 @@ const adminMenuItems = [
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
                 <slot />
             </main>
         </div>

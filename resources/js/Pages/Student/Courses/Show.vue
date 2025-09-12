@@ -553,7 +553,7 @@ const getSubmissionStatusText = (status) => {
 
         <!-- Submission Upload Modal -->
         <div v-if="showSubmissionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="relative top-4 sm:top-20 mx-4 sm:mx-auto p-4 sm:p-5 border w-full sm:w-96 shadow-lg rounded-md bg-white max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">
                         {{ submissionForm.hasExisting ? t('update_solution') : t('upload_solution') }}

@@ -332,31 +332,33 @@ const renderStars = (stars) => {
 
         <!-- Submissions Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div class="px-6 py-4 border-b border-gray-200">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
                 <h2 class="text-lg font-semibold text-gray-900">{{ t('assignment_submissions') }}</h2>
             </div>
 
-            <div v-if="submissions.length > 0" class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                {{ t('student_name') }}
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                {{ t('submitted_at') }}
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                {{ t('status') }}
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                {{ t('rating') }}
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                {{ t('actions') }}
-                            </th>
-                        </tr>
-                    </thead>
+            <div v-if="submissions.length > 0">
+                <!-- Desktop Table -->
+                <div class="hidden lg:block overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ t('student_name') }}
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ t('submitted_at') }}
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ t('status') }}
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ t('rating') }}
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {{ t('actions') }}
+                                </th>
+                            </tr>
+                        </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr v-for="submission in submissions" :key="submission.id" class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -431,6 +433,87 @@ const renderStars = (stars) => {
                         </tr>
                     </tbody>
                 </table>
+                </div>
+                
+                <!-- Mobile Cards -->
+                <div class="lg:hidden divide-y divide-gray-200">
+                    <div v-for="submission in submissions" :key="submission.id" class="p-4 sm:p-6 space-y-4">
+                        <!-- Student Info -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-gray-700">
+                                            {{ submission.student.name.charAt(0).toUpperCase() }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ml-4 rtl:mr-4 rtl:ml-0">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ submission.student.name }}
+                                    </div>
+                                    <div class="text-sm text-gray-500">
+                                        {{ submission.student.email }}
+                                    </div>
+                                </div>
+                            </div>
+                            <span :class="`px-2 py-1 text-xs font-medium rounded-full ${getStatusClass(submission.status)}`">
+                                {{ t(submission.status) }}
+                            </span>
+                        </div>
+
+                        <!-- Submission Details -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('submitted_at') }}</dt>
+                                <dd class="mt-1 text-sm text-gray-900">
+                                    {{ submission.submitted_at ? formatDateTime(submission.submitted_at) : '-' }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('rating') }}</dt>
+                                <dd class="mt-1 text-sm text-gray-900">
+                                    <div v-if="submission.rating" class="flex items-center">
+                                        <span class="text-yellow-400">{{ renderStars(submission.stars) }}</span>
+                                        <span class="ml-1 text-gray-600 text-xs">({{ submission.rating }}/5)</span>
+                                    </div>
+                                    <span v-else class="text-gray-400">-</span>
+                                </dd>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
+                            <template v-if="submission.submission_file_name">
+                                <button @click="viewSubmission(submission)"
+                                        class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-md hover:bg-indigo-200">
+                                    {{ t('view_submission') }}
+                                </button>
+                                <button @click="downloadSubmission(submission)"
+                                        class="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-md hover:bg-blue-200">
+                                    {{ t('download_submission') }}
+                                </button>
+                            </template>
+                            
+                            <template v-if="submission.corrected_at && submission.correction_file_name">
+                                <button @click="viewCorrection(submission)"
+                                        class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200">
+                                    {{ t('view_correction') }}
+                                </button>
+                                <button @click="downloadCorrection(submission)"
+                                        class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200">
+                                    {{ t('download_correction') }}
+                                </button>
+                            </template>
+                            
+                            <button v-if="submission.submitted_at" 
+                                    @click="openCorrectionModal(submission)"
+                                    class="px-3 py-1 bg-purple-100 text-purple-700 text-xs rounded-md hover:bg-purple-200">
+                                {{ submission.corrected_at ? t('update_correction') : t('correct_assignment') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- No Submissions Message -->
@@ -445,7 +528,7 @@ const renderStars = (stars) => {
 
         <!-- Correction Modal -->
         <div v-if="showCorrectionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+            <div class="relative top-4 sm:top-20 mx-4 sm:mx-auto p-4 sm:p-5 border w-full sm:w-96 shadow-lg rounded-md bg-white max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
                 <div class="mt-3">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">{{ t('correction_title') }}</h3>
                     

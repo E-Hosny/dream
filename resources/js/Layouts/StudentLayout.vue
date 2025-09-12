@@ -9,7 +9,7 @@ const isRTL = computed(() => currentLocale.value === 'ar');
 const user = computed(() => page.props.auth.user);
 const userRoles = computed(() => user.value?.roles || []);
 
-const showingSidebar = ref(true);
+const showingSidebar = ref(false);
 const showingMobileMenu = ref(false);
 
 // Notification Management
@@ -118,15 +118,33 @@ const getNotificationColor = (color) => {
 // Auto-refresh notifications every 30 seconds
 let notificationInterval;
 
+// Handle responsive sidebar
+const handleResize = () => {
+    if (window.innerWidth >= 1024) { // lg breakpoint
+        showingSidebar.value = true;
+    } else {
+        showingSidebar.value = false;
+    }
+};
+
 onMounted(() => {
     fetchNotifications();
     notificationInterval = setInterval(fetchNotifications, 30000);
+    
+    // Set initial sidebar state based on screen size
+    handleResize();
+    
+    // Add resize listener
+    window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
     if (notificationInterval) {
         clearInterval(notificationInterval);
     }
+    
+    // Remove resize listener
+    window.removeEventListener('resize', handleResize);
 });
 
 // Translation helper
@@ -268,6 +286,13 @@ const studentMenuItems = [
 
 <template>
     <div class="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/50" :dir="isRTL ? 'rtl' : 'ltr'">
+        <!-- Mobile Sidebar Overlay -->
+        <div 
+            v-if="showingSidebar" 
+            class="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+            @click="showingSidebar = false"
+        ></div>
+
         <!-- Sidebar -->
         <div 
             :class="[
@@ -286,9 +311,9 @@ const studentMenuItems = [
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                             </svg>
                         </div>
-                        <div class="ml-3 rtl:ml-0 rtl:mr-3">
-                            <h1 class="text-sm font-bold text-white">{{ currentLocale === 'en' ? 'EduDream' : 'إيدو دريم' }}</h1>
-                            <p class="text-xs text-blue-200">{{ t('student_portal') }}</p>
+                        <div class="ml-3 rtl:ml-0 rtl:mr-3 min-w-0 flex-1">
+                            <h1 class="text-sm font-bold text-white truncate">{{ currentLocale === 'en' ? 'EduDream' : 'إيدو دريم' }}</h1>
+                            <p class="text-xs text-blue-200 truncate">{{ t('student_portal') }}</p>
                         </div>
                     </div>
                 </div>
@@ -363,7 +388,7 @@ const studentMenuItems = [
                     </button>
 
                     <!-- Search -->
-                    <div class="relative ml-4 rtl:ml-0 rtl:mr-4">
+                    <div class="relative ml-4 rtl:ml-0 rtl:mr-4 hidden sm:block">
                         <div class="pointer-events-none absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-3 rtl:pl-0 rtl:pr-3">
                             <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -372,14 +397,21 @@ const studentMenuItems = [
                         <input
                             type="text"
                             :placeholder="t('search')"
-                            class="block w-80 rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-blue-500 focus:ring-blue-500"
+                            class="block w-full max-w-xs lg:max-w-md xl:max-w-lg rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-blue-500 focus:ring-blue-500"
                         >
                     </div>
+                    
+                    <!-- Mobile Search Button -->
+                    <button class="sm:hidden ml-2 rtl:ml-0 rtl:mr-2 p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </button>
                 </div>
 
-                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                <div class="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse">
                     <!-- Language Switcher -->
-                    <div class="flex items-center bg-gray-100 rounded-lg p-1">
+                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                         <button
                             @click="switchLanguage('en')"
                             :class="[
@@ -404,6 +436,14 @@ const studentMenuItems = [
                         </button>
                     </div>
 
+                    <!-- Mobile Language Switcher -->
+                    <button 
+                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
+                    >
+                        <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
+                    </button>
+
                     <!-- Notifications -->
                     <div class="relative">
                         <button 
@@ -424,8 +464,14 @@ const studentMenuItems = [
                         <!-- Notifications Dropdown -->
                         <div 
                             v-if="showingNotifications"
-                            class="absolute right-0 z-50 mt-2 w-80 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200"
-                            :class="isRTL ? 'left-0 right-auto' : ''"
+                            class="absolute right-0 z-50 mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200
+                                   w-80 sm:w-96 
+                                   max-w-[calc(100vw-2rem)]
+                                   transform -translate-x-2 sm:translate-x-0"
+                            :class="[
+                                isRTL ? 'left-0 right-auto transform translate-x-2 sm:translate-x-0' : '',
+                                'xs:fixed xs:inset-x-4 xs:top-16 xs:w-auto xs:transform-none sm:absolute sm:inset-auto sm:top-auto sm:transform sm:-translate-x-2'
+                            ]"
                         >
                             <!-- Header -->
                             <div class="flex items-center justify-between p-4 border-b border-gray-200">
@@ -508,8 +554,8 @@ const studentMenuItems = [
                             <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-sm font-semibold text-white">
                                 {{ user.name.charAt(0) }}
                             </div>
-                            <span class="ml-2 rtl:ml-0 rtl:mr-2 text-sm font-medium text-gray-700">{{ user.name }}</span>
-                            <svg class="ml-1 rtl:ml-0 rtl:mr-1 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span class="hidden sm:block ml-2 rtl:ml-0 rtl:mr-2 text-sm font-medium text-gray-700 max-w-32 truncate">{{ user.name }}</span>
+                            <svg class="hidden sm:block ml-1 rtl:ml-0 rtl:mr-1 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -517,7 +563,7 @@ const studentMenuItems = [
                         <!-- Dropdown menu -->
                         <div 
                             v-show="showingMobileMenu"
-                            class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                            class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
                         >
                             <Link :href="route('profile.edit')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 {{ t('profile') }}
@@ -531,7 +577,7 @@ const studentMenuItems = [
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
+            <main class="flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-6">
                 <slot />
             </main>
         </div>
