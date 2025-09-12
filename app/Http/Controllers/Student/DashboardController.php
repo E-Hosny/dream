@@ -8,6 +8,8 @@ use Inertia\Inertia;
 use App\Models\CourseEnrollment;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ZoomMeeting;
+use App\Models\Assignment;
+use App\Models\AssignmentSubmission;
 
 class DashboardController extends Controller
 {
@@ -253,17 +255,25 @@ class DashboardController extends Controller
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
         
-        // جلب الاجتماعات المرتبطة بهذا الكورس
-        $meetings = ZoomMeeting::where('course_id', $courseId)
+        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات وحلول الطالب
+        $meetings = ZoomMeeting::with(['assignments.submissions' => function ($query) use ($user) {
+                $query->where('student_id', $user->id);
+            }])
+            ->where('course_id', $courseId)
             ->whereIn('status', ['started', 'ended', 'scheduled']) // الطالب يرى الاجتماعات المنتهية أيضاً
             ->orderBy('start_time', 'desc')
             ->get()
-            ->map(function ($meeting) {
+            ->map(function ($meeting) use ($user) {
+                $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
+                $submission = $assignment ? $assignment->submissions->first() : null; // حل الطالب الحالي
+                
                 return [
                     'id' => $meeting->id,
                     'topic' => $meeting->topic,
-                    'start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : ($meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null),
-                    'end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
+                    'start_time' => $meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null,
+                    'end_time' => $meeting->end_time ? $meeting->end_time->format('Y-m-d H:i:s') : null,
+                    'actual_start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : null,
+                    'actual_end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
                     'duration' => $meeting->duration,
                     'status' => $meeting->status,
                     'status_text' => $meeting->status_text,
@@ -271,6 +281,31 @@ class DashboardController extends Controller
                     'password' => $meeting->password,
                     'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
                     'can_join' => $meeting->status === 'started',
+                    'assignment' => $assignment ? [
+                        'id' => $assignment->id,
+                        'title' => $assignment->title,
+                        'description' => $assignment->description,
+                        'file_name' => $assignment->file_name,
+                        'file_type' => $assignment->file_type,
+                        'file_size' => $assignment->file_size,
+                        'formatted_file_size' => $assignment->formatted_file_size,
+                        'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
+                        'submission' => $submission ? [
+                            'id' => $submission->id,
+                            'submission_file_name' => $submission->submission_file_name,
+                            'submission_file_size' => $submission->submission_file_size,
+                            'formatted_submission_file_size' => $submission->formatted_submission_file_size,
+                            'submitted_at' => $submission->submitted_at ? $submission->submitted_at->format('Y-m-d H:i:s') : null,
+                            'correction_file_name' => $submission->correction_file_name,
+                            'correction_file_size' => $submission->correction_file_size,
+                            'formatted_correction_file_size' => $submission->formatted_correction_file_size,
+                            'corrected_at' => $submission->corrected_at ? $submission->corrected_at->format('Y-m-d H:i:s') : null,
+                            'rating' => $submission->rating,
+                            'stars' => $submission->stars,
+                            'teacher_notes' => $submission->teacher_notes,
+                            'status' => $submission->status,
+                        ] : null,
+                    ] : null,
                 ];
             });
             

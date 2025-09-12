@@ -70,6 +70,11 @@ class ZoomMeeting extends Model
         return $this->hasMany(ZoomMeetingParticipant::class);
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(Assignment::class, 'meeting_id');
+    }
+
     // Accessors
     public function getStatusTextAttribute(): string
     {

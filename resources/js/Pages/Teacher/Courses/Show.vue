@@ -22,6 +22,18 @@ const meetingForm = ref({
 });
 const meetingLoading = ref(false);
 
+// بيانات الواجبات
+const showAssignmentModal = ref(false);
+const assignmentForm = ref({
+    id: null,
+    meeting_id: null,
+    title: '',
+    description: '',
+    selectedFile: null,
+    currentFileName: ''
+});
+const assignmentLoading = ref(false);
+
 // Translation helper
 const t = (key) => {
     const translations = {
@@ -47,6 +59,29 @@ const t = (key) => {
             cancel: 'Cancel',
             submit: 'Submit',
             topic_placeholder: 'Enter meeting topic...',
+            // Assignment translations
+            assignment: 'Assignment',
+            upload_assignment: 'Upload Assignment',
+            edit_assignment: 'Edit Assignment',
+            assignment_title: 'Assignment Title',
+            assignment_title_placeholder: 'Enter assignment title...',
+            description: 'Description',
+            optional: 'Optional',
+            assignment_description_placeholder: 'Enter assignment description...',
+            assignment_file: 'Assignment File',
+            update_file: 'Update File',
+            click_to_upload: 'Click to upload',
+            max_10mb: 'Max 10MB',
+            remove: 'Remove',
+            change_file: 'Change File',
+            update: 'Update',
+            upload: 'Upload',
+            view: 'View',
+            download: 'Download',
+            edit: 'Edit',
+            delete: 'Delete',
+            student_solutions: 'Student Solutions',
+            no_assignment_uploaded: 'No assignment uploaded yet',
         },
         ar: {
             course_details: 'تفاصيل الكورس',
@@ -70,6 +105,29 @@ const t = (key) => {
             cancel: 'إلغاء',
             submit: 'إرسال',
             topic_placeholder: 'أدخل موضوع الاجتماع...',
+            // Assignment translations
+            assignment: 'الواجب',
+            upload_assignment: 'رفع واجب',
+            edit_assignment: 'تعديل الواجب',
+            assignment_title: 'عنوان الواجب',
+            assignment_title_placeholder: 'أدخل عنوان الواجب...',
+            description: 'الوصف',
+            optional: 'اختياري',
+            assignment_description_placeholder: 'أدخل وصف الواجب...',
+            assignment_file: 'ملف الواجب',
+            update_file: 'تحديث الملف',
+            click_to_upload: 'اضغط للرفع',
+            max_10mb: 'حد أقصى 10 ميجابايت',
+            remove: 'إزالة',
+            change_file: 'تغيير الملف',
+            update: 'تحديث',
+            upload: 'رفع',
+            view: 'عرض',
+            download: 'تحميل',
+            edit: 'تعديل',
+            delete: 'حذف',
+            student_solutions: 'حلول الطلاب',
+            no_assignment_uploaded: 'لم يتم رفع واجب بعد',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -168,6 +226,177 @@ const endMeeting = async () => {
         alert('حدث خطأ أثناء إنهاء الاجتماع');
     }
 };
+
+// === دوال الواجبات ===
+
+// فتح نافذة رفع/تعديل الواجب
+const openAssignmentModal = (meeting) => {
+    assignmentForm.value = {
+        id: meeting.assignment?.id || null,
+        meeting_id: meeting.id,
+        title: meeting.assignment?.title || '',
+        description: meeting.assignment?.description || '',
+        selectedFile: null,
+        currentFileName: meeting.assignment?.file_name || ''
+    };
+    showAssignmentModal.value = true;
+};
+
+// إغلاق نافذة الواجب
+const closeAssignmentModal = () => {
+    showAssignmentModal.value = false;
+    assignmentForm.value = {
+        id: null,
+        meeting_id: null,
+        title: '',
+        description: '',
+        selectedFile: null,
+        currentFileName: ''
+    };
+};
+
+// التعامل مع اختيار الملف
+const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        // تحقق من حجم الملف (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
+            alert(currentLocale.value === 'ar' ? 'حجم الملف أكبر من 10 ميجابايت' : 'File size is larger than 10MB');
+            event.target.value = '';
+            return;
+        }
+        
+        assignmentForm.value.selectedFile = file;
+        assignmentForm.value.currentFileName = '';
+    }
+};
+
+// إزالة الملف المحدد
+const removeSelectedFile = () => {
+    assignmentForm.value.selectedFile = null;
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+};
+
+// إرسال الواجب
+const submitAssignment = async () => {
+    if (!assignmentForm.value.title.trim()) {
+        alert(currentLocale.value === 'ar' ? 'يرجى إدخال عنوان الواجب' : 'Please enter assignment title');
+        return;
+    }
+    
+    if (!assignmentForm.value.id && !assignmentForm.value.selectedFile) {
+        alert(currentLocale.value === 'ar' ? 'يرجى اختيار ملف الواجب' : 'Please select assignment file');
+        return;
+    }
+
+    assignmentLoading.value = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('title', assignmentForm.value.title);
+        formData.append('description', assignmentForm.value.description || '');
+        
+        if (assignmentForm.value.selectedFile) {
+            formData.append('assignment_file', assignmentForm.value.selectedFile);
+        }
+
+        let url, method;
+        if (assignmentForm.value.id) {
+            // تحديث واجب موجود
+            url = `/assignments/${assignmentForm.value.id}`;
+            method = 'POST';
+            formData.append('_method', 'PUT');
+        } else {
+            // رفع واجب جديد
+            url = '/assignments';
+            method = 'POST';
+            formData.append('meeting_id', assignmentForm.value.meeting_id);
+        }
+
+        const response = await fetch(url, {
+            method: method,
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(currentLocale.value === 'ar' ? 
+                (assignmentForm.value.id ? 'تم تحديث الواجب بنجاح!' : 'تم رفع الواجب بنجاح!') : 
+                (assignmentForm.value.id ? 'Assignment updated successfully!' : 'Assignment uploaded successfully!')
+            );
+            closeAssignmentModal();
+            window.location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+        } else {
+            const errorMsg = data.errors ? 
+                Object.values(data.errors).flat().join('\n') : 
+                (data.message || 'حدث خطأ أثناء حفظ الواجب');
+            alert(errorMsg);
+        }
+    } catch (error) {
+        console.error('Error saving assignment:', error);
+        alert(currentLocale.value === 'ar' ? 'حدث خطأ أثناء حفظ الواجب' : 'Error saving assignment');
+    } finally {
+        assignmentLoading.value = false;
+    }
+};
+
+// عرض ملف الواجب
+const viewAssignment = (assignment) => {
+    window.open(`/assignments/${assignment.id}/view`, '_blank');
+};
+
+// تحميل ملف الواجب
+const downloadAssignment = (assignment) => {
+    window.open(`/assignments/${assignment.id}/download`, '_blank');
+};
+
+// تعديل الواجب
+const editAssignment = (meeting) => {
+    openAssignmentModal(meeting);
+};
+
+// حذف الواجب
+const deleteAssignment = async (assignment) => {
+    if (!confirm(currentLocale.value === 'ar' ? 
+        'هل أنت متأكد من حذف هذا الواجب؟ سيتم حذف جميع الحلول المرتبطة به أيضاً.' : 
+        'Are you sure you want to delete this assignment? All related submissions will be deleted too.'
+    )) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/assignments/${assignment.id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(currentLocale.value === 'ar' ? 'تم حذف الواجب بنجاح!' : 'Assignment deleted successfully!');
+            window.location.reload();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء حذف الواجب');
+        }
+    } catch (error) {
+        console.error('Error deleting assignment:', error);
+        alert(currentLocale.value === 'ar' ? 'حدث خطأ أثناء حذف الواجب' : 'Error deleting assignment');
+    }
+};
+
+// عرض حلول الطلاب
+const viewSubmissions = (assignment) => {
+    window.open(`/assignments/${assignment.id}/submissions`, '_blank');
+};
 </script>
 
 <template>
@@ -229,24 +458,26 @@ const endMeeting = async () => {
                 </div>
 
                 <!-- Meetings List -->
-                <div v-if="meetings.length > 0" class="space-y-4">
+                <div v-if="meetings.length > 0" class="space-y-6">
                     <div v-for="meeting in meetings" :key="meeting.id" 
-                         class="p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="font-medium text-gray-900">{{ meeting.topic }}</h3>
+                         class="p-6 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                        
+                        <!-- Meeting Info -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-medium text-gray-900 text-lg">{{ meeting.topic }}</h3>
                             <span :class="`px-3 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
                                 {{ meeting.status_text }}
                             </span>
                         </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-700">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-700 mb-4">
                             <div>
                                 <span class="font-medium">{{ t('start_time') }}:</span>
-                                <br>{{ formatDateTime(meeting.start_time) }}
+                                <br>{{ formatDateTime(meeting.actual_start_time || meeting.start_time) }}
                             </div>
                             <div>
                                 <span class="font-medium">{{ t('end_time') }}:</span>
-                                <br>{{ formatDateTime(meeting.end_time) }}
+                                <br>{{ formatDateTime(meeting.actual_end_time || meeting.end_time) }}
                             </div>
                             <div>
                                 <span class="font-medium">{{ t('meeting_duration') }}:</span>
@@ -254,9 +485,67 @@ const endMeeting = async () => {
                             </div>
                         </div>
                         
-                        <div v-if="meeting.password" class="mt-3 text-sm">
+                        <div v-if="meeting.password" class="mb-4 text-sm">
                             <span class="font-medium text-gray-700">{{ t('password') }}:</span>
                             <code class="ml-2 bg-gray-100 px-2 py-1 rounded">{{ meeting.password }}</code>
+                        </div>
+
+                        <!-- Assignment Section -->
+                        <div class="border-t pt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="font-medium text-gray-800">{{ t('assignment') }}</h4>
+                                <div class="flex space-x-2 rtl:space-x-reverse">
+                                    <!-- Upload Assignment Button -->
+                                    <button v-if="!meeting.assignment" @click="openAssignmentModal(meeting)"
+                                            class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
+                                        {{ t('upload_assignment') }}
+                                    </button>
+                                    
+                                    <!-- Assignment Actions -->
+                                    <div v-if="meeting.assignment" class="flex flex-wrap gap-2">
+                                        <button @click="viewAssignment(meeting.assignment)"
+                                                class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
+                                            {{ t('view') }}
+                                        </button>
+                                        <button @click="downloadAssignment(meeting.assignment)"
+                                                class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium">
+                                            {{ t('download') }}
+                                        </button>
+                                        <button @click="editAssignment(meeting)"
+                                                class="px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-xs font-medium">
+                                            {{ t('edit') }}
+                                        </button>
+                                        <button @click="deleteAssignment(meeting.assignment)"
+                                                class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium">
+                                            {{ t('delete') }}
+                                        </button>
+                                        <button @click="viewSubmissions(meeting.assignment)"
+                                                class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium">
+                                            {{ t('student_solutions') }} ({{ meeting.assignment.submissions_count || 0 }})
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Assignment Info -->
+                            <div v-if="meeting.assignment" class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h5 class="font-medium text-gray-900">{{ meeting.assignment.title }}</h5>
+                                    <span class="text-xs text-gray-500">{{ meeting.assignment.formatted_file_size }}</span>
+                                </div>
+                                <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-2">
+                                    {{ meeting.assignment.description }}
+                                </p>
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>{{ meeting.assignment.file_name }}</span>
+                                    <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- No Assignment Message -->
+                            <div v-else class="text-center py-4 text-gray-500 text-sm">
+                                {{ t('no_assignment_uploaded') }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -313,6 +602,102 @@ const endMeeting = async () => {
                                     class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50">
                                 <span v-if="meetingLoading">{{ currentLocale === 'ar' ? 'جاري البدء...' : 'Starting...' }}</span>
                                 <span v-else>{{ t('submit') }}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Upload Modal -->
+        <div v-if="showAssignmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+                <div class="mt-3">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        {{ assignmentForm.id ? t('edit_assignment') : t('upload_assignment') }}
+                    </h3>
+                    
+                    <form @submit.prevent="submitAssignment">
+                        <!-- Title -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('assignment_title') }}</label>
+                            <input v-model="assignmentForm.title" type="text" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   :placeholder="t('assignment_title_placeholder')" required />
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('description') }} ({{ t('optional') }})</label>
+                            <textarea v-model="assignmentForm.description" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      :placeholder="t('assignment_description_placeholder')"></textarea>
+                        </div>
+
+                        <!-- File Upload -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                {{ assignmentForm.id ? t('update_file') + ' (' + t('optional') + ')' : t('assignment_file') }}
+                            </label>
+                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
+                                <input ref="assignmentFileInput" @change="handleFileSelect" type="file" 
+                                       accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                       class="hidden" />
+                                
+                                <div v-if="!assignmentForm.selectedFile && !assignmentForm.currentFileName" 
+                                     class="text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <div class="mt-2">
+                                        <button type="button" @click="$refs.assignmentFileInput.click()"
+                                                class="text-blue-600 hover:text-blue-500">
+                                            {{ t('click_to_upload') }}
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
+                                </div>
+
+                                <div v-else-if="assignmentForm.selectedFile" class="text-center">
+                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
+                                        <svg class="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <span class="text-sm text-gray-700">{{ assignmentForm.selectedFile.name }}</span>
+                                    </div>
+                                    <button type="button" @click="removeSelectedFile()"
+                                            class="mt-2 text-red-600 hover:text-red-500 text-sm">
+                                        {{ t('remove') }}
+                                    </button>
+                                </div>
+
+                                <div v-else-if="assignmentForm.currentFileName" class="text-center">
+                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
+                                        <svg class="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <span class="text-sm text-gray-700">{{ assignmentForm.currentFileName }}</span>
+                                    </div>
+                                    <div class="mt-2 space-x-2 rtl:space-x-reverse">
+                                        <button type="button" @click="$refs.assignmentFileInput.click()"
+                                                class="text-blue-600 hover:text-blue-500 text-sm">
+                                            {{ t('change_file') }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse">
+                            <button type="button" @click="closeAssignmentModal"
+                                    class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                                {{ t('cancel') }}
+                            </button>
+                            <button type="submit" :disabled="assignmentLoading"
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50">
+                                <span v-if="assignmentLoading">{{ currentLocale === 'ar' ? 'جاري الحفظ...' : 'Saving...' }}</span>
+                                <span v-else>{{ assignmentForm.id ? t('update') : t('upload') }}</span>
                             </button>
                         </div>
                     </form>

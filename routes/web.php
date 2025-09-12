@@ -119,6 +119,25 @@ Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingCo
         Route::get('/courses/{course}', [\App\Http\Controllers\Teacher\DashboardController::class, 'showCourse'])->name('courses.show');
     });
 
+// Assignment Routes (accessible by both teachers and students with proper authorization)
+Route::middleware(['auth'])->group(function () {
+    // Teacher Assignment Routes
+    Route::post('/assignments', [\App\Http\Controllers\AssignmentController::class, 'store'])->name('assignments.store');
+    Route::put('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'update'])->name('assignments.update');
+    Route::delete('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'destroy'])->name('assignments.destroy');
+    Route::get('/assignments/{assignment}/download', [\App\Http\Controllers\AssignmentController::class, 'download'])->name('assignments.download');
+    Route::get('/assignments/{assignment}/view', [\App\Http\Controllers\AssignmentController::class, 'view'])->name('assignments.view');
+    Route::get('/assignments/{assignment}/submissions', [\App\Http\Controllers\AssignmentController::class, 'showSubmissions'])->name('assignments.submissions');
+    
+    // Student Assignment Submission Routes
+    Route::post('/assignments/{assignment}/submit', [\App\Http\Controllers\AssignmentSubmissionController::class, 'store'])->name('assignments.submit');
+    Route::delete('/submissions/{submission}', [\App\Http\Controllers\AssignmentSubmissionController::class, 'destroy'])->name('submissions.destroy');
+    Route::post('/submissions/{submission}/correct', [\App\Http\Controllers\AssignmentSubmissionController::class, 'correct'])->name('submissions.correct');
+    Route::get('/submissions/{type}/{submission}/download', [\App\Http\Controllers\AssignmentSubmissionController::class, 'download'])->name('submissions.download');
+    Route::get('/submissions/{type}/{submission}/view', [\App\Http\Controllers\AssignmentSubmissionController::class, 'view'])->name('submissions.view');
+    Route::get('/assignments/{assignment}/my-submission', [\App\Http\Controllers\AssignmentSubmissionController::class, 'show'])->name('assignments.my-submission');
+});
+
     // Student Routes
     Route::prefix('student')->name('student.')->middleware(['auth', 'role:student'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');

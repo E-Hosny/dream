@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\Course;
 use App\Models\ZoomMeeting;
+use App\Models\Assignment;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
@@ -190,16 +191,21 @@ class DashboardController extends Controller
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
         
-        // جلب الاجتماعات المرتبطة بهذا الكورس
-        $meetings = ZoomMeeting::where('course_id', $courseId)
+        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
+        $meetings = ZoomMeeting::with('assignments')
+            ->where('course_id', $courseId)
             ->orderBy('start_time', 'desc')
             ->get()
             ->map(function ($meeting) {
+                $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
+                
                 return [
                     'id' => $meeting->id,
                     'topic' => $meeting->topic,
-                    'start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : ($meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null),
-                    'end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
+                    'start_time' => $meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null,
+                    'end_time' => $meeting->end_time ? $meeting->end_time->format('Y-m-d H:i:s') : null,
+                    'actual_start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : null,
+                    'actual_end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
                     'duration' => $meeting->duration,
                     'status' => $meeting->status,
                     'status_text' => $meeting->status_text,
@@ -209,6 +215,18 @@ class DashboardController extends Controller
                     'password' => $meeting->password,
                     'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
                     'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'assignment' => $assignment ? [
+                        'id' => $assignment->id,
+                        'title' => $assignment->title,
+                        'description' => $assignment->description,
+                        'file_name' => $assignment->file_name,
+                        'file_type' => $assignment->file_type,
+                        'file_size' => $assignment->file_size,
+                        'formatted_file_size' => $assignment->formatted_file_size,
+                        'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
+                        'submissions_count' => $assignment->submissions_count,
+                        'corrected_submissions_count' => $assignment->corrected_submissions_count,
+                    ] : null,
                 ];
             });
             
