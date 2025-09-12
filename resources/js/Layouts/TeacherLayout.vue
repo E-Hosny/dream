@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import axios from 'axios';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'en');
@@ -11,6 +12,12 @@ const userRoles = computed(() => user.value?.roles || []);
 const showingSidebar = ref(true);
 const showingMobileMenu = ref(false);
 
+// Notification Management
+const notifications = ref([]);
+const unreadCount = ref(0);
+const showingNotifications = ref(false);
+const notificationLoading = ref(false);
+
 const switchLanguage = (locale) => {
     router.visit(`/language/${locale}`, {
         method: 'get',
@@ -19,6 +26,108 @@ const switchLanguage = (locale) => {
         replace: true,
     });
 };
+
+// Notification Functions
+const fetchNotifications = async () => {
+    try {
+        notificationLoading.value = true;
+        const response = await axios.get('/notifications/recent?limit=5');
+        if (response.data.success) {
+            notifications.value = response.data.notifications;
+            unreadCount.value = response.data.unread_count;
+        }
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    } finally {
+        notificationLoading.value = false;
+    }
+};
+
+const markAsRead = async (notificationId) => {
+    try {
+        const response = await axios.post(`/notifications/${notificationId}/mark-as-read`);
+        if (response.data.success) {
+            // Update local notification state
+            const notification = notifications.value.find(n => n.id === notificationId);
+            if (notification && !notification.is_read) {
+                notification.is_read = true;
+                notification.read_at = new Date().toISOString();
+                unreadCount.value = Math.max(0, unreadCount.value - 1);
+            }
+        }
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+};
+
+const markAllAsRead = async () => {
+    try {
+        const response = await axios.post('/notifications/mark-all-as-read');
+        if (response.data.success) {
+            notifications.value.forEach(notification => {
+                notification.is_read = true;
+                notification.read_at = new Date().toISOString();
+            });
+            unreadCount.value = 0;
+        }
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+    }
+};
+
+const handleNotificationClick = async (notification) => {
+    if (!notification.is_read) {
+        await markAsRead(notification.id);
+    }
+    
+    if (notification.action_url) {
+        // If external URL, open in new tab
+        if (notification.action_url.startsWith('http')) {
+            window.open(notification.action_url, '_blank');
+        } else {
+            // Internal URL, navigate with router
+            router.visit(notification.action_url);
+        }
+    }
+    
+    showingNotifications.value = false;
+};
+
+const getNotificationIcon = (type) => {
+    const icons = {
+        assignment_created: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+        assignment_submitted: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+        assignment_corrected: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z',
+        default: 'M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z'
+    };
+    return icons[type] || icons.default;
+};
+
+const getNotificationColor = (color) => {
+    const colors = {
+        blue: 'text-blue-600',
+        green: 'text-green-600',
+        purple: 'text-purple-600',
+        orange: 'text-orange-600',
+        red: 'text-red-600',
+        default: 'text-gray-600'
+    };
+    return colors[color] || colors.default;
+};
+
+// Auto-refresh notifications every 30 seconds
+let notificationInterval;
+
+onMounted(() => {
+    fetchNotifications();
+    notificationInterval = setInterval(fetchNotifications, 30000);
+});
+
+onUnmounted(() => {
+    if (notificationInterval) {
+        clearInterval(notificationInterval);
+    }
+});
 
 // Translation helper
 const t = (key) => {
@@ -43,6 +152,9 @@ const t = (key) => {
             student_management: 'Student Management',
             schedule: 'Schedule',
             calendar: 'Calendar',
+            mark_all_read: 'Mark all as read',
+            loading: 'Loading',
+            no_notifications: 'No notifications yet',
         },
         ar: {
             dashboard: 'لوحة التحكم',
@@ -64,6 +176,9 @@ const t = (key) => {
             student_management: 'إدارة الطلاب',
             schedule: 'الجدول',
             calendar: 'التقويم',
+            mark_all_read: 'وضع علامة مقروء على الكل',
+            loading: 'جاري التحميل',
+            no_notifications: 'لا توجد إشعارات بعد',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -268,12 +383,99 @@ const teacherMenuItems = [
                     </div>
 
                     <!-- Notifications -->
-                    <button class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
-                        </svg>
-                        <span class="absolute top-1 right-1 block h-2 w-2 rounded-full bg-orange-400"></span>
-                    </button>
+                    <div class="relative">
+                        <button 
+                            @click="showingNotifications = !showingNotifications"
+                            class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        >
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
+                            </svg>
+                            <span 
+                                v-if="unreadCount > 0" 
+                                class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium"
+                            >
+                                {{ unreadCount > 9 ? '9+' : unreadCount }}
+                            </span>
+                        </button>
+
+                        <!-- Notifications Dropdown -->
+                        <div 
+                            v-if="showingNotifications"
+                            class="absolute right-0 z-50 mt-2 w-80 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200"
+                            :class="isRTL ? 'left-0 right-auto' : ''"
+                        >
+                            <!-- Header -->
+                            <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">{{ t('notifications') }}</h3>
+                                <div class="flex items-center space-x-2" :class="isRTL ? 'space-x-reverse' : ''">
+                                    <button
+                                        v-if="unreadCount > 0"
+                                        @click="markAllAsRead"
+                                        class="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
+                                    >
+                                        {{ t('mark_all_read') }}
+                                    </button>
+                                    <button
+                                        @click="showingNotifications = false"
+                                        class="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div v-if="notificationLoading" class="p-4 text-center">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto"></div>
+                                <p class="text-sm text-gray-500 mt-2">{{ t('loading') }}...</p>
+                            </div>
+
+                            <!-- Notifications List -->
+                            <div v-else-if="notifications.length > 0" class="divide-y divide-gray-100">
+                                <div 
+                                    v-for="notification in notifications" 
+                                    :key="notification.id"
+                                    @click="handleNotificationClick(notification)"
+                                    class="p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+                                    :class="!notification.is_read ? 'bg-emerald-50' : ''"
+                                >
+                                    <div class="flex items-start space-x-3" :class="isRTL ? 'space-x-reverse' : ''">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center" 
+                                                 :class="!notification.is_read ? 'bg-emerald-100' : 'bg-gray-100'">
+                                                <svg class="w-4 h-4" :class="getNotificationColor(notification.color)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getNotificationIcon(notification.type)" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-sm font-medium text-gray-900" :class="!notification.is_read ? 'font-semibold' : ''">
+                                                {{ notification.title }}
+                                            </p>
+                                            <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+                                                {{ notification.message }}
+                                            </p>
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                {{ notification.time_ago }}
+                                            </p>
+                                        </div>
+                                        <div v-if="!notification.is_read" class="w-2 h-2 bg-emerald-600 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div v-else class="p-8 text-center text-gray-500">
+                                <svg class="w-12 h-12 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
+                                </svg>
+                                <p class="mt-4 text-sm">{{ t('no_notifications') }}</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Profile dropdown -->
                     <div class="relative">

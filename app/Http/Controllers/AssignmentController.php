@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\ZoomMeeting;
+use App\Models\User;
+use App\Notifications\AssignmentCreated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class AssignmentController extends Controller
@@ -60,9 +63,22 @@ class AssignmentController extends Controller
                 'updated_by' => Auth::id(),
             ]);
 
+            // إرسال إشعارات للطلاب المسجلين في الكورس
+            $teacher = Auth::user();
+            $enrolledStudents = $meeting->course->enrollments()
+                ->whereIn('status', ['active', 'enrolled', 'completed'])
+                ->with('student')
+                ->get()
+                ->pluck('student');
+
+            // إرسال الإشعار لكل طالب مسجل
+            Notification::send($enrolledStudents, new AssignmentCreated($assignment, $teacher));
+
+            \Log::info("Assignment created notification sent to {$enrolledStudents->count()} students for assignment: {$assignment->title}");
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم رفع الواجب بنجاح',
+                'message' => 'تم رفع الواجب بنجاح وإرسال إشعارات للطلاب',
                 'assignment' => $assignment->load(['meeting', 'creator'])
             ]);
 

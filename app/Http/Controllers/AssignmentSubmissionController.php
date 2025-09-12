@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\User;
+use App\Notifications\AssignmentSubmitted;
+use App\Notifications\AssignmentCorrected;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Notification;
 
 class AssignmentSubmissionController extends Controller
 {
@@ -78,9 +82,16 @@ class AssignmentSubmissionController extends Controller
                 ]
             );
 
+            // إرسال إشعار للمعلم صاحب الواجب
+            $teacher = User::find($assignment->created_by);
+            if ($teacher) {
+                $teacher->notify(new AssignmentSubmitted($submission, $user));
+                \Log::info("Assignment submission notification sent to teacher {$teacher->name} for assignment: {$assignment->title}");
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم رفع الحل بنجاح',
+                'message' => 'تم رفع الحل بنجاح وإرسال إشعار للمعلم',
                 'submission' => [
                     'id' => $submission->id,
                     'submission_file_name' => $submission->submission_file_name,
@@ -193,9 +204,18 @@ class AssignmentSubmissionController extends Controller
 
             $submission->update($updateData);
 
+            // إرسال إشعار للطالب بالتصحيح
+            $student = User::find($submission->student_id);
+            $teacher = Auth::user();
+            
+            if ($student) {
+                $student->notify(new AssignmentCorrected($submission, $teacher));
+                \Log::info("Assignment correction notification sent to student {$student->name} for assignment: {$assignment->title}");
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم حفظ التصحيح بنجاح',
+                'message' => 'تم حفظ التصحيح بنجاح وإرسال إشعار للطالب',
                 'submission' => [
                     'id' => $submission->id,
                     'rating' => $submission->rating,

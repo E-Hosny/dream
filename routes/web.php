@@ -136,6 +136,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/submissions/{type}/{submission}/download', [\App\Http\Controllers\AssignmentSubmissionController::class, 'download'])->name('submissions.download');
     Route::get('/submissions/{type}/{submission}/view', [\App\Http\Controllers\AssignmentSubmissionController::class, 'view'])->name('submissions.view');
     Route::get('/assignments/{assignment}/my-submission', [\App\Http\Controllers\AssignmentSubmissionController::class, 'show'])->name('assignments.my-submission');
+    
+    // Notification Routes
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\NotificationController::class, 'unreadCount'])->name('notifications.unread-count');
+    Route::get('/notifications/recent', [\App\Http\Controllers\NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::post('/notifications/{notification}/mark-as-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-as-read');
+    Route::post('/notifications/mark-all-as-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-as-read');
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->name('notifications.destroy');
+    Route::delete('/notifications/delete-read', [\App\Http\Controllers\NotificationController::class, 'deleteRead'])->name('notifications.delete-read');
 });
 
     // Student Routes
