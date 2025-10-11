@@ -502,41 +502,14 @@ const meetingLoading = ref(false);
 
 // Computed
 const availableZoomAccounts = computed(() => {
-    console.log('=== DEBUGGING AVAILABLE ZOOM ACCOUNTS ===');
-    console.log('zoomAccounts props:', props.zoomAccounts);
-    console.log('zoomAccounts type:', typeof props.zoomAccounts);
-    console.log('zoomAccounts is array:', Array.isArray(props.zoomAccounts));
-    
     if (!props.zoomAccounts || !Array.isArray(props.zoomAccounts)) {
-        console.log('No zoomAccounts or not array');
         return [];
     }
     
-    console.log('zoomAccounts length:', props.zoomAccounts.length);
-    
-    // إرجاع جميع الحسابات النشطة بدون فلترة إضافية للاختبار
-    const available = props.zoomAccounts.filter(account => {
-        console.log('--- Checking account ---');
-        console.log('Account object:', account);
-        console.log('Account ID:', account.id);
-        console.log('Account name:', account.name);
-        console.log('Account is_active:', account.is_active);
-        console.log('Account is_active type:', typeof account.is_active);
-        
-        // التحقق من أن الحساب نشط فقط
-        if (!account.is_active) {
-            console.log('❌ Account not active:', account.name);
-            return false;
-        }
-        
-        console.log('✅ Account available:', account.name);
-        return true;
+    // إرجاع جميع الحسابات النشطة التي لم يتم ربطها بمعلم آخر
+    return props.zoomAccounts.filter(account => {
+        return account.is_active && !account.teachers?.length;
     });
-    
-    console.log('=== FINAL RESULT ===');
-    console.log('Available accounts count:', available.length);
-    console.log('Available accounts:', available);
-    return available;
 });
 
 // Methods

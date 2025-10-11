@@ -314,21 +314,22 @@
                         <div class="mt-6" v-if="enrollments.links">
                             <nav class="flex justify-center">
                                 <div class="flex space-x-1 rtl:space-x-reverse">
-                                                                            <Link
-                                            v-for="(link, key) in enrollments.links"
-                                            :key="key"
-                                            :href="link.url"
-                                            :class="[
-                                                'px-3 py-2 text-sm font-medium rounded-md',
-                                                link.url === null
-                                                    ? 'text-gray-400 cursor-not-allowed'
-                                                    : link.active
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                                            ]"
-                                        >
-                                            <span v-html="link.label"></span>
-                                        </Link>
+                                    <component
+                                        v-for="(link, key) in enrollments.links"
+                                        :key="key"
+                                        :is="link.url ? Link : 'span'"
+                                        :href="link.url"
+                                        :class="[
+                                            'px-3 py-2 text-sm font-medium rounded-md',
+                                            link.url === null
+                                                ? 'text-gray-400 cursor-not-allowed'
+                                                : link.active
+                                                ? 'bg-blue-600 text-white'
+                                                : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                                        ]"
+                                    >
+                                        <span v-html="link.label"></span>
+                                    </component>
                                 </div>
                             </nav>
                         </div>
@@ -406,6 +407,9 @@ const props = defineProps({
     stats: Object,
     filters: Object
 })
+
+
+const filters = ref(props.filters || {})
 
 const showBulkEnrollModal = ref(false)
 const bulkForm = reactive({
