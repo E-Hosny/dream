@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\ZoomAccount;
 use App\Models\CourseEnrollment;
+use App\Models\MeetingAttendance;
 
 class ZoomMeetingController extends Controller
 {
@@ -99,13 +100,15 @@ class ZoomMeetingController extends Controller
             DB::beginTransaction();
 
             // إنشاء الاجتماع في Zoom
-            $zoomData = $this->zoomService->createMeeting([
+            $meetingData = [
                 'topic' => $request->topic,
                 'start_time' => $request->start_time,
                 'duration' => $request->duration,
                 'timezone' => $request->timezone ?? 'Asia/Riyadh',
                 'password' => $request->password
-            ]);
+            ];
+            
+            $zoomData = $this->zoomService->createMeeting(Auth::user()->email, $meetingData);
 
             // حفظ الاجتماع في قاعدة البيانات
             $meeting = ZoomMeeting::create([
@@ -264,10 +267,28 @@ class ZoomMeetingController extends Controller
                 ], 403);
             }
 
+            DB::beginTransaction();
+
+            // تحديث حالة الاجتماع
             $meeting->update([
                 'status' => 'started',
                 'updated_by' => Auth::id()
             ]);
+
+            // تسجيل بداية الاجتماع للمعلم
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                Auth::id(),
+                MeetingAttendance::USER_TYPE_TEACHER,
+                MeetingAttendance::ACTION_MEETING_START,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id,
+                    'meeting_topic' => $meeting->topic
+                ]
+            );
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -276,6 +297,7 @@ class ZoomMeetingController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Zoom Meeting Start Error: ' . $e->getMessage());
 
             return response()->json([
@@ -291,10 +313,61 @@ class ZoomMeetingController extends Controller
     public function end(ZoomMeeting $meeting)
     {
         try {
+            DB::beginTransaction();
+
+            // تحديث حالة الاجتماع
             $meeting->update([
                 'status' => 'ended',
                 'updated_by' => Auth::id()
             ]);
+
+            // تسجيل نهاية الاجتماع للمعلم
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                Auth::id(),
+                MeetingAttendance::USER_TYPE_TEACHER,
+                MeetingAttendance::ACTION_MEETING_END,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id,
+                    'meeting_topic' => $meeting->topic
+                ]
+            );
+
+            // حساب مدة حضور المعلم
+            MeetingAttendance::calculateAndUpdateDuration($meeting->id, Auth::id());
+
+            // تسجيل مغادرة تلقائية لجميع الطلاب المتصلين
+            $joinedStudents = MeetingAttendance::where('meeting_id', $meeting->id)
+                ->where('user_type', MeetingAttendance::USER_TYPE_STUDENT)
+                ->where('action_type', MeetingAttendance::ACTION_JOIN)
+                ->pluck('user_id');
+
+            $leftStudents = MeetingAttendance::where('meeting_id', $meeting->id)
+                ->where('user_type', MeetingAttendance::USER_TYPE_STUDENT)
+                ->where('action_type', MeetingAttendance::ACTION_LEAVE)
+                ->pluck('user_id');
+
+            $activeStudents = $joinedStudents->diff($leftStudents);
+
+            foreach ($activeStudents as $studentId) {
+                MeetingAttendance::logAttendance(
+                    $meeting->id,
+                    $studentId,
+                    MeetingAttendance::USER_TYPE_STUDENT,
+                    MeetingAttendance::ACTION_LEAVE,
+                    [
+                        'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                        'auto_logout' => true,
+                        'reason' => 'Meeting ended by teacher'
+                    ]
+                );
+
+                // حساب مدة حضور الطالب
+                MeetingAttendance::calculateAndUpdateDuration($meeting->id, $studentId);
+            }
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -302,11 +375,109 @@ class ZoomMeetingController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Zoom Meeting End Error: ' . $e->getMessage());
 
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إنهاء الاجتماع'
+            ], 500);
+        }
+    }
+
+    /**
+     * تسجيل انضمام طالب للاجتماع
+     */
+    public function studentJoin(Request $request)
+    {
+        try {
+            $meetingId = $request->input('meeting_id');
+            $meeting = ZoomMeeting::findOrFail($meetingId);
+            
+            // التحقق من أن المستخدم طالب مسجل في الكورس
+            if (!Auth::user()->hasRole('student')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مصرح لك بالانضمام للاجتماع'
+                ], 403);
+            }
+
+            // التحقق من أن الطالب مسجل في الكورس
+            $enrollment = CourseEnrollment::where('course_id', $meeting->course_id)
+                ->where('student_id', Auth::id())
+                ->first();
+
+            if (!$enrollment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'يجب أن تكون مسجلاً في الكورس للانضمام للاجتماع'
+                ], 403);
+            }
+
+            // تسجيل انضمام الطالب
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                Auth::id(),
+                MeetingAttendance::USER_TYPE_STUDENT,
+                MeetingAttendance::ACTION_JOIN,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id,
+                    'enrollment_id' => $enrollment->id
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل انضمامك للاجتماع',
+                'join_url' => $meeting->join_url
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Student Meeting Join Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تسجيل الانضمام'
+            ], 500);
+        }
+    }
+
+    /**
+     * تسجيل مغادرة طالب للاجتماع
+     */
+    public function studentLeave(Request $request)
+    {
+        try {
+            $meetingId = $request->input('meeting_id');
+            $meeting = ZoomMeeting::findOrFail($meetingId);
+
+            // تسجيل مغادرة الطالب
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                Auth::id(),
+                MeetingAttendance::USER_TYPE_STUDENT,
+                MeetingAttendance::ACTION_LEAVE,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id
+                ]
+            );
+
+            // حساب مدة حضور الطالب
+            MeetingAttendance::calculateAndUpdateDuration($meeting->id, Auth::id());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل مغادرتك للاجتماع'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Student Meeting Leave Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تسجيل المغادرة'
             ], 500);
         }
     }
@@ -416,6 +587,25 @@ class ZoomMeetingController extends Controller
 
             Log::info('Zoom meeting saved to database:', $zoomMeeting->toArray());
 
+            // تسجيل بداية الاجتماع للمعلم
+            MeetingAttendance::logAttendance(
+                $zoomMeeting->id,
+                $teacher->id,
+                MeetingAttendance::USER_TYPE_TEACHER,
+                MeetingAttendance::ACTION_MEETING_START,
+                [
+                    'zoom_meeting_id' => $meeting['zoom_meeting_id'],
+                    'course_id' => $request->input('course_id'),
+                    'meeting_topic' => $meetingData['topic'],
+                    'meeting_type' => 'instant'
+                ]
+            );
+
+            Log::info('Teacher attendance logged for instant meeting', [
+                'meeting_id' => $zoomMeeting->id,
+                'teacher_id' => $teacher->id
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم إنشاء الاجتماع بنجاح',
@@ -499,6 +689,25 @@ class ZoomMeetingController extends Controller
             Log::info('ZoomService response: ' . json_encode($guestUrl));
 
             if ($guestUrl['success']) {
+                // تسجيل انضمام الطالب للاجتماع
+                MeetingAttendance::logAttendance(
+                    $meeting->id,
+                    Auth::id(),
+                    MeetingAttendance::USER_TYPE_STUDENT,
+                    MeetingAttendance::ACTION_JOIN,
+                    [
+                        'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                        'course_id' => $meeting->course_id,
+                        'enrollment_id' => $enrollment->id,
+                        'join_method' => 'guest_url'
+                    ]
+                );
+
+                Log::info('Student attendance logged for guest join', [
+                    'meeting_id' => $meeting->id,
+                    'student_id' => Auth::id()
+                ]);
+
                 $response = [
                     'success' => true,
                     'guest_join_url' => $guestUrl['guest_join_url'],

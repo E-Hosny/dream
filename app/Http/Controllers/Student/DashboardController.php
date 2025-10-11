@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ZoomMeeting;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\MeetingAttendance;
 
 class DashboardController extends Controller
 {
@@ -210,6 +211,19 @@ class DashboardController extends Controller
         if ($meeting) {
             \Log::info("Found active meeting for course {$courseId}: Meeting ID {$meeting->id}, Zoom Meeting ID: {$meeting->zoom_meeting_id}");
             
+            // تسجيل انضمام الطالب للاجتماع
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                $user->id,
+                MeetingAttendance::USER_TYPE_STUDENT,
+                MeetingAttendance::ACTION_JOIN,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id,
+                    'action_source' => 'student_dashboard'
+                ]
+            );
+            
             return response()->json([
                 'success' => true,
                 'meeting' => [
@@ -230,6 +244,59 @@ class DashboardController extends Controller
                 'success' => false,
                 'message' => 'لا يوجد اجتماع نشط لهذا الكورس'
             ]);
+        }
+    }
+    
+    /**
+     * تسجيل مغادرة الطالب للاجتماع
+     */
+    public function leaveActiveMeeting(Request $request)
+    {
+        $user = Auth::user();
+        $meetingId = $request->input('meeting_id');
+        
+        try {
+            $meeting = ZoomMeeting::findOrFail($meetingId);
+            
+            // التأكد من أن الطالب مسجل في الكورس
+            $isEnrolled = CourseEnrollment::where('student_id', $user->id)
+                ->where('course_id', $meeting->course_id)
+                ->exists();
+                
+            if (!$isEnrolled) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'غير مسجل في هذا الكورس'
+                ]);
+            }
+            
+            // تسجيل مغادرة الطالب
+            MeetingAttendance::logAttendance(
+                $meeting->id,
+                $user->id,
+                MeetingAttendance::USER_TYPE_STUDENT,
+                MeetingAttendance::ACTION_LEAVE,
+                [
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'course_id' => $meeting->course_id,
+                    'action_source' => 'student_dashboard'
+                ]
+            );
+            
+            // حساب مدة الحضور
+            MeetingAttendance::calculateAndUpdateDuration($meeting->id, $user->id);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل مغادرتك للاجتماع'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Student Leave Meeting Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تسجيل المغادرة'
+            ], 500);
         }
     }
     

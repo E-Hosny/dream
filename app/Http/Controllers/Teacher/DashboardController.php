@@ -8,7 +8,9 @@ use Inertia\Inertia;
 use App\Models\Course;
 use App\Models\ZoomMeeting;
 use App\Models\Assignment;
+use App\Models\MeetingAttendance;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -141,15 +143,66 @@ class DashboardController extends Controller
                 ], 404);
             }
             
-            // إنهاء الاجتماع
-        $activeMeeting->update([
-            'status' => 'ended',
-            'actual_end_time' => now(), // الوقت الفعلي لانتهاء الاجتماع
-            'updated_by' => $user->id,
-            'updated_at' => now()
-        ]);
+            DB::beginTransaction();
             
-            \Log::info("Meeting ended by teacher. Meeting ID: {$activeMeeting->id}, Course ID: {$courseId}, Teacher ID: {$user->id}");
+            // إنهاء الاجتماع
+            $activeMeeting->update([
+                'status' => 'ended',
+                'actual_end_time' => now(), // الوقت الفعلي لانتهاء الاجتماع
+                'updated_by' => $user->id,
+                'updated_at' => now()
+            ]);
+
+            // تسجيل نهاية الاجتماع للمعلم
+            MeetingAttendance::logAttendance(
+                $activeMeeting->id,
+                $user->id,
+                MeetingAttendance::USER_TYPE_TEACHER,
+                MeetingAttendance::ACTION_MEETING_END,
+                [
+                    'zoom_meeting_id' => $activeMeeting->zoom_meeting_id,
+                    'course_id' => $activeMeeting->course_id,
+                    'meeting_topic' => $activeMeeting->topic,
+                    'ended_by' => 'teacher'
+                ]
+            );
+
+            // حساب مدة حضور المعلم
+            MeetingAttendance::calculateAndUpdateDuration($activeMeeting->id, $user->id);
+
+            // تسجيل مغادرة تلقائية لجميع الطلاب المتصلين
+            $joinedStudents = MeetingAttendance::where('meeting_id', $activeMeeting->id)
+                ->where('user_type', MeetingAttendance::USER_TYPE_STUDENT)
+                ->where('action_type', MeetingAttendance::ACTION_JOIN)
+                ->pluck('user_id');
+
+            $leftStudents = MeetingAttendance::where('meeting_id', $activeMeeting->id)
+                ->where('user_type', MeetingAttendance::USER_TYPE_STUDENT)
+                ->where('action_type', MeetingAttendance::ACTION_LEAVE)
+                ->pluck('user_id');
+
+            $activeStudents = $joinedStudents->diff($leftStudents);
+
+            foreach ($activeStudents as $studentId) {
+                MeetingAttendance::logAttendance(
+                    $activeMeeting->id,
+                    $studentId,
+                    MeetingAttendance::USER_TYPE_STUDENT,
+                    MeetingAttendance::ACTION_LEAVE,
+                    [
+                        'zoom_meeting_id' => $activeMeeting->zoom_meeting_id,
+                        'auto_logout' => true,
+                        'reason' => 'Meeting ended by teacher'
+                    ]
+                );
+
+                // حساب مدة حضور الطالب
+                MeetingAttendance::calculateAndUpdateDuration($activeMeeting->id, $studentId);
+            }
+
+            DB::commit();
+            
+            \Log::info("Meeting ended by teacher with attendance tracking. Meeting ID: {$activeMeeting->id}, Course ID: {$courseId}, Teacher ID: {$user->id}");
             
             return response()->json([
                 'success' => true,
@@ -162,6 +215,7 @@ class DashboardController extends Controller
             ]);
             
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Error ending meeting: ' . $e->getMessage());
             
             return response()->json([

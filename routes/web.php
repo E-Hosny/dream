@@ -69,6 +69,16 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::post('/teachers/{teacher}/link-zoom-account', [\App\Http\Controllers\Admin\UserController::class, 'linkZoomAccount'])->name('teachers.link-zoom-account');
         Route::post('/teachers/{teacher}/unlink-zoom-account', [\App\Http\Controllers\Admin\UserController::class, 'unlinkZoomAccount'])->name('teachers.unlink-zoom-account');
         
+        // Attendance Management Routes
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('index');
+            Route::get('/dashboard', [\App\Http\Controllers\Admin\AttendanceController::class, 'dashboard'])->name('dashboard');
+            Route::get('/meeting/{meeting}', [\App\Http\Controllers\Admin\AttendanceController::class, 'meetingReport'])->name('meeting-report');
+            Route::get('/course/{course}', [\App\Http\Controllers\Admin\AttendanceController::class, 'courseReport'])->name('course-report');
+            Route::get('/user/{user}', [\App\Http\Controllers\Admin\AttendanceController::class, 'userReport'])->name('user-report');
+            Route::post('/export', [\App\Http\Controllers\Admin\AttendanceController::class, 'export'])->name('export');
+        });
+        
             // API Routes for Zoom
     Route::get('/api/courses/{course}/schedules', function ($course) {
         return \App\Models\CourseSchedule::where('course_id', $course)
@@ -80,6 +90,14 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
 // General Zoom Meeting Routes (accessible from anywhere)
 Route::post('/zoom-meetings/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])
     ->name('zoom-meetings.start-instant')
+    ->middleware(['auth']);
+
+// Student Attendance Tracking Routes
+Route::post('/meetings/student-join', [\App\Http\Controllers\ZoomMeetingController::class, 'studentJoin'])
+    ->name('meetings.student-join')
+    ->middleware(['auth']);
+Route::post('/meetings/student-leave', [\App\Http\Controllers\ZoomMeetingController::class, 'studentLeave'])
+    ->name('meetings.student-leave')
     ->middleware(['auth']);
 
     // Teacher Routes
@@ -156,6 +174,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/courses/{course}/active-meeting', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingForCourse'])->name('active-meeting');
         Route::get('/courses/{course}', [\App\Http\Controllers\Student\DashboardController::class, 'showCourse'])->name('courses.show');
         Route::post('/meetings/{meeting}/guest-join', [\App\Http\Controllers\ZoomMeetingController::class, 'generateGuestJoinUrl'])->name('guest-join');
+        
+        // Student Attendance Tracking
+        Route::post('/leave-meeting', [\App\Http\Controllers\Student\DashboardController::class, 'leaveActiveMeeting'])->name('leave-meeting');
         
         Route::get('/courses', function () {
             return Inertia::render('Student/Courses/Index');
