@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\MailTestController;
 
 Route::get("/", function () {
     return redirect()->route('login');
@@ -216,6 +217,12 @@ Route::prefix('zoom-meetings')->name('zoom-meetings.')->middleware(['auth'])->gr
     
     // اجتماع فوري
     Route::post('/start-instant', [\App\Http\Controllers\ZoomMeetingController::class, 'startInstantMeeting'])->name('start-instant');
+});
+
+// Mail Test Routes
+Route::prefix('mail-test')->name('mail-test.')->group(function () {
+    Route::post('/send', [MailTestController::class, 'sendTestEmail'])->name('send');
+    Route::get('/check-settings', [MailTestController::class, 'testMailgunSettings'])->name('check-settings');
 });
 
 
