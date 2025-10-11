@@ -280,6 +280,14 @@ const adminMenuItems = [
                 </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse">
+                    <!-- Notifications -->
+                    <button class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
+                        </svg>
+                        <span class="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </button>
+
                     <!-- Language Switcher -->
                     <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
                         <button
@@ -312,14 +320,6 @@ const adminMenuItems = [
                         @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
                     >
                         <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
-                    </button>
-
-                    <!-- Notifications -->
-                    <button class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
-                        </svg>
-                        <span class="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400"></span>
                     </button>
 
                     <!-- Profile dropdown -->

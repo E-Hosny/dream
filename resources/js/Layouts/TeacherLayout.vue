@@ -388,40 +388,6 @@ const teacherMenuItems = [
                 </div>
 
                 <div class="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse">
-                    <!-- Language Switcher -->
-                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
-                        <button
-                            @click="switchLanguage('en')"
-                            :class="[
-                                'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
-                                currentLocale === 'en' 
-                                    ? 'bg-white text-emerald-600 shadow-sm' 
-                                    : 'text-gray-600 hover:text-gray-900'
-                            ]"
-                        >
-                            EN
-                        </button>
-                        <button
-                            @click="switchLanguage('ar')"
-                            :class="[
-                                'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
-                                currentLocale === 'ar' 
-                                    ? 'bg-white text-emerald-600 shadow-sm' 
-                                    : 'text-gray-600 hover:text-gray-900'
-                            ]"
-                        >
-                            عربي
-                        </button>
-                    </div>
-
-                    <!-- Mobile Language Switcher -->
-                    <button 
-                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
-                    >
-                        <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
-                    </button>
-
                     <!-- Notifications -->
                     <div class="relative">
                         <button 
@@ -442,13 +408,12 @@ const teacherMenuItems = [
                         <!-- Notifications Dropdown -->
                         <div 
                             v-if="showingNotifications"
-                            class="absolute right-0 z-50 mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200
+                            class="absolute right-4 z-50 mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200
                                    w-80 sm:w-96 
-                                   max-w-[calc(100vw-2rem)]
-                                   transform -translate-x-2 sm:translate-x-0"
+                                   max-w-[calc(100vw-3rem)]"
                             :class="[
-                                isRTL ? 'left-0 right-auto transform translate-x-2 sm:translate-x-0' : '',
-                                'xs:fixed xs:inset-x-4 xs:top-16 xs:w-auto xs:transform-none sm:absolute sm:inset-auto sm:top-auto sm:transform sm:-translate-x-2'
+                                isRTL ? 'left-4 right-auto' : '',
+                                'xs:fixed xs:inset-x-4 xs:top-16 xs:w-auto sm:absolute sm:inset-auto sm:top-auto'
                             ]"
                         >
                             <!-- Header -->
@@ -522,6 +487,40 @@ const teacherMenuItems = [
                             </div>
                         </div>
                     </div>
+
+                    <!-- Language Switcher -->
+                    <div class="hidden md:flex items-center bg-gray-100 rounded-lg p-1">
+                        <button
+                            @click="switchLanguage('en')"
+                            :class="[
+                                'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
+                                currentLocale === 'en' 
+                                    ? 'bg-white text-emerald-600 shadow-sm' 
+                                    : 'text-gray-600 hover:text-gray-900'
+                            ]"
+                        >
+                            EN
+                        </button>
+                        <button
+                            @click="switchLanguage('ar')"
+                            :class="[
+                                'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
+                                currentLocale === 'ar' 
+                                    ? 'bg-white text-emerald-600 shadow-sm' 
+                                    : 'text-gray-600 hover:text-gray-900'
+                            ]"
+                        >
+                            عربي
+                        </button>
+                    </div>
+
+                    <!-- Mobile Language Switcher -->
+                    <button 
+                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
+                    >
+                        <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
+                    </button>
 
                     <!-- Profile dropdown -->
                     <div class="relative">
