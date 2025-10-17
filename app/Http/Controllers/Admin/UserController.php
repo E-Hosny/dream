@@ -178,28 +178,44 @@ class UserController extends Controller
             ], 400);
         }
 
-        // التحقق من أن الحساب متاح
+        // التحقق من أن الحساب نشط
         $zoomAccount = ZoomAccount::find($request->zoom_account_id);
-        if ($zoomAccount->teachers()->count() > 0) {
+        if (!$zoomAccount->is_active) {
             return response()->json([
                 'success' => false,
-                'message' => 'هذا الحساب مرتبط بمعلم آخر'
+                'message' => 'هذا الحساب غير نشط حالياً'
             ], 400);
         }
 
         try {
+            // التحقق من أن المعلم ليس مرتبطاً بنفس الحساب بالفعل
+            if ($teacher->zoom_account_id == $request->zoom_account_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'المعلم مرتبط بهذا الحساب بالفعل'
+                ], 400);
+            }
+
             $teacher->update(['zoom_account_id' => $request->zoom_account_id]);
+
+            // عدد المعلمين المرتبطين بهذا الحساب
+            $teachersCount = $zoomAccount->teachers()->count();
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم ربط المعلم بحساب Zoom بنجاح',
-                'zoom_account' => $zoomAccount->only(['id', 'name', 'email'])
+                'zoom_account' => [
+                    'id' => $zoomAccount->id,
+                    'name' => $zoomAccount->name,
+                    'email' => $zoomAccount->email,
+                    'teachers_count' => $teachersCount
+                ]
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء ربط الحساب'
+                'message' => 'حدث خطأ أثناء ربط الحساب: ' . $e->getMessage()
             ], 500);
         }
     }

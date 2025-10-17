@@ -120,7 +120,10 @@
                                         </div>
                                         <div class="mr-3">
                                             <div class="text-sm font-medium text-gray-900">{{ teacher.zoom_account.name }}</div>
-                                            <div class="text-sm text-gray-500">{{ teacher.zoom_account.email }}</div>
+                                            <div class="text-xs text-gray-500">{{ teacher.zoom_account.email }}</div>
+                                            <div v-if="getTeachersCountForAccount(teacher.zoom_account.id) > 1" class="text-xs text-blue-600 mt-0.5">
+                                                {{ getTeachersCountForAccount(teacher.zoom_account.id) }} {{ currentLocale === 'ar' ? 'معلمين مرتبطين' : 'linked teachers' }}
+                                            </div>
                                         </div>
                                         <button
                                             @click="unlinkZoomAccount(teacher)"
@@ -258,9 +261,12 @@
                                 :key="account.id"
                                 :value="account.id"
                             >
-                                {{ account.name }} ({{ account.email }})
+                                {{ account.name }} ({{ account.email }}) - {{ account.teachers?.length || 0 }} {{ currentLocale === 'ar' ? 'معلم' : 'teachers' }}
                             </option>
                         </select>
+                        <p class="mt-2 text-xs text-gray-500">
+                            {{ currentLocale === 'ar' ? 'يمكن ربط أكثر من معلم بنفس حساب Zoom' : 'Multiple teachers can be linked to the same Zoom account' }}
+                        </p>
                     </div>
                     <div class="flex justify-end space-x-3 rtl:space-x-reverse">
                         <button
@@ -404,7 +410,7 @@
                                             {{ currentLocale === 'ar' ? 'الحالة' : 'Status' }}
                                         </th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            {{ currentLocale === 'ar' ? 'المعلم المرتبط' : 'Linked Teacher' }}
+                                            {{ currentLocale === 'ar' ? 'المعلمين المرتبطين' : 'Linked Teachers' }}
                                         </th>
                                         <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ currentLocale === 'ar' ? 'الإجراءات' : 'Actions' }}
@@ -432,8 +438,15 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <div v-if="account.teachers && account.teachers.length > 0" class="text-sm text-gray-900">
-                                                {{ account.teachers[0].name }}
+                                            <div v-if="account.teachers && account.teachers.length > 0" class="text-sm">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    {{ account.teachers.length }} {{ account.teachers.length === 1 ? (currentLocale === 'ar' ? 'معلم' : 'teacher') : (currentLocale === 'ar' ? 'معلمين' : 'teachers') }}
+                                                </span>
+                                                <div v-if="account.teachers.length <= 3" class="mt-1 text-xs text-gray-600">
+                                                    <div v-for="teacher in account.teachers" :key="teacher.id">
+                                                        • {{ teacher.name }}
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div v-else class="text-sm text-gray-500">
                                                 {{ currentLocale === 'ar' ? 'غير مرتبط' : 'Not linked' }}
@@ -506,15 +519,19 @@ const availableZoomAccounts = computed(() => {
         return [];
     }
     
-    // إرجاع جميع الحسابات النشطة التي لم يتم ربطها بمعلم آخر
-    return props.zoomAccounts.filter(account => {
-        return account.is_active && !account.teachers?.length;
-    });
+    // إرجاع جميع الحسابات النشطة (السماح بربط أكثر من معلم لنفس الحساب)
+    return props.zoomAccounts.filter(account => account.is_active);
 });
 
 // Methods
 const formatDate = (date) => {
     return new Date(date).toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA' : 'en-US');
+};
+
+const getTeachersCountForAccount = (accountId) => {
+    // حساب عدد المعلمين المرتبطين بحساب Zoom معين
+    if (!props.teachers?.data) return 0;
+    return props.teachers.data.filter(teacher => teacher.zoom_account?.id === accountId).length;
 };
 
 const openLinkModal = (teacher) => {

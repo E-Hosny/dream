@@ -721,7 +721,7 @@ const submit = () => {
                 <!-- Action Buttons -->
                 <div class="bg-gradient-to-r from-gray-50 to-white -mx-8 -mb-8 px-8 py-8 mt-10 border-t border-gray-200">
                     <div class="flex items-center justify-between">
-                        <Link :href="route('courses.index')" class="group flex items-center px-8 py-4 text-gray-600 bg-white border-2 border-gray-300 rounded-2xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-lg hover:shadow-xl">
+                        <Link :href="route('admin.courses.index')" class="group flex items-center px-8 py-4 text-gray-600 bg-white border-2 border-gray-300 rounded-2xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 shadow-lg hover:shadow-xl">
                             <svg class="w-6 h-6 mr-3 rtl:mr-0 rtl:ml-3 group-hover:-translate-x-1 rtl:group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                             </svg>
