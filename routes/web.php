@@ -196,9 +196,7 @@ Route::middleware(['auth'])->group(function () {
             return Inertia::render('Student/Schedule/Index');
         })->name('schedule.index');
         
-        Route::get('/grades', function () {
-            return Inertia::render('Student/Grades/Index');
-        })->name('grades.index');
+        Route::get('/grades', [\App\Http\Controllers\Student\GradeController::class, 'index'])->name('grades.index');
         
         Route::get('/progress', function () {
             return Inertia::render('Student/Progress/Index');
