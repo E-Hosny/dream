@@ -58,7 +58,7 @@ const t = (key) => {
         ar: {
             teacher_dashboard: 'لوحة تحكم المعلم',
             welcome_message: 'مرحباً بك في بوابة التدريس',
-            my_courses: 'كورساتي',
+            my_courses: 'الدروس',
             course_details: 'تفاصيل الكورس',
             course_title: 'عنوان الكورس',
             course_description: 'الوصف',

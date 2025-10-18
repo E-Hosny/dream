@@ -178,8 +178,8 @@ const t = (key) => {
         },
         ar: {
             dashboard: 'لوحة التحكم',
-            my_courses: 'كورساتي',
-            browse_courses: 'تصفح الكورسات',
+            my_courses: 'الدروس',
+            browse_courses: 'تصفح الدورات',
             lessons: 'الدروس',
             assignments: 'الواجبات',
             grades: 'درجاتي',

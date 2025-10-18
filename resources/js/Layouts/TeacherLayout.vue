@@ -176,7 +176,7 @@ const t = (key) => {
         },
         ar: {
             dashboard: 'لوحة التحكم',
-            my_courses: 'كورساتي',
+            my_courses: 'الدروس',
             create_course: 'إنشاء كورس',
             lessons: 'الدروس',
             students: 'طلابي',

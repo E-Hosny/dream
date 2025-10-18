@@ -62,7 +62,7 @@ const t = (key) => {
             corrected: 'Corrected',
         },
         ar: {
-            course_details: 'تفاصيل الكورس',
+            course_details: 'تفاصيل المادة',
             back_to_dashboard: 'العودة للوحة التحكم',
             meetings_history: 'تاريخ الاجتماعات',
             meeting_topic: 'موضوع الاجتماع',
