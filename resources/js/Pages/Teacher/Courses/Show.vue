@@ -324,6 +324,14 @@ const submitAssignment = async () => {
             }
         });
 
+        // فحص نوع المحتوى قبل parse
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Response is not JSON:', text);
+            throw new Error('Server returned non-JSON response');
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -341,7 +349,10 @@ const submitAssignment = async () => {
         }
     } catch (error) {
         console.error('Error saving assignment:', error);
-        alert(currentLocale.value === 'ar' ? 'حدث خطأ أثناء حفظ الواجب' : 'Error saving assignment');
+        alert(currentLocale.value === 'ar' ? 
+            `حدث خطأ أثناء حفظ الواجب: ${error.message}` : 
+            `Error saving assignment: ${error.message}`
+        );
     } finally {
         assignmentLoading.value = false;
     }

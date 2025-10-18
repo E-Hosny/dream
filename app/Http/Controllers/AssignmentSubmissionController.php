@@ -7,6 +7,7 @@ use App\Models\AssignmentSubmission;
 use App\Models\User;
 use App\Notifications\AssignmentSubmitted;
 use App\Notifications\AssignmentCorrected;
+use App\Notifications\AssignmentGradedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -207,9 +208,11 @@ class AssignmentSubmissionController extends Controller
             // إرسال إشعار للطالب بالتصحيح
             $student = User::find($submission->student_id);
             $teacher = Auth::user();
+            $course = $assignment->meeting->course;
             
             if ($student) {
-                $student->notify(new AssignmentCorrected($submission, $teacher));
+                $student->notify(new AssignmentCorrected($submission, $teacher)); // للقاعدة
+                $student->notify(new AssignmentGradedNotification($submission, $assignment, $course)); // للبريد
                 \Log::info("Assignment correction notification sent to student {$student->name} for assignment: {$assignment->title}");
             }
 

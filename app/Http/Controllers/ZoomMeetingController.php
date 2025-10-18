@@ -14,6 +14,8 @@ use Inertia\Inertia;
 use App\Models\ZoomAccount;
 use App\Models\CourseEnrollment;
 use App\Models\MeetingAttendance;
+use App\Notifications\MeetingStartedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class ZoomMeetingController extends Controller
 {
@@ -287,6 +289,14 @@ class ZoomMeetingController extends Controller
                     'meeting_topic' => $meeting->topic
                 ]
             );
+
+            // إرسال إشعار لجميع الطلاب المسجلين في الكورس
+            $course = $meeting->course;
+            $enrolledStudents = $course->enrolledStudents()->get();
+            
+            foreach ($enrolledStudents as $student) {
+                $student->notify(new MeetingStartedNotification($meeting, $course));
+            }
 
             DB::commit();
 
@@ -605,6 +615,22 @@ class ZoomMeetingController extends Controller
                 'meeting_id' => $zoomMeeting->id,
                 'teacher_id' => $teacher->id
             ]);
+
+            // إرسال إشعار لجميع الطلاب المسجلين في الكورس (إذا كان الاجتماع مرتبط بكورس)
+            if ($request->input('course_id')) {
+                $course = Course::with('enrolledStudents')->find($request->input('course_id'));
+                if ($course) {
+                    foreach ($course->enrolledStudents as $student) {
+                        $student->notify(new MeetingStartedNotification($zoomMeeting, $course));
+                    }
+                    
+                    Log::info('Meeting started notifications sent to students', [
+                        'meeting_id' => $zoomMeeting->id,
+                        'course_id' => $course->id,
+                        'students_count' => $course->enrolledStudents->count()
+                    ]);
+                }
+            }
 
             return response()->json([
                 'success' => true,

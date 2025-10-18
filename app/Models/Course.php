@@ -53,6 +53,16 @@ class Course extends Model
                     ->withTimestamps();
     }
 
+    // الحصول على الطلاب المسجلين فقط (الحالة: enrolled أو active)
+    public function enrolledStudents()
+    {
+        return $this->belongsToMany(User::class, 'course_enrollments', 'course_id', 'student_id')
+                    ->select('users.*') // تحديد الأعمدة من جدول users فقط
+                    ->wherePivotIn('status', ['enrolled', 'active', 'completed'])
+                    ->withPivot(['status', 'progress', 'enrolled_at', 'completed_at', 'final_grade'])
+                    ->withTimestamps();
+    }
+
     // العلاقة مع مواعيد الكورس
     public function schedules(): HasMany
     {

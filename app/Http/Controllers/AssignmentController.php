@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\ZoomMeeting;
 use App\Models\User;
 use App\Notifications\AssignmentCreated;
+use App\Notifications\NewAssignmentNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -65,14 +66,16 @@ class AssignmentController extends Controller
 
             // إرسال إشعارات للطلاب المسجلين في الكورس
             $teacher = Auth::user();
-            $enrolledStudents = $meeting->course->enrollments()
+            $course = $meeting->course;
+            $enrolledStudents = $course->enrollments()
                 ->whereIn('status', ['active', 'enrolled', 'completed'])
                 ->with('student')
                 ->get()
                 ->pluck('student');
 
-            // إرسال الإشعار لكل طالب مسجل
-            Notification::send($enrolledStudents, new AssignmentCreated($assignment, $teacher));
+            // إرسال الإشعار لكل طالب مسجل (إشعار قاعدة بيانات + بريد إلكتروني)
+            Notification::send($enrolledStudents, new AssignmentCreated($assignment, $teacher)); // للقاعدة
+            Notification::send($enrolledStudents, new NewAssignmentNotification($assignment, $course)); // للبريد
 
             \Log::info("Assignment created notification sent to {$enrolledStudents->count()} students for assignment: {$assignment->title}");
 

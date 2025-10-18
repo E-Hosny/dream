@@ -9,8 +9,10 @@ use App\Models\Course;
 use App\Models\ZoomMeeting;
 use App\Models\Assignment;
 use App\Models\MeetingAttendance;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\MeetingEndedMissedNotification;
 
 class DashboardController extends Controller
 {
@@ -199,6 +201,23 @@ class DashboardController extends Controller
                 // حساب مدة حضور الطالب
                 MeetingAttendance::calculateAndUpdateDuration($activeMeeting->id, $studentId);
             }
+
+            // إرسال إشعار للطلاب الذين لم يحضروا
+            $allEnrolledStudents = $course->enrolledStudents()->pluck('id');
+            $missedStudents = $allEnrolledStudents->diff($joinedStudents);
+            
+            foreach ($missedStudents as $studentId) {
+                $student = User::find($studentId);
+                if ($student) {
+                    $student->notify(new MeetingEndedMissedNotification($activeMeeting, $course));
+                }
+            }
+
+            \Log::info("Meeting ended notifications sent", [
+                'meeting_id' => $activeMeeting->id,
+                'missed_students_count' => $missedStudents->count(),
+                'attended_students_count' => $joinedStudents->count()
+            ]);
 
             DB::commit();
             
