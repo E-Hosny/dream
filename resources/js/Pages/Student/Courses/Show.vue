@@ -316,138 +316,220 @@ const getSubmissionStatusText = (status) => {
 
     <StudentLayout>
         <!-- Page Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
-                <div>
-                    <Link :href="route('student.dashboard')" class="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-                        <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                        </svg>
-                        {{ t('back_to_dashboard') }}
-                    </Link>
-                    <h1 class="text-3xl font-bold text-gray-900">{{ t('course_details') }}</h1>
+        <div class="bg-white border-b border-gray-200 py-6 mb-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <Link :href="route('student.dashboard')" class="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors">
+                            <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                            {{ t('back_to_dashboard') }}
+                        </Link>
+                        <h1 class="text-3xl font-bold text-gray-900">{{ t('course_details') }}</h1>
+                        <h2 class="text-xl text-gray-600 mt-2">
+                            {{ currentLocale === 'ar' ? course.title : course.titleEn }}
+                        </h2>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-900">{{ meetings.length }}</div>
+                                <div class="text-sm text-gray-600">{{ currentLocale === 'ar' ? 'اجتماع' : 'Meetings' }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Course Title -->
-        <div class="max-w-6xl mx-auto mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">
-                {{ currentLocale === 'ar' ? course.title : course.titleEn }}
-            </h2>
-        </div>
-
-        <!-- Meetings History -->
-        <div class="max-w-6xl mx-auto">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-6">{{ t('meetings_history') }}</h2>
-
-                <!-- Active Meeting Alert -->
-                <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Active Meeting Alert -->
+            <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-8">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-6">
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                            <div class="flex items-center justify-center h-8 w-8 rounded-full bg-green-600 text-white">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                            <div class="flex items-center justify-center h-10 w-10 rounded-full bg-green-100">
+                                <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-green-900">{{ t('meeting_active') }}</p>
-                                <p class="text-xs text-green-700">{{ course.activeMeeting.topic }}</p>
+                                <h3 class="text-lg font-semibold text-green-900">{{ t('meeting_active') }}</h3>
+                                <p class="text-green-700">{{ course.activeMeeting.topic }}</p>
                             </div>
                         </div>
                         <button @click="joinMeeting(course.activeMeeting.id)" 
-                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                                class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
                             {{ t('join_now') }}
                         </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Meetings Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                        <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        {{ t('meetings_history') }}
+                    </h2>
+                </div>
 
                 <!-- Meetings List -->
-                <div v-if="meetings.length > 0" class="space-y-6">
-                    <div v-for="meeting in meetings" :key="meeting.id" 
-                         class="p-6 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                <div v-if="meetings.length > 0" class="p-6">
+                    <div class="space-y-6">
+                        <div v-for="meeting in meetings" :key="meeting.id" 
+                             class="group bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md overflow-hidden">
                         
-                        <!-- Meeting Info -->
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-medium text-gray-900 text-lg">{{ meeting.topic }}</h3>
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <span :class="`px-3 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
-                                    {{ meeting.status_text }}
-                                </span>
-                                <button v-if="meeting.can_join" @click="joinMeeting(meeting.id)"
-                                        class="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors">
-                                    {{ t('join_now') }}
-                                </button>
+                            <!-- Meeting Header -->
+                            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
+                                            <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900 text-lg">{{ meeting.topic }}</h3>
+                                            <div class="flex items-center space-x-2 rtl:space-x-reverse mt-1">
+                                                <span :class="`px-2 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
+                                                    {{ meeting.status_text }}
+                                                </span>
+                                                <span v-if="meeting.password && meeting.can_join" class="text-xs text-gray-500">
+                                                    {{ t('password') }}: <code class="bg-gray-100 px-1 rounded">{{ meeting.password }}</code>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button v-if="meeting.can_join" @click="joinMeeting(meeting.id)"
+                                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                        {{ t('join_now') }}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-700 mb-4">
-                            <div>
-                                <span class="font-medium">{{ t('start_time') }}:</span>
-                                <br>{{ formatDateTime(meeting.actual_start_time || meeting.start_time) }}
+                            
+                            <!-- Meeting Details -->
+                            <div class="px-6 py-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                                            <svg class="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600">{{ t('start_time') }}</span>
+                                        </div>
+                                        <div class="text-sm text-gray-900">{{ formatDateTime(meeting.actual_start_time || meeting.start_time) }}</div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                                            <svg class="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600">{{ t('end_time') }}</span>
+                                        </div>
+                                        <div class="text-sm text-gray-900">{{ formatDateTime(meeting.actual_end_time || meeting.end_time) }}</div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                                            <svg class="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600">{{ t('meeting_duration') }}</span>
+                                        </div>
+                                        <div class="text-sm text-gray-900">{{ meeting.duration }} {{ t('minutes') }}</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <span class="font-medium">{{ t('end_time') }}:</span>
-                                <br>{{ formatDateTime(meeting.actual_end_time || meeting.end_time) }}
-                            </div>
-                            <div>
-                                <span class="font-medium">{{ t('meeting_duration') }}:</span>
-                                <br>{{ meeting.duration }} {{ t('minutes') }}
-                            </div>
-                        </div>
-                        
-                        <div v-if="meeting.password && meeting.can_join" class="mb-4 text-sm">
-                            <span class="font-medium text-gray-700">{{ t('password') }}:</span>
-                            <code class="ml-2 bg-gray-100 px-2 py-1 rounded">{{ meeting.password }}</code>
-                        </div>
 
-                        <!-- Assignment Section -->
-                        <div class="border-t pt-4">
-                            <div class="flex items-center justify-between mb-3">
-                                <h4 class="font-medium text-gray-800">{{ t('assignment') }}</h4>
-                                <div v-if="meeting.assignment && meeting.assignment.submission" class="text-xs px-2 py-1 rounded-full"
-                                     :class="getSubmissionStatusClass(meeting.assignment.submission.status)">
-                                    {{ getSubmissionStatusText(meeting.assignment.submission.status) }}
+                            <!-- Assignment Section -->
+                            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                        <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+                                            <svg class="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <h4 class="font-semibold text-gray-800">{{ t('assignment') }}</h4>
+                                    </div>
+                                    <div v-if="meeting.assignment && meeting.assignment.submission" class="text-xs px-3 py-1 rounded-full font-medium"
+                                         :class="getSubmissionStatusClass(meeting.assignment.submission.status)">
+                                        {{ getSubmissionStatusText(meeting.assignment.submission.status) }}
+                                    </div>
                                 </div>
                             </div>
                             
                             <!-- Assignment Info -->
-                            <div v-if="meeting.assignment" class="bg-gray-50 p-4 rounded-lg">
-                                <div class="flex items-center justify-between mb-3">
-                                    <h5 class="font-medium text-gray-900">{{ meeting.assignment.title }}</h5>
-                                    <span class="text-xs text-gray-500">{{ meeting.assignment.formatted_file_size }}</span>
-                                </div>
-                                
-                                <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-3">
-                                    {{ meeting.assignment.description }}
-                                </p>
-                                
-                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                    <div class="text-xs text-gray-500">
-                                        <div>{{ meeting.assignment.file_name }}</div>
-                                        <div>{{ formatDateTime(meeting.assignment.created_at) }}</div>
+                            <div v-if="meeting.assignment" class="px-6 py-4">
+                                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div class="flex-1">
+                                            <h5 class="font-semibold text-gray-900 text-lg mb-2">{{ meeting.assignment.title }}</h5>
+                                            <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-3">
+                                                {{ meeting.assignment.description }}
+                                            </p>
+                                            <div class="flex items-center space-x-4 rtl:space-x-reverse text-xs text-gray-500">
+                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    <span>{{ meeting.assignment.file_name }}</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
+                                                </div>
+                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                    <span>{{ meeting.assignment.formatted_file_size }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                     
-                                    <div class="flex flex-wrap gap-2">
+                                    <div class="flex flex-wrap gap-2 mt-4">
                                         <button @click="viewAssignment(meeting.assignment)"
-                                                class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium">
+                                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
+                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
                                             {{ t('view_assignment') }}
                                         </button>
                                         <button @click="downloadAssignment(meeting.assignment)"
-                                                class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
                                             {{ t('download_assignment') }}
                                         </button>
                                         
                                         <button v-if="!meeting.assignment.submission || meeting.assignment.submission.status === 'not_submitted'"
                                                 @click="openSubmissionModal(meeting.assignment)"
-                                                class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium">
+                                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                            </svg>
                                             {{ t('upload_solution') }}
                                         </button>
                                         
                                         <button v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'"
                                                 @click="openSubmissionModal(meeting.assignment)"
-                                                class="px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-xs font-medium">
+                                                class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium">
+                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                                            </svg>
                                             {{ t('update_solution') }}
                                         </button>
                                     </div>
@@ -455,141 +537,205 @@ const getSubmissionStatusText = (status) => {
                                 
                                 <!-- Student Submission Info -->
                                 <div v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'" 
-                                     class="mt-4 pt-3 border-t">
-                                    <h6 class="font-medium text-gray-800 mb-2">{{ t('my_solution') }}</h6>
-                                    
-                                    <div class="space-y-2">
+                                     class="mt-6 pt-4 border-t border-gray-200">
+                                    <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                                        <h6 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                            <svg class="w-3 h-3 mr-2 rtl:mr-0 rtl:ml-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            {{ t('my_solution') }}
+                                        </h6>
+                                        
                                         <!-- Submitted File -->
-                                        <div class="flex items-center justify-between bg-white p-2 rounded border">
-                                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                                <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                                <span class="text-sm text-gray-700">{{ meeting.assignment.submission.submission_file_name }}</span>
-                                                <span class="text-xs text-gray-500">({{ meeting.assignment.submission.formatted_submission_file_size }})</span>
-                                            </div>
-                                            <div class="flex space-x-1 rtl:space-x-reverse">
-                                                <button @click="viewSubmission(meeting.assignment.submission, 'submission')"
-                                                        class="px-2 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                                    {{ t('view') }}
-                                                </button>
-                                                <button @click="downloadSubmission(meeting.assignment.submission, 'submission')"
-                                                        class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">
-                                                    {{ t('download') }}
-                                                </button>
-                                                <button @click="deleteSubmission(meeting.assignment.submission)"
-                                                        class="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
-                                                    {{ t('delete') }}
-                                                </button>
+                                        <div class="bg-white rounded-lg border border-gray-200 p-3 mb-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                                    <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+                                                        <svg class="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div class="text-sm font-medium text-gray-900">{{ meeting.assignment.submission.submission_file_name }}</div>
+                                                        <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_submission_file_size }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="flex space-x-2 rtl:space-x-reverse">
+                                                    <button @click="viewSubmission(meeting.assignment.submission, 'submission')"
+                                                            class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                                        {{ t('view') }}
+                                                    </button>
+                                                    <button @click="downloadSubmission(meeting.assignment.submission, 'submission')"
+                                                            class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                                        {{ t('download') }}
+                                                    </button>
+                                                    <button @click="deleteSubmission(meeting.assignment.submission)"
+                                                            class="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium">
+                                                        {{ t('delete') }}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                         
                                         <!-- Correction and Rating -->
                                         <div v-if="meeting.assignment.submission.status === 'corrected'" 
-                                             class="bg-green-50 p-3 rounded border">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <h6 class="font-medium text-green-800">{{ t('teacher_correction') }}</h6>
-                                                <div v-if="meeting.assignment.submission.rating" class="flex items-center space-x-1">
-                                                    <span v-for="(filled, index) in meeting.assignment.submission.stars" :key="index"
-                                                          :class="filled ? 'text-yellow-400' : 'text-gray-300'">
-                                                        ⭐
-                                                    </span>
-                                                    <span class="text-sm text-gray-600 ml-1">({{ meeting.assignment.submission.rating }}/5)</span>
+                                             class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h6 class="font-semibold text-yellow-800 flex items-center">
+                                                    <svg class="w-3 h-3 mr-2 rtl:mr-0 rtl:ml-2 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                                    </svg>
+                                                    {{ t('teacher_correction') }}
+                                                </h6>
+                                                <div v-if="meeting.assignment.submission.rating" class="flex items-center space-x-2 rtl:space-x-reverse">
+                                                    <div class="flex items-center space-x-1">
+                                                        <span v-for="(filled, index) in meeting.assignment.submission.stars" :key="index"
+                                                              :class="filled ? 'text-yellow-400' : 'text-gray-300'">
+                                                            ⭐
+                                                        </span>
+                                                    </div>
+                                                    <span class="text-sm font-medium text-gray-700">({{ meeting.assignment.submission.rating }}/5)</span>
                                                 </div>
                                             </div>
                                             
                                             <div v-if="meeting.assignment.submission.correction_file_name" 
-                                                 class="flex items-center justify-between bg-white p-2 rounded border mb-2">
-                                                <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                                    <svg class="h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                    </svg>
-                                                    <span class="text-sm text-gray-700">{{ meeting.assignment.submission.correction_file_name }}</span>
-                                                    <span class="text-xs text-gray-500">({{ meeting.assignment.submission.formatted_correction_file_size }})</span>
+                                                 class="bg-white rounded-lg border border-gray-200 p-3 mb-3">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                                                        <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
+                                                            <svg class="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                            </svg>
+                                                        </div>
+                                                        <div>
+                                                            <div class="text-sm font-medium text-gray-900">{{ meeting.assignment.submission.correction_file_name }}</div>
+                                                            <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_correction_file_size }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="flex space-x-2 rtl:space-x-reverse">
+                                                        <button @click="viewSubmission(meeting.assignment.submission, 'correction')"
+                                                                class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                                            {{ t('view') }}
+                                                        </button>
+                                                        <button @click="downloadSubmission(meeting.assignment.submission, 'correction')"
+                                                                class="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                                            {{ t('download') }}
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <button @click="viewSubmission(meeting.assignment.submission, 'correction')"
-                                                        class="px-2 py-1 bg-indigo-500 text-white text-xs rounded hover:bg-indigo-600">
-                                                    {{ t('view') }}
-                                                </button>
-                                                <button @click="downloadSubmission(meeting.assignment.submission, 'correction')"
-                                                        class="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-                                                    {{ t('download') }}
-                                                </button>
                                             </div>
                                             
-                                            <div v-if="meeting.assignment.submission.teacher_notes" class="text-sm text-gray-700">
-                                                <strong>{{ t('teacher_notes') }}:</strong> {{ meeting.assignment.submission.teacher_notes }}
+                                            <div v-if="meeting.assignment.submission.teacher_notes" class="bg-white rounded-lg border border-gray-200 p-3">
+                                                <div class="flex items-start space-x-2 rtl:space-x-reverse">
+                                                    <svg class="h-3 w-3 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                                                    </svg>
+                                                    <div>
+                                                        <div class="text-sm font-medium text-gray-700 mb-1">{{ t('teacher_notes') }}</div>
+                                                        <div class="text-sm text-gray-600">{{ meeting.assignment.submission.teacher_notes }}</div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         
-                                        <div class="text-xs text-gray-500 text-center">
-                                            {{ t('submitted_at') }}: {{ formatDateTime(meeting.assignment.submission.submitted_at) }}
-                                            <span v-if="meeting.assignment.submission.corrected_at">
-                                                | {{ t('corrected_at') }}: {{ formatDateTime(meeting.assignment.submission.corrected_at) }}
-                                            </span>
+                                        <div class="mt-4 pt-3 border-t border-gray-200">
+                                            <div class="flex items-center justify-center space-x-4 rtl:space-x-reverse text-xs text-gray-500">
+                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-2 w-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span>{{ t('submitted_at') }}: {{ formatDateTime(meeting.assignment.submission.submitted_at) }}</span>
+                                                </div>
+                                                <span v-if="meeting.assignment.submission.corrected_at" class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-2 w-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    <span>{{ t('corrected_at') }}: {{ formatDateTime(meeting.assignment.submission.corrected_at) }}</span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- No Assignment Message -->
-                            <div v-else class="text-center py-4 text-gray-500 text-sm">
-                                {{ t('no_assignment_available') }}
+                            <div v-else class="px-6 py-8 text-center">
+                                <div class="bg-gray-50 rounded-lg p-6">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('no_assignment_available') }}</h3>
+                                    <p class="text-gray-500">{{ currentLocale === 'ar' ? 'لم يتم إضافة واجب لهذا الاجتماع بعد' : 'No assignment has been added to this meeting yet' }}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- No Meetings Message -->
-                <div v-else class="text-center py-12">
-                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                    </svg>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('no_meetings') }}</h3>
-                    <p class="text-gray-500">{{ currentLocale === 'ar' ? 'لم يتم عقد أي اجتماعات بعد' : 'No meetings have been held yet' }}</p>
+                <div v-else class="p-12 text-center">
+                    <div class="bg-gray-50 rounded-xl p-8">
+                        <svg class="mx-auto h-16 w-16 text-gray-400 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-3">{{ t('no_meetings') }}</h3>
+                        <p class="text-gray-500 text-lg">{{ currentLocale === 'ar' ? 'لم يتم عقد أي اجتماعات بعد' : 'No meetings have been held yet' }}</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Submission Upload Modal -->
-        <div v-if="showSubmissionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-4 sm:top-20 mx-4 sm:mx-auto p-4 sm:p-5 border w-full sm:w-96 shadow-lg rounded-md bg-white max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-                <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+        <div v-if="showSubmissionModal" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
                         {{ submissionForm.hasExisting ? t('update_solution') : t('upload_solution') }}
                     </h3>
+                </div>
+                <div class="p-6">
                     
                     <form @submit.prevent="submitSolution">
                         <!-- File Upload -->
-                        <div class="mb-4">
+                        <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('solution_file') }}</label>
-                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
                                 <input ref="submissionFileInput" @change="handleSubmissionFileSelect" type="file" 
                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                        class="hidden" />
                                 
                                 <div v-if="!submissionForm.selectedFile" class="text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <div class="mt-2">
+                                    <div class="flex items-center justify-center h-12 w-12 mx-auto mb-3 rounded-full bg-gray-100">
+                                        <svg class="h-6 w-6 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    </div>
+                                    <div class="mb-2">
                                         <button type="button" @click="$refs.submissionFileInput.click()"
-                                                class="text-blue-600 hover:text-blue-500">
+                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
                                             {{ t('click_to_upload') }}
                                         </button>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
+                                    <p class="text-xs text-gray-500">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
 
                                 <div v-else class="text-center">
-                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
-                                        <svg class="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span class="text-sm text-gray-700">{{ submissionForm.selectedFile.name }}</span>
+                                    <div class="flex items-center justify-center space-x-3 rtl:space-x-reverse mb-3">
+                                        <div class="flex items-center justify-center h-10 w-10 rounded-full bg-green-100">
+                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="text-left rtl:text-right">
+                                            <div class="text-sm font-medium text-gray-900">{{ submissionForm.selectedFile.name }}</div>
+                                            <div class="text-xs text-gray-500">{{ (submissionForm.selectedFile.size / 1024 / 1024).toFixed(2) }} MB</div>
+                                        </div>
                                     </div>
                                     <button type="button" @click="removeSubmissionFile()"
-                                            class="mt-2 text-red-600 hover:text-red-500 text-sm">
+                                            class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
                                         {{ t('remove') }}
                                     </button>
                                 </div>
@@ -597,15 +743,26 @@ const getSubmissionStatusText = (status) => {
                         </div>
 
                         <!-- Buttons -->
-                        <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse">
+                        <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse pt-4 border-t border-gray-200">
                             <button type="button" @click="closeSubmissionModal"
-                                    class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors">
+                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                                 {{ t('cancel') }}
                             </button>
                             <button type="submit" :disabled="submissionLoading || !submissionForm.selectedFile"
-                                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50">
-                                <span v-if="submissionLoading">{{ currentLocale === 'ar' ? 'جاري الرفع...' : 'Uploading...' }}</span>
-                                <span v-else>{{ submissionForm.hasExisting ? t('update') : t('upload') }}</span>
+                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span v-if="submissionLoading" class="flex items-center">
+                                    <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    {{ currentLocale === 'ar' ? 'جاري الرفع...' : 'Uploading...' }}
+                                </span>
+                                <span v-else class="flex items-center">
+                                    <svg class="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    {{ submissionForm.hasExisting ? t('update') : t('upload') }}
+                                </span>
                             </button>
                         </div>
                     </form>
