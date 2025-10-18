@@ -190,9 +190,7 @@ Route::middleware(['auth'])->group(function () {
             return Inertia::render('Student/Lessons/Index');
         })->name('lessons.index');
         
-        Route::get('/assignments', function () {
-            return Inertia::render('Student/Assignments/Index');
-        })->name('assignments.index');
+        Route::get('/assignments', [\App\Http\Controllers\Student\AssignmentController::class, 'index'])->name('assignments.index');
         
         Route::get('/schedule', function () {
             return Inertia::render('Student/Schedule/Index');
