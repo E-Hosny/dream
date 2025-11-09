@@ -62,8 +62,8 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         
         // Zoom Accounts Management
         Route::resource('zoom-accounts', \App\Http\Controllers\Admin\ZoomAccountController::class);
-        Route::post('/zoom-accounts/{account}/toggle-status', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'toggleStatus'])->name('zoom-accounts.toggle-status');
-        Route::get('/zoom-accounts/available', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'available'])->name('zoom-accounts.available');
+        Route::post('/zoom-accounts/{zoomAccount}/toggle-active', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'toggleActive'])->name('zoom-accounts.toggle-active');
+        Route::post('/zoom-accounts/{zoomAccount}/test-connection', [\App\Http\Controllers\Admin\ZoomAccountController::class, 'testConnection'])->name('zoom-accounts.test-connection');
         
         // Teacher Zoom Account Linking
         Route::post('/teachers/{teacher}/link-zoom-account', [\App\Http\Controllers\Admin\UserController::class, 'linkZoomAccount'])->name('teachers.link-zoom-account');

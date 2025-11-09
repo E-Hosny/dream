@@ -1,11 +1,11 @@
 <template>
-    <Head title="تعديل حساب Zoom" />
+    <Head title="إضافة حساب Zoom جديد" />
 
     <AuthenticatedLayout>
         <template #header>
             <div class="flex justify-between items-center">
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    تعديل حساب Zoom: {{ account.name }}
+                    إضافة حساب Zoom جديد
                 </h2>
                 <Link :href="route('admin.zoom-accounts.index')"
                       class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
@@ -19,6 +19,22 @@
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
+                        <!-- معلومات تعليمية -->
+                        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div class="flex items-start">
+                                <i class="fas fa-info-circle text-blue-500 mt-1 ml-3"></i>
+                                <div>
+                                    <h3 class="text-sm font-semibold text-blue-800 mb-2">كيفية الحصول على بيانات حساب Zoom</h3>
+                                    <ol class="text-sm text-blue-700 space-y-1 list-decimal mr-5">
+                                        <li>قم بزيارة <a href="https://marketplace.zoom.us/" target="_blank" class="underline">Zoom Marketplace</a></li>
+                                        <li>أنشئ تطبيق Server-to-Server OAuth</li>
+                                        <li>احصل على Account ID، Client ID، و Client Secret</li>
+                                        <li>تأكد من تفعيل الصلاحيات المطلوبة للاجتماعات</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
                         <form @submit.prevent="submit">
                             <!-- معلومات أساسية -->
                             <div class="mb-6">
@@ -36,6 +52,7 @@
                                             v-model="form.name"
                                             type="text"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                            placeholder="مثال: حساب Zoom الرئيسي"
                                             required
                                         />
                                         <p v-if="form.errors.name" class="mt-1 text-sm text-red-600">{{ form.errors.name }}</p>
@@ -50,6 +67,7 @@
                                             v-model="form.email"
                                             type="email"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                            placeholder="zoom@example.com"
                                             required
                                         />
                                         <p v-if="form.errors.email" class="mt-1 text-sm text-red-600">{{ form.errors.email }}</p>
@@ -65,6 +83,7 @@
                                         v-model="form.description"
                                         rows="3"
                                         class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                        placeholder="وصف مختصر للحساب..."
                                     ></textarea>
                                     <p v-if="form.errors.description" class="mt-1 text-sm text-red-600">{{ form.errors.description }}</p>
                                 </div>
@@ -86,6 +105,7 @@
                                             v-model="form.account_id"
                                             type="text"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 font-mono text-sm"
+                                            placeholder="m8VMK4ZyRkeAN0btuHP_mA"
                                             required
                                         />
                                         <p v-if="form.errors.account_id" class="mt-1 text-sm text-red-600">{{ form.errors.account_id }}</p>
@@ -100,6 +120,7 @@
                                             v-model="form.client_id"
                                             type="text"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 font-mono text-sm"
+                                            placeholder="A_YMIa68Rky5zPRCGHyxOw"
                                             required
                                         />
                                         <p v-if="form.errors.client_id" class="mt-1 text-sm text-red-600">{{ form.errors.client_id }}</p>
@@ -107,8 +128,7 @@
 
                                     <div>
                                         <label for="client_secret" class="block text-sm font-medium text-gray-700 mb-2">
-                                            Client Secret
-                                            <span class="text-gray-500 text-xs">(اتركه فارغاً إذا لم تريد تغييره)</span>
+                                            Client Secret <span class="text-red-500">*</span>
                                         </label>
                                         <div class="relative">
                                             <input
@@ -116,7 +136,8 @@
                                                 v-model="form.client_secret"
                                                 :type="showSecret ? 'text' : 'password'"
                                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 font-mono text-sm"
-                                                placeholder="اتركه فارغاً للإبقاء على القديم"
+                                                placeholder="bUKVISRcjhcxMuViOj39hqzi5lt5z44n6"
+                                                required
                                             />
                                             <button
                                                 type="button"
@@ -150,6 +171,7 @@
                                             max="1000"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                         />
+                                        <p v-if="form.errors.max_meetings_per_day" class="mt-1 text-sm text-red-600">{{ form.errors.max_meetings_per_day }}</p>
                                     </div>
 
                                     <div>
@@ -164,6 +186,7 @@
                                             max="1000"
                                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
                                         />
+                                        <p v-if="form.errors.max_participants" class="mt-1 text-sm text-red-600">{{ form.errors.max_participants }}</p>
                                     </div>
                                 </div>
 
@@ -218,7 +241,7 @@
                                             v-model="form.is_active"
                                             class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
                                         />
-                                        <span class="text-sm font-medium text-gray-700">الحساب نشط</span>
+                                        <span class="text-sm font-medium text-gray-700">تفعيل الحساب فوراً</span>
                                     </label>
                                 </div>
                             </div>
@@ -238,7 +261,7 @@
                                 >
                                     <i v-if="form.processing" class="fas fa-spinner fa-spin ml-2"></i>
                                     <i v-else class="fas fa-save ml-2"></i>
-                                    {{ form.processing ? 'جاري الحفظ...' : 'حفظ التعديلات' }}
+                                    {{ form.processing ? 'جاري الحفظ...' : 'حفظ الحساب' }}
                                 </button>
                             </div>
                         </form>
@@ -254,26 +277,23 @@ import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
-const props = defineProps({
-    account: Object
-});
-
 const showSecret = ref(false);
 
 const form = useForm({
-    name: props.account.name,
-    email: props.account.email,
-    account_id: props.account.account_id,
-    client_id: props.account.client_id,
+    name: '',
+    email: '',
+    account_id: '',
+    client_id: '',
     client_secret: '',
-    description: props.account.description,
-    max_meetings_per_day: props.account.max_meetings_per_day,
-    max_participants: props.account.max_participants,
-    features: props.account.features || [],
-    is_active: props.account.is_active
+    description: '',
+    max_meetings_per_day: 100,
+    max_participants: 300,
+    features: ['recording'],
+    is_active: true
 });
 
 const submit = () => {
-    form.put(route('admin.zoom-accounts.update', props.account.id));
+    form.post(route('admin.zoom-accounts.store'));
 };
 </script>
+

@@ -19,11 +19,25 @@ use Illuminate\Support\Facades\Notification;
 
 class ZoomMeetingController extends Controller
 {
-    protected $zoomService;
-
-    public function __construct(ZoomService $zoomService)
+    // تمت إزالة $zoomService من هنا لأننا سننشئه ديناميكياً حسب الحساب
+    
+    /**
+     * الحصول على ZoomService للمعلم الحالي
+     */
+    private function getZoomService($userId = null)
     {
-        $this->zoomService = $zoomService;
+        $userId = $userId ?? Auth::id();
+        $user = \App\Models\User::find($userId);
+        
+        if ($user && $user->zoom_account_id) {
+            $zoomAccount = ZoomAccount::find($user->zoom_account_id);
+            if ($zoomAccount && $zoomAccount->is_active) {
+                return new ZoomService($zoomAccount);
+            }
+        }
+        
+        // استخدام الحساب الافتراضي إذا لم يكن للمعلم حساب محدد
+        return new ZoomService();
     }
 
     /**
@@ -101,6 +115,10 @@ class ZoomMeetingController extends Controller
         try {
             DB::beginTransaction();
 
+            // الحصول على ZoomService للمستخدم الحالي
+            $zoomService = $this->getZoomService();
+            $currentUser = Auth::user();
+            
             // إنشاء الاجتماع في Zoom
             $meetingData = [
                 'topic' => $request->topic,
@@ -110,12 +128,13 @@ class ZoomMeetingController extends Controller
                 'password' => $request->password
             ];
             
-            $zoomData = $this->zoomService->createMeeting(Auth::user()->email, $meetingData);
+            $zoomData = $zoomService->createMeeting($currentUser->email, $meetingData);
 
             // حفظ الاجتماع في قاعدة البيانات
             $meeting = ZoomMeeting::create([
                 'course_id' => $request->course_id,
                 'course_schedule_id' => $request->course_schedule_id,
+                'zoom_account_id' => $currentUser->zoom_account_id,
                 'zoom_meeting_id' => $zoomData['zoom_meeting_id'],
                 'topic' => $request->topic,
                 'start_time' => $request->start_time,
@@ -191,8 +210,11 @@ class ZoomMeetingController extends Controller
         try {
             DB::beginTransaction();
 
+            // الحصول على ZoomService للمستخدم المالك للاجتماع
+            $zoomService = $this->getZoomService($meeting->created_by);
+
             // تحديث الاجتماع في Zoom
-            $this->zoomService->updateMeeting($meeting->zoom_meeting_id, [
+            $zoomService->updateMeeting($meeting->zoom_meeting_id, [
                 'topic' => $request->topic,
                 'start_time' => $request->start_time,
                 'duration' => $request->duration,
@@ -233,8 +255,11 @@ class ZoomMeetingController extends Controller
         try {
             DB::beginTransaction();
 
+            // الحصول على ZoomService للمستخدم المالك للاجتماع
+            $zoomService = $this->getZoomService($meeting->created_by);
+
             // حذف الاجتماع من Zoom
-            $this->zoomService->deleteMeeting($meeting->zoom_meeting_id);
+            $zoomService->deleteMeeting($meeting->zoom_meeting_id);
 
             // حذف الاجتماع من قاعدة البيانات
             $meeting->delete();
@@ -563,8 +588,11 @@ class ZoomMeetingController extends Controller
 
             Log::info('Creating instant meeting with data:', $meetingData);
 
+            // الحصول على ZoomService للمعلم
+            $zoomService = $this->getZoomService($teacher->id);
+
             // إنشاء الاجتماع عبر Zoom Service
-            $meeting = $this->zoomService->createMeeting($teacher->email, $meetingData);
+            $meeting = $zoomService->createMeeting($teacher->email, $meetingData);
             
             Log::info('Meeting created successfully:', $meeting);
 
@@ -704,15 +732,35 @@ class ZoomMeetingController extends Controller
 
             Log::info('Student enrollment verified successfully');
 
-            // إنشاء رابط انضمام للضيف
-            Log::info('Calling ZoomService::generateGuestJoinUrl with meeting ID: ' . $meeting->zoom_meeting_id);
+            // إنشاء رابط انضمام للضيف من قاعدة البيانات مباشرة
+            Log::info('Generating guest join URL for meeting ID: ' . $meeting->zoom_meeting_id);
             
-            $guestUrl = $this->zoomService->generateGuestJoinUrl(
-                $meeting->zoom_meeting_id, // استخدام zoom_meeting_id بدلاً من id
-                $meeting->password
-            );
+            // التحقق من حالة الاجتماع
+            if ($meeting->status !== 'started') {
+                Log::warning('Meeting is not started. Current status: ' . $meeting->status);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الاجتماع ليس نشطاً حالياً'
+                ], 400);
+            }
+            
+            // إنشاء رابط انضمام للضيوف
+            $guestJoinUrl = $meeting->join_url;
+            
+            // إذا كان هناك كلمة مرور، أضفها للرابط
+            if ($meeting->password) {
+                $separator = strpos($guestJoinUrl, '?') !== false ? '&' : '?';
+                $guestJoinUrl .= $separator . 'pwd=' . $meeting->password;
+            }
+            
+            $guestUrl = [
+                'success' => true,
+                'guest_join_url' => $guestJoinUrl,
+                'meeting_id' => $meeting->zoom_meeting_id,
+                'password' => $meeting->password
+            ];
 
-            Log::info('ZoomService response: ' . json_encode($guestUrl));
+            Log::info('Guest join URL generated successfully: ' . json_encode($guestUrl));
 
             if ($guestUrl['success']) {
                 // تسجيل انضمام الطالب للاجتماع

@@ -6,29 +6,46 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use App\Models\ZoomMeeting;
+use App\Models\ZoomAccount;
 
 class ZoomService
 {
     protected $accountId;
     protected $clientId;
     protected $clientSecret;
+    protected $zoomAccount;
     protected $baseUrl = 'https://api.zoom.us/v2';
 
-    public function __construct()
+    /**
+     * إنشاء instance من ZoomService
+     * @param ZoomAccount|null $zoomAccount حساب Zoom المراد استخدامه
+     */
+    public function __construct(?ZoomAccount $zoomAccount = null)
     {
-        $this->accountId = config('services.zoom.account_id');
-        $this->clientId = config('services.zoom.client_id');
-        $this->clientSecret = config('services.zoom.client_secret');
+        if ($zoomAccount) {
+            $this->zoomAccount = $zoomAccount;
+            $this->accountId = $zoomAccount->account_id;
+            $this->clientId = $zoomAccount->client_id;
+            $this->clientSecret = $zoomAccount->client_secret;
+        } else {
+            // استخدام الحساب الافتراضي من .env إذا لم يتم تمرير حساب
+            $this->accountId = config('services.zoom.account_id');
+            $this->clientId = config('services.zoom.client_id');
+            $this->clientSecret = config('services.zoom.client_secret');
+        }
     }
 
     /**
-     * الحصول على Access Token
+     * الحصول على Access Token لحساب Zoom معين
      */
     public function getAccessToken()
     {
+        // استخدام cache key مختلف لكل حساب Zoom
+        $cacheKey = 'zoom_access_token_' . md5($this->accountId . $this->clientId);
+        
         // التحقق من وجود token في cache
-        if (Cache::has('zoom_access_token')) {
-            return Cache::get('zoom_access_token');
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
         }
 
         try {
@@ -44,16 +61,16 @@ class ZoomService
                 $accessToken = $data['access_token'];
                 
                 // حفظ token في cache لمدة 50 دقيقة (Zoom token صالح لمدة ساعة)
-                Cache::put('zoom_access_token', $accessToken, now()->addMinutes(50));
+                Cache::put($cacheKey, $accessToken, now()->addMinutes(50));
                 
                 return $accessToken;
             }
 
-            Log::error('Zoom API Error: ' . $response->body());
+            Log::error('Zoom API Error for account ' . $this->accountId . ': ' . $response->body());
             throw new \Exception('Failed to get Zoom access token: ' . $response->body());
 
         } catch (\Exception $e) {
-            Log::error('Zoom Service Error: ' . $e->getMessage());
+            Log::error('Zoom Service Error for account ' . $this->accountId . ': ' . $e->getMessage());
             throw $e;
         }
     }
