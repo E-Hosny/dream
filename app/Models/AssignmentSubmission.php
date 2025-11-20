@@ -58,13 +58,13 @@ class AssignmentSubmission extends Model
     // الحصول على رابط تحميل ملف الحل
     public function getSubmissionDownloadUrlAttribute()
     {
-        return $this->hasSubmissionFile() ? route('submissions.download', ['type' => 'submission', 'id' => $this->id]) : null;
+        return $this->hasSubmissionFile() ? route('submissions.download', ['type' => 'submission', 'submission' => $this->id]) : null;
     }
 
     // الحصول على رابط تحميل ملف التصحيح
     public function getCorrectionDownloadUrlAttribute()
     {
-        return $this->hasCorrectionFile() ? route('submissions.download', ['type' => 'correction', 'id' => $this->id]) : null;
+        return $this->hasCorrectionFile() ? route('submissions.download', ['type' => 'correction', 'submission' => $this->id]) : null;
     }
 
     // تنسيق حجم ملف الحل
