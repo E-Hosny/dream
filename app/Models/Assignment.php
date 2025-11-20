@@ -64,7 +64,7 @@ class Assignment extends Model
     // تحقق من وجود ملف
     public function hasFile(): bool
     {
-        return !empty($this->file_path) && file_exists(storage_path('app/' . $this->file_path));
+        return !empty($this->file_path) && \Storage::disk('spaces')->exists($this->file_path);
     }
 
     // الحصول على رابط تحميل الملف

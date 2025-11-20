@@ -46,10 +46,10 @@ class AssignmentController extends Controller
                 ], 403);
             }
 
-            // رفع الملف
+            // رفع الملف إلى DigitalOcean Spaces
             $file = $request->file('assignment_file');
             $fileName = time() . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('assignments', $fileName);
+            $filePath = $file->storeAs('assignments', $fileName, 'spaces');
 
             // إنشاء الواجب
             $assignment = Assignment::create([
@@ -128,15 +128,15 @@ class AssignmentController extends Controller
 
             // إذا تم رفع ملف جديد
             if ($request->hasFile('assignment_file')) {
-                // حذف الملف القديم
-                if ($assignment->file_path && Storage::exists($assignment->file_path)) {
-                    Storage::delete($assignment->file_path);
+                // حذف الملف القديم من Spaces
+                if ($assignment->file_path && Storage::disk('spaces')->exists($assignment->file_path)) {
+                    Storage::disk('spaces')->delete($assignment->file_path);
                 }
 
-                // رفع الملف الجديد
+                // رفع الملف الجديد إلى Spaces
                 $file = $request->file('assignment_file');
                 $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('assignments', $fileName);
+                $filePath = $file->storeAs('assignments', $fileName, 'spaces');
 
                 $updateData = array_merge($updateData, [
                     'file_path' => $filePath,
@@ -176,9 +176,9 @@ class AssignmentController extends Controller
         }
 
         try {
-            // حذف الملف من التخزين
-            if ($assignment->file_path && Storage::exists($assignment->file_path)) {
-                Storage::delete($assignment->file_path);
+            // حذف الملف من Spaces
+            if ($assignment->file_path && Storage::disk('spaces')->exists($assignment->file_path)) {
+                Storage::disk('spaces')->delete($assignment->file_path);
             }
 
             // حذف الواجب من قاعدة البيانات
@@ -218,8 +218,10 @@ class AssignmentController extends Controller
      */
     private function handleFileAccess(Assignment $assignment, $action = 'download')
     {
+        $disk = Storage::disk('spaces');
+        
         // تحقق من وجود الملف
-        if (!$assignment->file_path || !Storage::exists($assignment->file_path)) {
+        if (!$assignment->file_path || !$disk->exists($assignment->file_path)) {
             abort(404, 'الملف غير موجود');
         }
 
@@ -256,14 +258,12 @@ class AssignmentController extends Controller
 
         // إرجاع الملف حسب نوع العملية المطلوبة
         if ($action === 'view') {
-            $mimeType = Storage::mimeType($assignment->file_path);
-            $fileContents = Storage::get($assignment->file_path);
-            
-            return response($fileContents)
-                ->header('Content-Type', $mimeType)
-                ->header('Content-Disposition', 'inline; filename="' . $assignment->file_name . '"');
+            // للعرض، استخدم الرابط المباشر من Spaces
+            $url = $disk->url($assignment->file_path);
+            return redirect($url);
         } else {
-            return Storage::download($assignment->file_path, $assignment->file_name);
+            // للتحميل، استخدم الرابط المباشر مع header للتحميل
+            return $disk->download($assignment->file_path, $assignment->file_name);
         }
     }
 

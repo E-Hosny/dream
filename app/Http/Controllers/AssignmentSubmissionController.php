@@ -55,10 +55,10 @@ class AssignmentSubmissionController extends Controller
                 ], 403);
             }
 
-            // رفع الملف
+            // رفع الملف إلى DigitalOcean Spaces
             $file = $request->file('submission_file');
             $fileName = time() . '_' . $user->id . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('submissions', $fileName);
+            $filePath = $file->storeAs('submissions', $fileName, 'spaces');
 
             // البحث عن submission موجود أو إنشاء جديد
             $submission = AssignmentSubmission::updateOrCreate(
@@ -124,14 +124,14 @@ class AssignmentSubmissionController extends Controller
         }
 
         try {
-            // حذف ملف الحل
-            if ($submission->submission_file_path && Storage::exists($submission->submission_file_path)) {
-                Storage::delete($submission->submission_file_path);
+            // حذف ملف الحل من Spaces
+            if ($submission->submission_file_path && Storage::disk('spaces')->exists($submission->submission_file_path)) {
+                Storage::disk('spaces')->delete($submission->submission_file_path);
             }
 
-            // حذف ملف التصحيح (إن وجد)
-            if ($submission->correction_file_path && Storage::exists($submission->correction_file_path)) {
-                Storage::delete($submission->correction_file_path);
+            // حذف ملف التصحيح من Spaces (إن وجد)
+            if ($submission->correction_file_path && Storage::disk('spaces')->exists($submission->correction_file_path)) {
+                Storage::disk('spaces')->delete($submission->correction_file_path);
             }
 
             // حذف السجل من قاعدة البيانات
@@ -186,14 +186,14 @@ class AssignmentSubmissionController extends Controller
 
             // إذا تم رفع ملف تصحيح
             if ($request->hasFile('correction_file')) {
-                // حذف ملف التصحيح السابق
-                if ($submission->correction_file_path && Storage::exists($submission->correction_file_path)) {
-                    Storage::delete($submission->correction_file_path);
+                // حذف ملف التصحيح السابق من Spaces
+                if ($submission->correction_file_path && Storage::disk('spaces')->exists($submission->correction_file_path)) {
+                    Storage::disk('spaces')->delete($submission->correction_file_path);
                 }
 
                 $file = $request->file('correction_file');
                 $fileName = time() . '_correction_' . $submission->student_id . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('corrections', $fileName);
+                $filePath = $file->storeAs('corrections', $fileName, 'spaces');
 
                 $updateData = array_merge($updateData, [
                     'correction_file_path' => $filePath,
@@ -260,6 +260,7 @@ class AssignmentSubmissionController extends Controller
     private function handleSubmissionFileAccess(Request $request, $type, AssignmentSubmission $submission, $action = 'download')
     {
         $user = Auth::user();
+        $disk = Storage::disk('spaces');
         $filePath = null;
         $fileName = null;
         $hasAccess = false;
@@ -271,7 +272,7 @@ class AssignmentSubmissionController extends Controller
         
         if ($type === 'submission') {
             // ملف الحل
-            if (!$submission->submission_file_path || !Storage::exists($submission->submission_file_path)) {
+            if (!$submission->submission_file_path || !$disk->exists($submission->submission_file_path)) {
                 abort(404, 'ملف الحل غير موجود');
             }
 
@@ -290,7 +291,7 @@ class AssignmentSubmissionController extends Controller
 
         } elseif ($type === 'correction') {
             // ملف التصحيح
-            if (!$submission->correction_file_path || !Storage::exists($submission->correction_file_path)) {
+            if (!$submission->correction_file_path || !$disk->exists($submission->correction_file_path)) {
                 abort(404, 'ملف التصحيح غير موجود');
             }
 
@@ -310,14 +311,12 @@ class AssignmentSubmissionController extends Controller
 
         // إرجاع الملف حسب نوع العملية المطلوبة
         if ($action === 'view') {
-            $mimeType = Storage::mimeType($filePath);
-            $fileContents = Storage::get($filePath);
-            
-            return response($fileContents)
-                ->header('Content-Type', $mimeType)
-                ->header('Content-Disposition', 'inline; filename="' . $fileName . '"');
+            // للعرض، استخدم الرابط المباشر من Spaces
+            $url = $disk->url($filePath);
+            return redirect($url);
         } else {
-            return Storage::download($filePath, $fileName);
+            // للتحميل، استخدم الرابط المباشر من Spaces
+            return $disk->download($filePath, $fileName);
         }
     }
 

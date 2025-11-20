@@ -46,13 +46,13 @@ class AssignmentSubmission extends Model
     // تحقق من وجود ملف الحل
     public function hasSubmissionFile(): bool
     {
-        return !empty($this->submission_file_path) && file_exists(storage_path('app/' . $this->submission_file_path));
+        return !empty($this->submission_file_path) && \Storage::disk('spaces')->exists($this->submission_file_path);
     }
 
     // تحقق من وجود ملف التصحيح
     public function hasCorrectionFile(): bool
     {
-        return !empty($this->correction_file_path) && file_exists(storage_path('app/' . $this->correction_file_path));
+        return !empty($this->correction_file_path) && \Storage::disk('spaces')->exists($this->correction_file_path);
     }
 
     // الحصول على رابط تحميل ملف الحل
