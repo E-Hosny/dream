@@ -35,10 +35,7 @@ const switchLanguage = (locale) => {
         </div>
 
         <!-- Language Switcher -->
-        <div class="absolute top-6 right-6 z-10 flex items-center space-x-3 rtl:space-x-reverse language-switcher">
-            <span class="text-sm text-slate-600 font-medium">
-                {{ currentLocale === 'en' ? 'Language' : 'اللغة' }}
-            </span>
+        <div class="absolute top-6 right-6 z-10 flex items-center language-switcher">
             <div class="flex items-center bg-white/80 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-white/20">
                 <button
                     @click="switchLanguage('en')"
@@ -56,7 +53,7 @@ const switchLanguage = (locale) => {
                     :class="[
                         'px-4 py-2 text-sm rounded-md transition-all duration-200 font-medium',
                         currentLocale === 'ar' 
-                            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md transform scale-105' 
+                            ? 'bg-[#18b596] text-white shadow-md transform scale-105' 
                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
                     ]"
                 >
