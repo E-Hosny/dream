@@ -122,7 +122,7 @@ const getLevelColor = (level) => {
                 <h1 class="text-3xl font-bold text-gray-900">{{ t('courses_management') }}</h1>
                 <p class="text-gray-600 mt-2">{{ currentLocale === 'ar' ? 'إدارة الكورسات والمحتوى التعليمي' : 'Manage courses and educational content' }}</p>
             </div>
-            <Link :href="route('admin.courses.create')" class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-md hover:shadow-lg">
+            <Link :href="route('admin.courses.create')" class="bg-gradient-to-r from-brand to-brand-dark text-white px-6 py-3 rounded-lg hover:from-brand-dark hover:to-brand transition-all duration-200 shadow-md hover:shadow-lg">
                 <svg class="w-5 h-5 inline mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
@@ -139,7 +139,7 @@ const getLevelColor = (level) => {
                         v-model="searchForm.search"
                         type="text" 
                         :placeholder="t('search_courses')"
-                        class="w-full rounded-lg border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+                        class="w-full rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
                         @keyup.enter="search"
                     >
                 </div>
@@ -162,7 +162,7 @@ const getLevelColor = (level) => {
                     </select>
                 </div>
                 <div class="flex items-end space-x-2 rtl:space-x-reverse">
-                    <button @click="search" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors">
+                    <button @click="search" class="bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-dark transition-colors">
                         {{ t('search') }}
                     </button>
                     <button @click="searchForm = { search: '', status: '', level: '' }; search()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
@@ -228,7 +228,7 @@ const getLevelColor = (level) => {
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right rtl:text-left text-sm font-medium">
                                 <div class="flex space-x-2 rtl:space-x-reverse">
-                                    <Link :href="route('admin.courses.show', course.id)" class="text-emerald-600 hover:text-emerald-900">
+                                    <Link :href="route('admin.courses.show', course.id)" class="text-brand hover:text-brand-dark">
                                         {{ t('view') }}
                                     </Link>
                                     <Link :href="route('admin.courses.edit', course.id)" class="text-blue-600 hover:text-blue-900">
@@ -269,7 +269,7 @@ const getLevelColor = (level) => {
                             :class="[
                                 'px-3 py-2 text-sm rounded-md',
                                 link.active 
-                                    ? 'bg-emerald-600 text-white' 
+                                    ? 'bg-brand text-white' 
                                     : link.url 
                                         ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' 
                                         : 'text-gray-400 cursor-not-allowed'
