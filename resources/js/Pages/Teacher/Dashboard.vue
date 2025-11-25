@@ -300,7 +300,7 @@ const endMeeting = async (courseId) => {
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+                            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-brand to-brand-dark text-white">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
                                 </svg>
@@ -351,7 +351,7 @@ const endMeeting = async (courseId) => {
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white">
+                            <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-gradient-to-r from-green-500 to-brand text-white">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
@@ -373,7 +373,7 @@ const endMeeting = async (courseId) => {
                 </div>
                 
                 <div class="space-y-6">
-                    <div v-for="course in courses" :key="course.id" class="border border-gray-200 rounded-lg p-6 hover:border-emerald-300 transition-colors">
+                    <div v-for="course in courses" :key="course.id" class="border border-gray-200 rounded-lg p-6 hover:border-brand/30 transition-colors">
                         <!-- Course Header -->
                         <div class="flex items-start justify-between mb-6">
                             <div class="flex-1">
@@ -396,7 +396,7 @@ const endMeeting = async (courseId) => {
                         <!-- Course Details Grid -->
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
                             <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
-                                <svg class="h-6 w-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-6 w-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <div>
@@ -441,10 +441,10 @@ const endMeeting = async (courseId) => {
                             <h4 class="text-lg font-semibold text-gray-700 mb-4">{{ currentLocale === 'en' ? 'Enrolled Students' : 'الطلاب المسجلين' }}:</h4>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div v-for="enrollment in course.enrollments" :key="enrollment.id" 
-                                     class="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition-colors">
+                                     class="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200 hover:border-brand/30 transition-colors">
                                     <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                        <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
-                                            <span class="text-sm font-medium text-emerald-600">{{ enrollment.student.name.charAt(0) }}</span>
+                                        <div class="w-10 h-10 bg-brand/10 rounded-full flex items-center justify-center">
+                                            <span class="text-sm font-medium text-brand">{{ enrollment.student.name.charAt(0) }}</span>
                                         </div>
                                         <div>
                                             <p class="text-sm font-medium text-gray-900">{{ enrollment.student.name }}</p>
@@ -477,7 +477,7 @@ const endMeeting = async (courseId) => {
                                 <div class="space-y-2">
                                     <div v-for="(req, index) in course.requirements" :key="index" 
                                          class="flex items-center space-x-2 rtl:space-x-reverse p-3 bg-gray-50 rounded-lg">
-                                        <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                                        <span class="w-2 h-2 bg-brand rounded-full"></span>
                                         <span class="text-sm text-gray-700">{{ req }}</span>
                                     </div>
                                 </div>
@@ -502,7 +502,7 @@ const endMeeting = async (courseId) => {
                             </div>
                             <div class="flex space-x-3 rtl:space-x-reverse">
                                 <Link :href="route('teacher.courses.show', course.id)"
-                                      class="px-4 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors inline-flex items-center">
+                                      class="px-4 py-2 text-sm font-medium text-brand hover:text-brand-dark hover:bg-brand/10 rounded-lg transition-colors inline-flex items-center">
                                     <svg class="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>

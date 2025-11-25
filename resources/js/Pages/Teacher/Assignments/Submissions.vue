@@ -412,7 +412,7 @@ const renderStars = (stars) => {
                                     
                                     <template v-if="submission.correction_file_name">
                                         <button @click="viewCorrection(submission)"
-                                                class="text-teal-600 hover:text-teal-900 text-xs">
+                                                class="text-brand hover:text-brand-dark text-xs">
                                             {{ t('view_correction') }}
                                         </button>
                                         <span class="text-gray-300">|</span>
