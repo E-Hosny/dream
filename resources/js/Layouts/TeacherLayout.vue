@@ -4,7 +4,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const page = usePage();
-const currentLocale = computed(() => page.props.locale || 'en');
+const currentLocale = computed(() => page.props.locale || 'ar');
 const isRTL = computed(() => currentLocale.value === 'ar');
 const user = computed(() => page.props.auth.user);
 const userRoles = computed(() => user.value?.roles || []);

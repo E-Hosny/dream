@@ -385,7 +385,7 @@ import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 
 const page = usePage();
-const currentLocale = computed(() => page.props.locale || 'en');
+const currentLocale = computed(() => page.props.locale || 'ar');
 
 const props = defineProps({
     course: Object,

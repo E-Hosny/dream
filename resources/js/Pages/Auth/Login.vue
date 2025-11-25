@@ -9,7 +9,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const page = usePage();
-const currentLocale = computed(() => page.props.locale || 'en');
+const currentLocale = computed(() => page.props.locale || 'ar');
 
 defineProps({
     canResetPassword: {

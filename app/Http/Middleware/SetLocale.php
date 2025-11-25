@@ -21,10 +21,10 @@ class SetLocale
     public function handle(Request $request, Closure $next): Response
     {
         $sessionLocale = Session::get("locale");
-        $configLocale = config("app.locale");
+        $configLocale = config("app.locale", "ar");
         $availableLocales = config("app.available_locales", ["en", "ar"]);
         
-        $locale = $sessionLocale ?: $configLocale;
+        $locale = $sessionLocale ?: $configLocale ?: "ar";
         
         Log::info('SetLocale middleware', [
             'session_locale' => $sessionLocale,

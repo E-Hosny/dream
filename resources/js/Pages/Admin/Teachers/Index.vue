@@ -489,7 +489,7 @@ import { usePage } from '@inertiajs/vue3';
 import { router } from '@inertiajs/vue3';
 
 const page = usePage();
-const currentLocale = computed(() => page.props.locale || 'en');
+const currentLocale = computed(() => page.props.locale || 'ar');
 
 // Props
 const props = defineProps({

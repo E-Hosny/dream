@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
-const currentLocale = computed(() => page.props.locale || 'en');
+const currentLocale = computed(() => page.props.locale || 'ar');
 const isRTL = computed(() => currentLocale.value === 'ar');
 const user = computed(() => page.props.auth.user);
 const userRoles = computed(() => user.value?.roles || []);
