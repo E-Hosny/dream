@@ -105,7 +105,7 @@ const getNotificationIcon = (type) => {
 
 const getNotificationColor = (color) => {
     const colors = {
-        blue: 'text-blue-600',
+        blue: 'text-brand',
         green: 'text-green-600',
         purple: 'text-purple-600',
         orange: 'text-orange-600',
@@ -235,7 +235,7 @@ const studentMenuItems = [
 </script>
 
 <template>
-    <div class="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-cyan-50/50" :dir="isRTL ? 'rtl' : 'ltr'">
+    <div class="flex min-h-screen bg-gradient-to-br from-gray-50 via-brand/10 to-brand-light/20" :dir="isRTL ? 'rtl' : 'ltr'">
         <!-- Mobile Sidebar Overlay -->
         <div 
             v-if="showingSidebar" 
@@ -252,19 +252,11 @@ const studentMenuItems = [
             ]"
         >
             <!-- Sidebar content -->
-            <div class="flex flex-col h-full overflow-y-auto bg-gradient-to-b from-blue-900 via-blue-800 to-blue-900 shadow-2xl">
+            <div class="flex flex-col h-full overflow-y-auto bg-white shadow-2xl border-r border-gray-200">
                 <!-- Logo -->
-                <div class="flex h-16 flex-shrink-0 items-center px-4 bg-blue-950/50">
-                    <div class="flex items-center">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-blue-400 to-cyan-400 shadow-lg">
-                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-3 rtl:ml-0 rtl:mr-3 min-w-0 flex-1">
-                            <h1 class="text-sm font-bold text-white truncate">{{ currentLocale === 'en' ? 'EduDream' : 'إيدو دريم' }}</h1>
-                            <p class="text-xs text-blue-200 truncate">{{ t('student_portal') }}</p>
-                        </div>
+                <div class="flex h-20 flex-shrink-0 items-center justify-center px-4 bg-white border-b border-gray-200">
+                    <div class="flex items-center justify-center w-full">
+                        <img src="/200-600 out icon gr -- EH.png" alt="Inskola Logo" class="h-16 w-auto object-contain" />
                     </div>
                 </div>
 
@@ -273,7 +265,7 @@ const studentMenuItems = [
                     <template v-for="item in studentMenuItems" :key="item.title">
                         <!-- Header -->
                         <div v-if="item.isHeader" class="px-3 py-2">
-                            <h3 class="text-xs font-semibold uppercase tracking-wider text-blue-200">
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 {{ t(item.title) }}
                             </h3>
                         </div>
@@ -285,15 +277,15 @@ const studentMenuItems = [
                             :class="[
                                 'group flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
                                 route().current(item.active)
-                                    ? 'bg-blue-700/50 text-white shadow-md ring-1 ring-blue-400/30'
-                                    : 'text-blue-200 hover:bg-blue-700/30 hover:text-white'
+                                    ? 'bg-brand text-white shadow-md ring-1 ring-brand/30'
+                                    : 'text-gray-700 hover:bg-brand/10 hover:text-brand'
                             ]"
                         >
                             <svg 
                                 :class="[
                                     'flex-shrink-0 h-5 w-5 transition-colors',
                                     isRTL ? 'ml-3' : 'mr-3',
-                                    route().current(item.active) ? 'text-white' : 'text-blue-400 group-hover:text-white'
+                                    route().current(item.active) ? 'text-white' : 'text-gray-500 group-hover:text-brand'
                                 ]" 
                                 fill="none" 
                                 stroke="currentColor" 
@@ -307,14 +299,14 @@ const studentMenuItems = [
                 </nav>
 
                 <!-- User Profile -->
-                <div class="mt-auto border-t border-blue-700/50 pt-4 px-3">
+                <div class="mt-auto border-t border-gray-200 pt-4 px-3">
                     <div class="flex items-center px-3 py-2">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-400 to-pink-400 text-sm font-semibold text-white">
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-light text-sm font-semibold text-white">
                             {{ user.name.charAt(0) }}
                         </div>
                         <div class="ml-3 rtl:ml-0 rtl:mr-3 flex-1 min-w-0">
-                            <p class="text-sm font-medium text-white truncate">{{ user.name }}</p>
-                            <p class="text-xs text-blue-200 truncate">{{ user.email }}</p>
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ user.name }}</p>
+                            <p class="text-xs text-gray-600 truncate">{{ user.email }}</p>
                         </div>
                     </div>
                 </div>
@@ -330,7 +322,7 @@ const studentMenuItems = [
                     <!-- Mobile menu button -->
                     <button
                         @click="showingSidebar = !showingSidebar"
-                        class="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden"
+                        class="rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand lg:hidden"
                     >
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -347,12 +339,12 @@ const studentMenuItems = [
                         <input
                             type="text"
                             :placeholder="t('search')"
-                            class="block w-full max-w-xs lg:max-w-md xl:max-w-lg rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-blue-500 focus:ring-blue-500"
+                            class="block w-full max-w-xs lg:max-w-md xl:max-w-lg rounded-lg border-gray-300 pl-10 rtl:pl-4 rtl:pr-10 text-sm focus:border-brand focus:ring-brand"
                         >
                     </div>
                     
                     <!-- Mobile Search Button -->
-                    <button class="sm:hidden ml-2 rtl:ml-0 rtl:mr-2 p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button class="sm:hidden ml-2 rtl:ml-0 rtl:mr-2 p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
@@ -364,7 +356,7 @@ const studentMenuItems = [
                     <div class="relative">
                         <button 
                             @click="showingNotifications = !showingNotifications"
-                            class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="relative rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand"
                         >
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zm-4-5l4-3 4 3v5h-8v-5z" />
@@ -395,7 +387,7 @@ const studentMenuItems = [
                                     <button
                                         v-if="unreadCount > 0"
                                         @click="markAllAsRead"
-                                        class="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                        class="text-xs text-brand hover:text-brand-dark font-medium"
                                     >
                                         {{ t('mark_all_read') }}
                                     </button>
@@ -412,7 +404,7 @@ const studentMenuItems = [
 
                             <!-- Loading State -->
                             <div v-if="notificationLoading" class="p-4 text-center">
-                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-brand mx-auto"></div>
                                 <p class="text-sm text-gray-500 mt-2">{{ t('loading') }}...</p>
                             </div>
 
@@ -423,12 +415,12 @@ const studentMenuItems = [
                                     :key="notification.id"
                                     @click="handleNotificationClick(notification)"
                                     class="p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
-                                    :class="!notification.is_read ? 'bg-blue-50' : ''"
+                                    :class="!notification.is_read ? 'bg-brand/5' : ''"
                                 >
                                     <div class="flex items-start space-x-3" :class="isRTL ? 'space-x-reverse' : ''">
                                         <div class="flex-shrink-0">
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center" 
-                                                 :class="!notification.is_read ? 'bg-blue-100' : 'bg-gray-100'">
+                                                 :class="!notification.is_read ? 'bg-brand/10' : 'bg-gray-100'">
                                                 <svg class="w-4 h-4" :class="getNotificationColor(notification.color)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getNotificationIcon(notification.type)" />
                                                 </svg>
@@ -445,7 +437,7 @@ const studentMenuItems = [
                                                 {{ notification.time_ago }}
                                             </p>
                                         </div>
-                                        <div v-if="!notification.is_read" class="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                        <div v-if="!notification.is_read" class="w-2 h-2 bg-brand rounded-full"></div>
                                     </div>
                                 </div>
                             </div>
@@ -467,7 +459,7 @@ const studentMenuItems = [
                             :class="[
                                 'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
                                 currentLocale === 'en' 
-                                    ? 'bg-white text-blue-600 shadow-sm' 
+                                    ? 'bg-white text-brand shadow-sm' 
                                     : 'text-gray-600 hover:text-gray-900'
                             ]"
                         >
@@ -478,7 +470,7 @@ const studentMenuItems = [
                             :class="[
                                 'px-3 py-1 text-sm rounded-md transition-all duration-200 font-medium',
                                 currentLocale === 'ar' 
-                                    ? 'bg-white text-blue-600 shadow-sm' 
+                                    ? 'bg-white text-brand shadow-sm' 
                                     : 'text-gray-600 hover:text-gray-900'
                             ]"
                         >
@@ -488,7 +480,7 @@ const studentMenuItems = [
 
                     <!-- Mobile Language Switcher -->
                     <button 
-                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        class="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand"
                         @click="switchLanguage(currentLocale === 'ar' ? 'en' : 'ar')"
                     >
                         <span class="text-xs font-medium">{{ currentLocale === 'ar' ? 'EN' : 'ع' }}</span>
@@ -498,9 +490,9 @@ const studentMenuItems = [
                     <div class="relative">
                         <button
                             @click="showingMobileMenu = !showingMobileMenu"
-                            class="flex items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            class="flex items-center rounded-full bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
                         >
-                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-sm font-semibold text-white">
+                            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-brand to-brand-light text-sm font-semibold text-white">
                                 {{ user.name.charAt(0) }}
                             </div>
                             <span class="hidden sm:block ml-2 rtl:ml-0 rtl:mr-2 text-sm font-medium text-gray-700 max-w-32 truncate">{{ user.name }}</span>
@@ -540,15 +532,15 @@ const studentMenuItems = [
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 2px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.3);
 }
 </style>

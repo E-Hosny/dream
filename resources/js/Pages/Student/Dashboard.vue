@@ -213,7 +213,7 @@ const getStatusColor = (status) => {
         case 'completed':
             return 'bg-green-100 text-green-800';
         case 'in_progress':
-            return 'bg-blue-100 text-blue-800';
+            return 'bg-brand/10 text-brand-dark';
         case 'not_started':
             return 'bg-gray-100 text-gray-800';
         default:
@@ -261,7 +261,7 @@ const getStatusText = (status) => {
             
             <div v-if="enrollments.length > 0" class="space-y-6">
                 <div v-for="enrollment in enrollments" :key="enrollment.id" 
-                     class="p-6 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
+                     class="p-6 rounded-lg border border-gray-200 hover:border-brand/30 transition-all duration-200 hover:shadow-md">
                     
                     <!-- Course Header -->
                     <div class="flex items-start justify-between mb-4">
@@ -279,7 +279,7 @@ const getStatusText = (status) => {
                             </div>
                         </div>
                         <Link :href="route('student.courses.show', enrollment.course_id)" 
-                              class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center">
+                              class="px-6 py-2 bg-gradient-to-r from-brand to-brand-dark text-white rounded-lg hover:from-brand-dark hover:to-brand transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center">
                             <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
@@ -289,20 +289,20 @@ const getStatusText = (status) => {
                     </div>
                     
                     <!-- Next Schedule -->
-                    <div v-if="enrollment.nextSchedule" class="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div v-if="enrollment.nextSchedule" class="mb-4 p-4 bg-brand/5 rounded-lg border border-brand/20">
                         <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                             <div>
-                                <p class="text-sm font-medium text-blue-900">
+                                <p class="text-sm font-medium text-brand-dark">
                                     {{ currentLocale === 'ar' ? 'الموعد التالي:' : 'Next Session:' }}
                                 </p>
-                                <p class="text-sm text-blue-700">
+                                <p class="text-sm text-brand">
                                     {{ enrollment.nextSchedule.day }} {{ currentLocale === 'ar' ? 'الساعة' : 'at' }} {{ enrollment.nextSchedule.time }}
                                 </p>
-                                <p class="text-xs text-blue-600">
+                                <p class="text-xs text-brand-dark">
                                     {{ enrollment.nextSchedule.nextOccurrence }}
                                 </p>
                                 </div>
@@ -330,7 +330,7 @@ const getStatusText = (status) => {
                             <div v-for="schedule in enrollment.schedules" :key="schedule.id" 
                                  class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                                 <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                    <svg class="h-4 w-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="h-4 w-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
                                     <div>

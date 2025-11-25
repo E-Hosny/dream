@@ -130,7 +130,7 @@ const getStatusBadgeClass = (assignment) => {
     if (assignment.submission.rating !== null) {
         return 'bg-green-100 text-green-800';
     }
-    return 'bg-blue-100 text-blue-800';
+    return 'bg-brand/10 text-brand-dark';
 };
 
 const getStatusText = (assignment) => {
@@ -160,7 +160,7 @@ const getStatusText = (assignment) => {
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-white rounded-lg shadow p-6">
                         <div class="flex items-center">
-                            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                            <div class="flex-shrink-0 bg-brand rounded-md p-3">
                                 <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
@@ -225,7 +225,7 @@ const getStatusText = (assignment) => {
                             <select 
                                 v-model="selectedCourse"
                                 @change="applyFilters"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
                             >
                                 <option value="all">{{ t('all_courses') }}</option>
                                 <option v-for="course in courses" :key="course.id" :value="course.id">
@@ -241,7 +241,7 @@ const getStatusText = (assignment) => {
                             <select 
                                 v-model="selectedStatus"
                                 @change="applyFilters"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
                             >
                                 <option value="all">{{ t('all_statuses') }}</option>
                                 <option value="not_submitted">{{ t('not_submitted') }}</option>
@@ -271,7 +271,7 @@ const getStatusText = (assignment) => {
                         <div class="p-6">
                             <!-- Course Badge -->
                             <div class="flex items-center justify-between mb-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand/10 text-brand-dark">
                                     {{ currentLocale === 'ar' ? assignment.course.title_ar : assignment.course.title }}
                                 </span>
                                 <span 
@@ -328,7 +328,7 @@ const getStatusText = (assignment) => {
                             <div class="flex flex-wrap gap-2">
                                 <button
                                     @click="viewAssignment(assignment)"
-                                    class="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+                                    class="flex-1 px-3 py-2 bg-brand text-white text-sm rounded-md hover:bg-brand-dark transition-colors"
                                 >
                                     {{ t('view_assignment') }}
                                 </button>
@@ -369,7 +369,7 @@ const getStatusText = (assignment) => {
                             :class="[
                                 'px-3 py-2 text-sm rounded-md',
                                 link.active 
-                                    ? 'bg-blue-600 text-white' 
+                                    ? 'bg-brand text-white' 
                                     : 'bg-white text-gray-700 hover:bg-gray-50',
                                 !link.url ? 'opacity-50 cursor-not-allowed' : ''
                             ]"

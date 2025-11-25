@@ -113,7 +113,7 @@ const clearFilters = () => {
 // Helper functions
 const getRatingColor = (rating) => {
     if (rating >= 5) return 'text-green-600';
-    if (rating >= 4) return 'text-blue-600';
+    if (rating >= 4) return 'text-brand';
     if (rating >= 3) return 'text-yellow-600';
     if (rating >= 2) return 'text-orange-600';
     return 'text-red-600';
@@ -121,7 +121,7 @@ const getRatingColor = (rating) => {
 
 const getRatingBadgeClass = (rating) => {
     if (rating >= 5) return 'bg-green-100 text-green-800';
-    if (rating >= 4) return 'bg-blue-100 text-blue-800';
+    if (rating >= 4) return 'bg-brand/10 text-brand-dark';
     if (rating >= 3) return 'bg-yellow-100 text-yellow-800';
     if (rating >= 2) return 'bg-orange-100 text-orange-800';
     return 'bg-red-100 text-red-800';
@@ -163,7 +163,7 @@ const goToCourse = (courseId) => {
                 <!-- Stats Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
                     <!-- Total & Average -->
-                    <div class="md:col-span-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+                    <div class="md:col-span-2 bg-gradient-to-br from-brand to-brand-dark rounded-lg shadow-lg p-6 text-white">
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-medium opacity-90">{{ t('total_graded') }}</p>
@@ -188,7 +188,7 @@ const goToCourse = (courseId) => {
                     <div class="bg-white rounded-lg shadow p-4">
                         <div class="flex items-center justify-between">
                             <span class="text-2xl">⭐⭐⭐⭐</span>
-                            <span class="text-xl font-bold text-blue-600">{{ stats.four_stars }}</span>
+                            <span class="text-xl font-bold text-brand">{{ stats.four_stars }}</span>
                         </div>
                     </div>
 
@@ -217,7 +217,7 @@ const goToCourse = (courseId) => {
                             <select 
                                 v-model="selectedCourse"
                                 @change="applyFilters"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
                             >
                                 <option value="all">{{ t('all_courses') }}</option>
                                 <option v-for="course in courses" :key="course.id" :value="course.id">
@@ -233,7 +233,7 @@ const goToCourse = (courseId) => {
                             <select 
                                 v-model="selectedRating"
                                 @change="applyFilters"
-                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-brand focus:ring-brand"
                             >
                                 <option value="all">{{ t('all_ratings') }}</option>
                                 <option value="5">⭐⭐⭐⭐⭐ (5)</option>
@@ -265,7 +265,7 @@ const goToCourse = (courseId) => {
                         <!-- Header with Rating -->
                         <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-4 border-b">
                             <div class="flex items-center justify-between mb-2">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand/10 text-brand-dark">
                                     {{ currentLocale === 'ar' ? submission.course.title_ar : submission.course.title }}
                                 </span>
                                 <span 
@@ -362,7 +362,7 @@ const goToCourse = (courseId) => {
                             :class="[
                                 'px-3 py-2 text-sm rounded-md',
                                 link.active 
-                                    ? 'bg-blue-600 text-white' 
+                                    ? 'bg-brand text-white' 
                                     : 'bg-white text-gray-700 hover:bg-gray-50',
                                 !link.url ? 'opacity-50 cursor-not-allowed' : ''
                             ]"
