@@ -316,7 +316,7 @@ const getSubmissionStatusText = (status) => {
 
     <StudentLayout>
         <!-- Page Header -->
-        <div class="bg-white border-b border-gray-200 py-6 mb-8 -mx-4 sm:-mx-6 px-4 sm:px-6">
+        <div class="bg-white border-b border-gray-200 py-6 mb-8 mx-0 sm:-mx-6 px-4 sm:px-6">
             <div class="max-w-7xl mx-auto">
                 <div class="flex items-center justify-between">
                     <div>
