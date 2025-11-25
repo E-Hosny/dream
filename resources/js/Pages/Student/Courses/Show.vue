@@ -316,8 +316,8 @@ const getSubmissionStatusText = (status) => {
 
     <StudentLayout>
         <!-- Page Header -->
-        <div class="bg-white border-b border-gray-200 py-6 mb-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white border-b border-gray-200 py-6 mb-8 -mx-4 sm:-mx-6 px-4 sm:px-6">
+            <div class="max-w-7xl mx-auto">
                 <div class="flex items-center justify-between">
                     <div>
                         <Link :href="route('student.dashboard')" class="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4 transition-colors">
@@ -344,7 +344,7 @@ const getSubmissionStatusText = (status) => {
         </div>
 
         <!-- Main Content -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
             <!-- Active Meeting Alert -->
             <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-8">
                 <div class="bg-green-50 border border-green-200 rounded-xl p-6">
@@ -370,7 +370,7 @@ const getSubmissionStatusText = (status) => {
 
             <!-- Meetings Section -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200">
                     <h2 class="text-xl font-semibold text-gray-900 flex items-center">
                         <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -380,13 +380,13 @@ const getSubmissionStatusText = (status) => {
                 </div>
 
                 <!-- Meetings List -->
-                <div v-if="meetings.length > 0" class="p-6">
+                <div v-if="meetings.length > 0" class="p-4 sm:p-6">
                     <div class="space-y-6">
                         <div v-for="meeting in meetings" :key="meeting.id" 
                              class="group bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md overflow-hidden">
                         
                             <!-- Meeting Header -->
-                            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                            <div class="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3 rtl:space-x-reverse">
                                         <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
@@ -414,7 +414,7 @@ const getSubmissionStatusText = (status) => {
                             </div>
                             
                             <!-- Meeting Details -->
-                            <div class="px-6 py-4">
+                            <div class="px-4 sm:px-6 py-4">
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div class="bg-gray-50 rounded-lg p-3">
                                         <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
@@ -449,7 +449,7 @@ const getSubmissionStatusText = (status) => {
                             </div>
 
                             <!-- Assignment Section -->
-                            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                            <div class="bg-gray-50 px-4 sm:px-6 py-4 border-t border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center space-x-3 rtl:space-x-reverse">
                                         <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
@@ -467,7 +467,7 @@ const getSubmissionStatusText = (status) => {
                             </div>
                             
                             <!-- Assignment Info -->
-                            <div v-if="meeting.assignment" class="px-6 py-4">
+                            <div v-if="meeting.assignment" class="px-4 sm:px-6 py-4">
                                 <div class="bg-white rounded-lg border border-gray-200 p-4">
                                     <div class="flex items-start justify-between mb-3">
                                         <div class="flex-1">
@@ -498,39 +498,43 @@ const getSubmissionStatusText = (status) => {
                                         </div>
                                     </div>
                                     
-                                    <div class="flex flex-wrap gap-2 mt-4">
+                                    <div class="flex flex-col sm:flex-row flex-wrap gap-2 mt-4">
                                         <button @click="viewAssignment(meeting.assignment)"
-                                                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium">
-                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center">
+                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                             </svg>
-                                            {{ t('view_assignment') }}
+                                            <span class="hidden sm:inline">{{ t('view_assignment') }}</span>
+                                            <span class="sm:hidden">{{ t('view') }}</span>
                                         </button>
                                         <button @click="downloadAssignment(meeting.assignment)"
-                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center">
+                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                             </svg>
-                                            {{ t('download_assignment') }}
+                                            <span class="hidden sm:inline">{{ t('download_assignment') }}</span>
+                                            <span class="sm:hidden">{{ t('download') }}</span>
                                         </button>
                                         
                                         <button v-if="!meeting.assignment.submission || meeting.assignment.submission.status === 'not_submitted'"
                                                 @click="openSubmissionModal(meeting.assignment)"
-                                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="flex-1 sm:flex-none px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors text-sm font-medium flex items-center justify-center">
+                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                             </svg>
-                                            {{ t('upload_solution') }}
+                                            <span class="hidden sm:inline">{{ t('upload_solution') }}</span>
+                                            <span class="sm:hidden">{{ t('upload') }}</span>
                                         </button>
                                         
                                         <button v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'"
                                                 @click="openSubmissionModal(meeting.assignment)"
-                                                class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium">
-                                            <svg class="w-3 h-3 inline mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                class="flex-1 sm:flex-none px-4 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium flex items-center justify-center">
+                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                                             </svg>
-                                            {{ t('update_solution') }}
+                                            <span class="hidden sm:inline">{{ t('update_solution') }}</span>
+                                            <span class="sm:hidden">{{ t('update') }}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -547,30 +551,40 @@ const getSubmissionStatusText = (status) => {
                                         </h6>
                                         
                                         <!-- Submitted File -->
-                                        <div class="bg-white rounded-lg border border-gray-200 p-3 mb-3">
-                                            <div class="flex items-center justify-between">
-                                                <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                                    <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
-                                                        <svg class="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-3">
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                <div class="flex items-center space-x-3 rtl:space-x-reverse flex-1 min-w-0">
+                                                    <div class="flex items-center justify-center h-8 w-8 sm:h-6 sm:w-6 rounded-full bg-gray-100 flex-shrink-0">
+                                                        <svg class="h-4 w-4 sm:h-3 sm:w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                         </svg>
                                                     </div>
-                                                    <div>
-                                                        <div class="text-sm font-medium text-gray-900">{{ meeting.assignment.submission.submission_file_name }}</div>
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="text-sm font-medium text-gray-900 truncate">{{ meeting.assignment.submission.submission_file_name }}</div>
                                                         <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_submission_file_size }}</div>
                                                     </div>
                                                 </div>
-                                                <div class="flex space-x-2 rtl:space-x-reverse">
+                                                <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 rtl:space-x-reverse w-full sm:w-auto">
                                                     <button @click="viewSubmission(meeting.assignment.submission, 'submission')"
-                                                            class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                                            class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center">
+                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                        </svg>
                                                         {{ t('view') }}
                                                     </button>
                                                     <button @click="downloadSubmission(meeting.assignment.submission, 'submission')"
-                                                            class="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                                            class="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center">
+                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                        </svg>
                                                         {{ t('download') }}
                                                     </button>
                                                     <button @click="deleteSubmission(meeting.assignment.submission)"
-                                                            class="px-3 py-1.5 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors font-medium">
+                                                            class="flex-1 sm:flex-none px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center">
+                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                        </svg>
                                                         {{ t('delete') }}
                                                     </button>
                                                 </div>
@@ -599,26 +613,33 @@ const getSubmissionStatusText = (status) => {
                                             </div>
                                             
                                             <div v-if="meeting.assignment.submission.correction_file_name" 
-                                                 class="bg-white rounded-lg border border-gray-200 p-3 mb-3">
-                                                <div class="flex items-center justify-between">
-                                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                                        <div class="flex items-center justify-center h-6 w-6 rounded-full bg-gray-100">
-                                                            <svg class="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                 class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-3">
+                                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                                    <div class="flex items-center space-x-3 rtl:space-x-reverse flex-1 min-w-0">
+                                                        <div class="flex items-center justify-center h-8 w-8 sm:h-6 sm:w-6 rounded-full bg-gray-100 flex-shrink-0">
+                                                            <svg class="h-4 w-4 sm:h-3 sm:w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                                             </svg>
                                                         </div>
-                                                        <div>
-                                                            <div class="text-sm font-medium text-gray-900">{{ meeting.assignment.submission.correction_file_name }}</div>
+                                                        <div class="min-w-0 flex-1">
+                                                            <div class="text-sm font-medium text-gray-900 truncate">{{ meeting.assignment.submission.correction_file_name }}</div>
                                                             <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_correction_file_size }}</div>
                                                         </div>
                                                     </div>
-                                                    <div class="flex space-x-2 rtl:space-x-reverse">
+                                                    <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 rtl:space-x-reverse w-full sm:w-auto">
                                                         <button @click="viewSubmission(meeting.assignment.submission, 'correction')"
-                                                                class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                                                                class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center">
+                                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                            </svg>
                                                             {{ t('view') }}
                                                         </button>
                                                         <button @click="downloadSubmission(meeting.assignment.submission, 'correction')"
-                                                                class="px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                                                class="flex-1 sm:flex-none px-3 py-2 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark transition-colors font-medium flex items-center justify-center">
+                                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                            </svg>
                                                             {{ t('download') }}
                                                         </button>
                                                     </div>
@@ -639,18 +660,18 @@ const getSubmissionStatusText = (status) => {
                                         </div>
                                         
                                         <div class="mt-4 pt-3 border-t border-gray-200">
-                                            <div class="flex items-center justify-center space-x-4 rtl:space-x-reverse text-xs text-gray-500">
-                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
-                                                    <svg class="h-2 w-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-2 sm:space-x-4 rtl:space-x-reverse text-xs text-gray-500">
+                                                <div class="flex items-center space-x-1 rtl:space-x-reverse justify-center sm:justify-start">
+                                                    <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
-                                                    <span>{{ t('submitted_at') }}: {{ formatDateTime(meeting.assignment.submission.submitted_at) }}</span>
+                                                    <span class="text-center sm:text-left">{{ t('submitted_at') }}: {{ formatDateTime(meeting.assignment.submission.submitted_at) }}</span>
                                                 </div>
-                                                <span v-if="meeting.assignment.submission.corrected_at" class="flex items-center space-x-1 rtl:space-x-reverse">
-                                                    <svg class="h-2 w-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <span v-if="meeting.assignment.submission.corrected_at" class="flex items-center space-x-1 rtl:space-x-reverse justify-center sm:justify-start">
+                                                    <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
-                                                    <span>{{ t('corrected_at') }}: {{ formatDateTime(meeting.assignment.submission.corrected_at) }}</span>
+                                                    <span class="text-center sm:text-left">{{ t('corrected_at') }}: {{ formatDateTime(meeting.assignment.submission.corrected_at) }}</span>
                                                 </span>
                                             </div>
                                         </div>
@@ -659,7 +680,7 @@ const getSubmissionStatusText = (status) => {
                             </div>
                             
                             <!-- No Assignment Message -->
-                            <div v-else class="px-6 py-8 text-center">
+                            <div v-else class="px-4 sm:px-6 py-8 text-center">
                                 <div class="bg-gray-50 rounded-lg p-6">
                                     <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -673,7 +694,7 @@ const getSubmissionStatusText = (status) => {
                 </div>
                 
                 <!-- No Meetings Message -->
-                <div v-else class="p-12 text-center">
+                <div v-else class="p-8 sm:p-12 text-center">
                     <div class="bg-gray-50 rounded-xl p-8">
                         <svg class="mx-auto h-16 w-16 text-gray-400 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -686,17 +707,22 @@ const getSubmissionStatusText = (status) => {
         </div>
 
         <!-- Submission Upload Modal -->
-        <div v-if="showSubmissionModal" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+        <div v-if="showSubmissionModal" class="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" @click.self="closeSubmissionModal">
             <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <div class="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200 rounded-t-lg flex items-center justify-between">
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
                         <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
-                        {{ submissionForm.hasExisting ? t('update_solution') : t('upload_solution') }}
+                        <span class="truncate">{{ submissionForm.hasExisting ? t('update_solution') : t('upload_solution') }}</span>
                     </h3>
+                    <button @click="closeSubmissionModal" class="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="p-6">
+                <div class="p-4 sm:p-6">
                     
                     <form @submit.prevent="submitSolution">
                         <!-- File Upload -->
@@ -743,22 +769,22 @@ const getSubmissionStatusText = (status) => {
                         </div>
 
                         <!-- Buttons -->
-                        <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse pt-4 border-t border-gray-200">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:space-x-3 rtl:space-x-reverse pt-4 border-t border-gray-200">
                             <button type="button" @click="closeSubmissionModal"
-                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                                    class="w-full sm:w-auto px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                                 {{ t('cancel') }}
                             </button>
                             <button type="submit" :disabled="submissionLoading || !submissionForm.selectedFile"
-                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                    class="w-full sm:w-auto px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
                                 <span v-if="submissionLoading" class="flex items-center">
-                                    <svg class="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                     {{ currentLocale === 'ar' ? 'جاري الرفع...' : 'Uploading...' }}
                                 </span>
                                 <span v-else class="flex items-center">
-                                    <svg class="w-3 h-3 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                     </svg>
                                     {{ submissionForm.hasExisting ? t('update') : t('upload') }}
