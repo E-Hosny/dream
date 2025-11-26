@@ -143,7 +143,15 @@ const joinMeeting = async (meetingId) => {
 
         if (data.success) {
             console.log('Successfully generated guest join URL, opening Zoom...');
-            window.open(data.guest_join_url, '_blank');
+            // الكشف عن الجوال واستخدام الطريقة المناسبة
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                // على الجوال، استخدم window.location.href لفتح الرابط في نفس النافذة
+                window.location.href = data.guest_join_url;
+            } else {
+                // على سطح المكتب، افتح في نافذة جديدة
+                window.open(data.guest_join_url, '_blank');
+            }
         } else {
             console.error('Failed to generate guest join URL:', data.message);
             alert(data.message || 'حدث خطأ أثناء الانضمام للاجتماع');
