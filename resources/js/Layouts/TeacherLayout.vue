@@ -532,7 +532,12 @@ const teacherMenuItems = [
                         <!-- Dropdown menu -->
                         <div 
                             v-show="showingMobileMenu"
-                            class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50"
+                            :class="[
+                                'absolute mt-2 w-48 rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50',
+                                isRTL 
+                                    ? 'left-0 sm:right-0 sm:left-auto origin-top-left sm:origin-top-right max-w-[calc(100vw-1rem)] sm:max-w-none' 
+                                    : 'left-0 origin-top-left max-w-[calc(100vw-1rem)] sm:max-w-none'
+                            ]"
                         >
                             <Link :href="route('profile.edit')" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 {{ t('profile') }}
