@@ -287,7 +287,7 @@ const getStatusLabel = (status) => {
 
 const formatDate = (date) => {
     if (!date) return 'غير محدد';
-    return new Date(date).toLocaleString('ar-SA', {
+    return new Date(date).toLocaleString('ar-SA-u-ca-gregory', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

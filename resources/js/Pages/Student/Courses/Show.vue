@@ -135,7 +135,7 @@ const formatDateTime = (dateString) => {
         second: '2-digit',
         timeZone: 'Asia/Riyadh'
     };
-    return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA' : 'en-US', options);
+    return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', options);
 };
 
 // الانضمام للاجتماع
