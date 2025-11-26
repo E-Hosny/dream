@@ -60,6 +60,12 @@ const t = (key) => {
             not_submitted: 'Not Submitted',
             submitted: 'Submitted',
             corrected: 'Corrected',
+            // Attendance status
+            attendance_status: 'Attendance Status',
+            present: 'Present',
+            absent: 'Absent',
+            attended: 'Attended',
+            missed: 'Missed',
         },
         ar: {
             course_details: 'تفاصيل المادة',
@@ -105,6 +111,12 @@ const t = (key) => {
             not_submitted: 'لم يرسل',
             submitted: 'مرسل',
             corrected: 'مصحح',
+            // Attendance status
+            attendance_status: 'حالة الحضور',
+            present: 'حاضر',
+            absent: 'غائب',
+            attended: 'تم الحضور',
+            missed: 'غائب',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -123,7 +135,7 @@ const formatDateTime = (dateString) => {
         second: '2-digit',
         timeZone: 'Asia/Riyadh'
     };
-    return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA' : 'en-US', options);
+    return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', options);
 };
 
 // الانضمام للاجتماع
@@ -143,7 +155,15 @@ const joinMeeting = async (meetingId) => {
 
         if (data.success) {
             console.log('Successfully generated guest join URL, opening Zoom...');
-            window.open(data.guest_join_url, '_blank');
+            // الكشف عن الجوال واستخدام الطريقة المناسبة
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+                // على الجوال، استخدم window.location.href لفتح الرابط في نفس النافذة
+                window.location.href = data.guest_join_url;
+            } else {
+                // على سطح المكتب، افتح في نافذة جديدة
+                window.open(data.guest_join_url, '_blank');
+            }
         } else {
             console.error('Failed to generate guest join URL:', data.message);
             alert(data.message || 'حدث خطأ أثناء الانضمام للاجتماع');
@@ -395,7 +415,25 @@ const getSubmissionStatusText = (status) => {
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 class="font-semibold text-gray-900 text-lg">{{ meeting.topic }}</h3>
+                                            <div class="flex items-center space-x-2 rtl:space-x-reverse flex-wrap gap-2">
+                                                <h3 class="font-semibold text-gray-900 text-lg">{{ meeting.topic }}</h3>
+                                                <!-- Attendance Status - Show only for ended meetings -->
+                                                <span v-if="meeting.status === 'ended' && meeting.attendance_status" 
+                                                      :class="[
+                                                          'px-3 py-1 text-xs font-medium rounded-full flex items-center space-x-1 rtl:space-x-reverse',
+                                                          meeting.attendance_status === 'present' 
+                                                              ? 'bg-green-100 text-green-800' 
+                                                              : 'bg-red-100 text-red-800'
+                                                      ]">
+                                                    <svg v-if="meeting.attendance_status === 'present'" class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                    <svg v-else class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                    <span>{{ meeting.attendance_status === 'present' ? t('attended') : t('missed') }}</span>
+                                                </span>
+                                            </div>
                                             <div class="flex items-center space-x-2 rtl:space-x-reverse mt-1">
                                                 <span :class="`px-2 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
                                                     {{ meeting.status_text }}

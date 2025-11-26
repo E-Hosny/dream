@@ -334,6 +334,19 @@ class DashboardController extends Controller
                 $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
                 $submission = $assignment ? $assignment->submissions->first() : null; // حل الطالب الحالي
                 
+                // التحقق من حالة الحضور - تظهر فقط بعد إنهاء الاجتماع
+                $attendanceStatus = null;
+                if ($meeting->status === 'ended') {
+                    // التحقق من وجود سجل انضمام للطالب في هذا الاجتماع
+                    $hasJoined = MeetingAttendance::where('meeting_id', $meeting->id)
+                        ->where('user_id', $user->id)
+                        ->where('user_type', MeetingAttendance::USER_TYPE_STUDENT)
+                        ->where('action_type', MeetingAttendance::ACTION_JOIN)
+                        ->exists();
+                    
+                    $attendanceStatus = $hasJoined ? 'present' : 'absent';
+                }
+                
                 return [
                     'id' => $meeting->id,
                     'topic' => $meeting->topic,
@@ -348,6 +361,7 @@ class DashboardController extends Controller
                     'password' => $meeting->password,
                     'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
                     'can_join' => $meeting->status === 'started',
+                    'attendance_status' => $attendanceStatus,
                     'assignment' => $assignment ? [
                         'id' => $assignment->id,
                         'title' => $assignment->title,

@@ -525,7 +525,7 @@ const availableZoomAccounts = computed(() => {
 
 // Methods
 const formatDate = (date) => {
-    return new Date(date).toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA' : 'en-US');
+    return new Date(date).toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US');
 };
 
 const getTeachersCountForAccount = (accountId) => {
