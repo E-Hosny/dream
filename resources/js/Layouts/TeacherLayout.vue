@@ -400,12 +400,13 @@ const teacherMenuItems = [
                         <!-- Notifications Dropdown -->
                         <div 
                             v-if="showingNotifications"
-                            class="absolute right-4 z-50 mt-2 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200
-                                   w-80 sm:w-96 
-                                   max-w-[calc(100vw-3rem)]"
+                            class="z-50 max-h-96 overflow-y-auto bg-white shadow-lg border border-gray-200
+                                   fixed inset-x-0 top-16 w-full
+                                   sm:absolute sm:inset-x-auto sm:top-auto sm:mt-2 sm:w-96 sm:rounded-lg"
                             :class="[
-                                isRTL ? 'left-4 right-auto' : '',
-                                'xs:fixed xs:inset-x-4 xs:top-16 xs:w-auto sm:absolute sm:inset-auto sm:top-auto'
+                                isRTL 
+                                    ? 'sm:left-4 sm:right-auto' 
+                                    : 'sm:right-4'
                             ]"
                         >
                             <!-- Header -->
