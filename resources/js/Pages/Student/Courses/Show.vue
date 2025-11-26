@@ -60,6 +60,12 @@ const t = (key) => {
             not_submitted: 'Not Submitted',
             submitted: 'Submitted',
             corrected: 'Corrected',
+            // Attendance status
+            attendance_status: 'Attendance Status',
+            present: 'Present',
+            absent: 'Absent',
+            attended: 'Attended',
+            missed: 'Missed',
         },
         ar: {
             course_details: 'تفاصيل المادة',
@@ -105,6 +111,12 @@ const t = (key) => {
             not_submitted: 'لم يرسل',
             submitted: 'مرسل',
             corrected: 'مصحح',
+            // Attendance status
+            attendance_status: 'حالة الحضور',
+            present: 'حاضر',
+            absent: 'غائب',
+            attended: 'تم الحضور',
+            missed: 'غائب',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -452,6 +464,39 @@ const getSubmissionStatusText = (status) => {
                                             <span class="text-xs font-medium text-gray-600">{{ t('meeting_duration') }}</span>
                                         </div>
                                         <div class="text-sm text-gray-900">{{ meeting.duration }} {{ t('minutes') }}</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Attendance Status - Show only for ended meetings -->
+                                <div v-if="meeting.status === 'ended' && meeting.attendance_status" class="mt-4">
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                                            <svg class="h-3 w-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span class="text-xs font-medium text-gray-600">{{ t('attendance_status') }}</span>
+                                        </div>
+                                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
+                                            <span :class="[
+                                                'px-3 py-1 text-xs font-medium rounded-full',
+                                                meeting.attendance_status === 'present' 
+                                                    ? 'bg-green-100 text-green-800' 
+                                                    : 'bg-red-100 text-red-800'
+                                            ]">
+                                                <span v-if="meeting.attendance_status === 'present'" class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
+                                                    <span>{{ t('attended') }}</span>
+                                                </span>
+                                                <span v-else class="flex items-center space-x-1 rtl:space-x-reverse">
+                                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                    <span>{{ t('missed') }}</span>
+                                                </span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
