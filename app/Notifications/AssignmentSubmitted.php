@@ -46,8 +46,8 @@ class AssignmentSubmitted extends Notification
             ->line('تم رفع حل جديد للواجب: ' . $this->submission->assignment->title)
             ->line('الطالب: ' . $this->student->name)
             ->line('الكورس: ' . $this->submission->assignment->meeting->course->title_ar)
-            ->action('عرض الحلول', route('assignments.submissions', $this->submission->assignment->id))
-            ->line('شكراً لاستخدام منصة EduDream!');
+            ->action('عرض الحلول', 'https://app.inskola.net/student/dashboard')
+            ->line('شكراً لاستخدام منصة inskola!');
     }
 
     /**
@@ -72,7 +72,7 @@ class AssignmentSubmitted extends Notification
             'created_at' => now()->toISOString(),
             'icon' => 'submission',
             'color' => 'green',
-            'action_url' => route('assignments.submissions', $this->submission->assignment->id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

@@ -46,8 +46,8 @@ class AssignmentCreated extends Notification
             ->line('تم رفع واجب جديد بعنوان: ' . $this->assignment->title)
             ->line('المعلم: ' . $this->teacher->name)
             ->line('الكورس: ' . $this->assignment->meeting->course->title_ar)
-            ->action('عرض الواجب', route('student.courses.show', $this->assignment->meeting->course_id))
-            ->line('شكراً لاستخدام منصة EduDream!');
+            ->action('عرض الواجب', 'https://app.inskola.net/student/dashboard')
+            ->line('شكراً لاستخدام منصة inskola!');
     }
 
     /**
@@ -71,7 +71,7 @@ class AssignmentCreated extends Notification
             'created_at' => now()->toISOString(),
             'icon' => 'assignment',
             'color' => 'blue',
-            'action_url' => route('student.courses.show', $this->assignment->meeting->course_id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

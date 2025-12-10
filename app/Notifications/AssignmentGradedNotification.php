@@ -94,8 +94,7 @@ class AssignmentGradedNotification extends Notification implements ShouldQueue
                 ->line('راجع المادة جيداً واسأل معلمك عن أي استفسار 📚');
         }
 
-        $message->action('📄 شاهد التفاصيل والملاحظات', route('student.courses.show', $this->assignment->meeting->course_id))
-            ->salutation('بالتوفيق دائماً! 🌟' . PHP_EOL . 'فريق ' . config('app.name'));
+        $message->action('📄 شاهد التفاصيل والملاحظات', 'https://app.inskola.net/student/dashboard');
 
         return $message;
     }
@@ -124,7 +123,7 @@ class AssignmentGradedNotification extends Notification implements ShouldQueue
             'corrected_at' => $this->submission->corrected_at,
             'icon' => 'star',
             'color' => $rating >= 4 ? 'green' : ($rating >= 3 ? 'blue' : 'orange'),
-            'action_url' => route('student.courses.show', $this->course->id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

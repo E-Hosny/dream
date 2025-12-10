@@ -70,7 +70,7 @@
             border-radius: 10px;
             padding: 25px;
             margin: 30px 0;
-            text-align: right;
+            text-align: center;
         }
         .info-box h3 {
             color: #0c4a6e;
@@ -113,7 +113,7 @@
     <div class="container">
         <div class="header">
             <h1>إيدو دريم</h1>
-            <div class="subtitle">EduDream Platform</div>
+            <div class="subtitle">inskola</div>
         </div>
         
         <div class="content">
@@ -145,7 +145,7 @@
         <div class="footer">
             <p><strong>منصة إيدو دريم التعليمية</strong></p>
             <p>بوابتك إلى المعرفة والنجاح</p>
-            <p>© 2024 EduDream. جميع الحقوق محفوظة.</p>
+            <p>© 2024 inskola. جميع الحقوق محفوظة.</p>
             <p style="margin-top: 15px; font-size: 12px;">
                 هذا إيميل تجريبي لاختبار نظام البريد الإلكتروني
             </p>

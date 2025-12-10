@@ -51,10 +51,9 @@ class MeetingStartedNotification extends Notification implements ShouldQueue
             ->line('📅 **الوقت:** ' . $this->meeting->actual_start_time->format('Y-m-d h:i A'))
             ->line('⏱️ **المدة المتوقعة:** ' . $this->meeting->duration . ' دقيقة')
             ->line('📝 **الموضوع:** ' . $this->meeting->topic)
-            ->action('🎥 انضم للاجتماع الآن', route('student.courses.show', $this->course->id))
+            ->action('🎥 انضم للاجتماع الآن', 'https://app.inskola.net/student/dashboard')
             ->line('**مهم:** لا تتأخر! الاجتماع بدأ بالفعل.')
-            ->line('💡 **نصيحة:** تأكد من اتصال الإنترنت والكاميرا والمايك قبل الانضمام.')
-            ->salutation('بالتوفيق! 🌟' . PHP_EOL . 'فريق ' . config('app.name'));
+            ->line('💡 **نصيحة:** تأكد من اتصال الإنترنت والكاميرا والمايك قبل الانضمام.');
     }
 
     /**
@@ -75,7 +74,7 @@ class MeetingStartedNotification extends Notification implements ShouldQueue
             'start_time' => $this->meeting->actual_start_time,
             'icon' => 'video',
             'color' => 'green',
-            'action_url' => route('student.courses.show', $this->course->id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

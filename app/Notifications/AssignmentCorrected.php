@@ -47,8 +47,8 @@ class AssignmentCorrected extends Notification
             ->line('المعلم: ' . $this->teacher->name)
             ->line('التقييم: ' . ($this->submission->rating ?? 0) . ' من 5 نجوم')
             ->line('الكورس: ' . $this->submission->assignment->meeting->course->title_ar)
-            ->action('عرض التصحيح', route('student.courses.show', $this->submission->assignment->meeting->course_id))
-            ->line('شكراً لاستخدام منصة EduDream!');
+            ->action('عرض التصحيح', 'https://app.inskola.net/student/dashboard')
+            ->line('شكراً لاستخدام منصة inskola!');
     }
 
     /**
@@ -76,7 +76,7 @@ class AssignmentCorrected extends Notification
             'created_at' => now()->toISOString(),
             'icon' => 'correction',
             'color' => 'purple',
-            'action_url' => route('student.courses.show', $this->submission->assignment->meeting->course_id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

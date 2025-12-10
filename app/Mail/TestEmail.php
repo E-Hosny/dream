@@ -31,7 +31,7 @@ class TestEmail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'إيميل تجريبي من منصة إيدو دريم - Test Email from EduDream Platform',
+            subject: 'إيميل تجريبي من منصة إيدو دريم - Test Email from inskola',
         );
     }
 

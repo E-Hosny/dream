@@ -57,9 +57,8 @@ class MeetingEndedMissedNotification extends Notification implements ShouldQueue
             ->line('• راجع تسجيل الاجتماع إن وُجد')
             ->line('• تواصل مع زملائك لمعرفة ما فاتك')
             ->line('• احرص على الحضور في المرة القادمة')
-            ->action('📚 اذهب للكورس', route('student.courses.show', $this->course->id))
-            ->line('**تذكير:** الحضور المنتظم مهم جداً لنجاحك الأكاديمي! 💪')
-            ->salutation('نتمنى لك التوفيق' . PHP_EOL . 'فريق ' . config('app.name'));
+            ->action('📚 اذهب للكورس', 'https://app.inskola.net/student/dashboard')
+            ->line('**تذكير:** الحضور المنتظم مهم جداً لنجاحك الأكاديمي! 💪');
     }
 
     /**
@@ -81,7 +80,7 @@ class MeetingEndedMissedNotification extends Notification implements ShouldQueue
             'end_time' => $this->meeting->actual_end_time,
             'icon' => 'warning',
             'color' => 'orange',
-            'action_url' => route('student.courses.show', $this->course->id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }

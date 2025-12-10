@@ -53,14 +53,13 @@ class NewAssignmentNotification extends Notification implements ShouldQueue
             ->line('📅 **تاريخ الإضافة:** ' . $this->assignment->created_at->format('Y-m-d h:i A'))
             ->line('📎 **اسم الملف:** ' . $this->assignment->file_name)
             ->line('---')
-            ->action('📄 شاهد الواجب وابدأ الحل', route('student.courses.show', $this->course->id))
+            ->action('📄 شاهد الواجب وابدأ الحل', 'https://app.inskola.net/student/dashboard')
             ->line('**نصائح للنجاح:**')
             ->line('• اقرأ التعليمات بعناية')
             ->line('• ابدأ الحل مبكراً، لا تؤجل!')
             ->line('• راجع عملك قبل التسليم')
             ->line('• لا تتردد في سؤال معلمك عن أي استفسار')
-            ->line('💡 **تذكير:** الالتزام بالمواعيد مهم جداً لنجاحك الأكاديمي.')
-            ->salutation('بالتوفيق! 🌟' . PHP_EOL . 'فريق ' . config('app.name'));
+            ->line('💡 **تذكير:** الالتزام بالمواعيد مهم جداً لنجاحك الأكاديمي.');
     }
 
     /**
@@ -82,7 +81,7 @@ class NewAssignmentNotification extends Notification implements ShouldQueue
             'created_at' => $this->assignment->created_at,
             'icon' => 'document',
             'color' => 'blue',
-            'action_url' => route('student.courses.show', $this->course->id),
+            'action_url' => 'https://app.inskola.net/student/dashboard',
         ];
     }
 }
