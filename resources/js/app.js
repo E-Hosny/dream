@@ -7,7 +7,7 @@ import { createApp, h } from "vue";
 import { ZiggyVue } from "../../vendor/tightenco/ziggy";
 import { createI18n } from "vue-i18n";
 
-const appName = import.meta.env.VITE_APP_NAME || "Laravel";
+const appName = import.meta.env.VITE_APP_NAME || "inskola";
 
 // إعداد الترجمة
 const i18n = createI18n({
