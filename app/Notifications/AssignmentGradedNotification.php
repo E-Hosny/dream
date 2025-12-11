@@ -94,7 +94,8 @@ class AssignmentGradedNotification extends Notification implements ShouldQueue
                 ->line('راجع المادة جيداً واسأل معلمك عن أي استفسار 📚');
         }
 
-        $message->action('📄 شاهد التفاصيل والملاحظات', 'https://app.inskola.net/student/dashboard');
+        $message->action('📄 شاهد التفاصيل والملاحظات', 'https://app.inskola.net/student/dashboard')
+            ->salutation('');
 
         return $message;
     }
