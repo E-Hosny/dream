@@ -187,10 +187,15 @@
             margin-bottom: 15px;
             line-height: 1.6;
             text-align: center;
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
         
         .salutation strong {
             color: #1f2937;
+            display: none !important;
         }
         
         .footer-text {
@@ -301,6 +306,8 @@
             
             .salutation {
                 color: #9ca3af;
+                display: none !important;
+                visibility: hidden !important;
             }
         }
     </style>
@@ -362,6 +369,10 @@
             
             <!-- Footer -->
             <div class="email-footer">
+                @php
+                    // تعطيل salutation تماماً
+                    $salutation = '';
+                @endphp
                 <div class="footer-text">
                     <strong>inskola</strong><br>
                     بوابتك إلى المعرفة والنجاح
