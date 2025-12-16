@@ -47,7 +47,8 @@ class AssignmentSubmitted extends Notification
             ->line('الطالب: ' . $this->student->name)
             ->line('الكورس: ' . $this->submission->assignment->meeting->course->title_ar)
             ->action('عرض الحلول', 'https://app.inskola.net/student/dashboard')
-            ->line('شكراً لاستخدام منصة inskola!');
+            ->line('شكراً لاستخدام منصة inskola!')
+            ->salutation('');
     }
 
     /**

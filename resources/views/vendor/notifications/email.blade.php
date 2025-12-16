@@ -52,36 +52,28 @@
         /* Header Styles */
         .email-header {
             background: linear-gradient(135deg, #18b596 0%, #149a7f 100%);
-            padding: 40px 30px;
+            padding: 30px 20px;
             text-align: center;
         }
         
         .logo-container {
-            margin-bottom: 20px;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .logo-container img {
-            max-width: 200px;
+            max-width: 100%;
+            width: auto;
             height: auto;
+            max-height: 150px;
             display: block !important;
             margin: 0 auto;
             visibility: visible !important;
             opacity: 1 !important;
-        }
-        
-        .email-header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-            color: #ffffff;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .email-header .subtitle {
-            margin: 10px 0 0 0;
-            font-size: 14px;
-            color: #ffffff;
-            opacity: 0.95;
         }
         
         /* Content Styles */
@@ -187,10 +179,15 @@
             margin-bottom: 15px;
             line-height: 1.6;
             text-align: center;
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
         }
         
         .salutation strong {
             color: #1f2937;
+            display: none !important;
         }
         
         .footer-text {
@@ -301,6 +298,8 @@
             
             .salutation {
                 color: #9ca3af;
+                display: none !important;
+                visibility: hidden !important;
             }
         }
     </style>
@@ -311,10 +310,8 @@
             <!-- Header -->
             <div class="email-header">
                 <div class="logo-container">
-                    <img src="{{ url('white_logo-removebg-preview.png') }}" alt="inskola" style="max-width: 200px; height: auto; display: block; margin: 0 auto; background: transparent;" />
+                    <img src="{{ url('white_logo-removebg-preview.png') }}" alt="inskola" style="max-width: 100%; width: auto; height: auto; max-height: 150px; display: block; margin: 0 auto; background: transparent;" />
                 </div>
-                <h1>inskola</h1>
-                <div class="subtitle">inskola</div>
             </div>
             
             <!-- Content -->
@@ -362,6 +359,10 @@
             
             <!-- Footer -->
             <div class="email-footer">
+                @php
+                    // تعطيل salutation تماماً
+                    $salutation = '';
+                @endphp
                 <div class="footer-text">
                     <strong>inskola</strong><br>
                     بوابتك إلى المعرفة والنجاح

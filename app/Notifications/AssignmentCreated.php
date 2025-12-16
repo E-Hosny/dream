@@ -47,7 +47,8 @@ class AssignmentCreated extends Notification
             ->line('المعلم: ' . $this->teacher->name)
             ->line('الكورس: ' . $this->assignment->meeting->course->title_ar)
             ->action('عرض الواجب', 'https://app.inskola.net/student/dashboard')
-            ->line('شكراً لاستخدام منصة inskola!');
+            ->line('شكراً لاستخدام منصة inskola!')
+            ->salutation('');
     }
 
     /**

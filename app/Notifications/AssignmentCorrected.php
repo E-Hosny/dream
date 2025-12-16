@@ -48,7 +48,8 @@ class AssignmentCorrected extends Notification
             ->line('التقييم: ' . ($this->submission->rating ?? 0) . ' من 5 نجوم')
             ->line('الكورس: ' . $this->submission->assignment->meeting->course->title_ar)
             ->action('عرض التصحيح', 'https://app.inskola.net/student/dashboard')
-            ->line('شكراً لاستخدام منصة inskola!');
+            ->line('شكراً لاستخدام منصة inskola!')
+            ->salutation('');
     }
 
     /**
