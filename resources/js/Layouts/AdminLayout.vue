@@ -183,9 +183,9 @@ const adminMenuItems = [
             <div class="flex flex-col h-full overflow-y-auto bg-white shadow-2xl border-r border-gray-200">
                 <!-- Logo -->
                 <div class="flex h-20 flex-shrink-0 items-center justify-center px-4 bg-white border-b border-gray-200">
-                    <div class="flex items-center justify-center w-full">
-                        <img src="/200-600 out icon gr -- EH.png" alt="Inskola Logo" class="h-16 w-auto object-contain" />
-                    </div>
+                    <Link :href="route('admin.dashboard')" class="flex items-center justify-center w-full">
+                        <img src="/200-600 out icon gr -- EH.png" alt="Inskola Logo" class="h-16 w-auto object-contain cursor-pointer hover:opacity-80 transition-opacity" />
+                    </Link>
                 </div>
 
                 <!-- Navigation -->
