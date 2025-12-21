@@ -24,7 +24,24 @@ class SetLocale
         $configLocale = config("app.locale", "ar");
         $availableLocales = config("app.available_locales", ["en", "ar"]);
         
-        $locale = $sessionLocale ?: $configLocale ?: "ar";
+        // إذا لم يكن هناك locale في الجلسة، قم بتعيين العربية كافتراضية
+        if (!$sessionLocale) {
+            $locale = $configLocale ?: "ar";
+            // تأكد من أن اللغة العربية هي الافتراضية
+            if (!in_array($locale, $availableLocales)) {
+                $locale = "ar";
+            }
+            // حفظ اللغة في الجلسة لضمان الاستمرارية
+            Session::put("locale", $locale);
+        } else {
+            $locale = $sessionLocale;
+        }
+        
+        // التحقق من صحة اللغة
+        if (!in_array($locale, $availableLocales)) {
+            $locale = "ar";
+            Session::put("locale", $locale);
+        }
         
         Log::info('SetLocale middleware', [
             'session_locale' => $sessionLocale,
@@ -33,12 +50,8 @@ class SetLocale
             'available_locales' => $availableLocales
         ]);
         
-        if (in_array($locale, $availableLocales)) {
-            App::setLocale($locale);
-            Log::info('Locale set successfully', ['locale' => $locale]);
-        } else {
-            Log::warning('Invalid locale in middleware', ['locale' => $locale]);
-        }
+        App::setLocale($locale);
+        Log::info('Locale set successfully', ['locale' => $locale]);
         
         return $next($request);
     }
