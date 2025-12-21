@@ -6,6 +6,14 @@ import { computed, ref } from 'vue';
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 
+// تحديث meta tag عند تغيير CSRF token من Inertia
+if (typeof window !== 'undefined' && page.props.csrfToken) {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        metaTag.setAttribute('content', page.props.csrfToken);
+    }
+}
+
 // البيانات من Controller
 const props = defineProps({
     course: Object,
@@ -143,11 +151,14 @@ const joinMeeting = async (meetingId) => {
     try {
         console.log(`Attempting to join meeting: ${meetingId}`);
         
+        // استخدام CSRF token من Inertia props بدلاً من meta tag
+        const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
         const response = await fetch(`/student/meetings/${meetingId}/guest-join`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': csrfToken
             }
         });
 
@@ -246,11 +257,14 @@ const submitSolution = async () => {
         const formData = new FormData();
         formData.append('submission_file', submissionForm.value.selectedFile);
 
+        // استخدام CSRF token من Inertia props بدلاً من meta tag
+        const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
         const response = await fetch(`/assignments/${submissionForm.value.assignmentId}/submit`, {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': csrfToken
             }
         });
 

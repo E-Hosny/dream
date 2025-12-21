@@ -47,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             'locale' => $locale,
             'language' => __('app.language'),
             'available_locales' => config('app.available_locales'),
+            'csrfToken' => csrf_token(),
         ];
     }
 }

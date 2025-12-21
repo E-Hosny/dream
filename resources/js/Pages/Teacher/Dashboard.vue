@@ -7,6 +7,14 @@ const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 const user = computed(() => page.props.auth.user);
 
+// تحديث meta tag عند تغيير CSRF token من Inertia
+if (typeof window !== 'undefined' && page.props.csrfToken) {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        metaTag.setAttribute('content', page.props.csrfToken);
+    }
+}
+
 // البيانات من Controller
 const props = defineProps({
     stats: Object,
@@ -180,12 +188,15 @@ const submitMeeting = async () => {
 
     meetingLoading.value = true;
 
+    // استخدام CSRF token من Inertia props بدلاً من meta tag
+    const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
     try {
         const response = await fetch('/zoom-meetings/start-instant', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': csrfToken
             },
             body: JSON.stringify(meetingForm.value)
         });

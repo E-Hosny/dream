@@ -7,6 +7,14 @@ const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 const user = computed(() => page.props.auth.user);
 
+// تحديث meta tag عند تغيير CSRF token من Inertia
+if (typeof window !== 'undefined' && page.props.csrfToken) {
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+        metaTag.setAttribute('content', page.props.csrfToken);
+    }
+}
+
 // استقبال البيانات من الخادم
 const enrollments = computed(() => page.props.enrollments || []);
 
@@ -20,10 +28,13 @@ const joinMeeting = async (courseId) => {
     try {
         console.log(`Starting join meeting process for course ID: ${courseId}`);
         
+        // استخدام CSRF token من Inertia props بدلاً من meta tag
+        const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
         // البحث عن اجتماع نشط للكورس
         const response = await fetch(`/student/courses/${courseId}/active-meeting`, {
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': csrfToken
             }
         });
 
@@ -38,7 +49,7 @@ const joinMeeting = async (courseId) => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    'X-CSRF-TOKEN': csrfToken
                 }
             });
 
@@ -74,12 +85,15 @@ const joinMeeting = async (courseId) => {
 const updateActiveMeetingStates = async () => {
     try {
         console.log('Updating active meeting states for courses...');
+        // استخدام CSRF token من Inertia props
+        const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        
         for (const enrollment of enrollments.value) {
             if (enrollment.course_id) {
                 console.log(`Checking active meeting for course ID: ${enrollment.course_id}`);
                 const response = await fetch(`/student/courses/${enrollment.course_id}/active-meeting-status`, {
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        'X-CSRF-TOKEN': csrfToken
                     }
                 });
                 const data = await response.json();
