@@ -73,7 +73,7 @@ class AssignmentSubmitted extends Notification
             'created_at' => now()->toISOString(),
             'icon' => 'submission',
             'color' => 'green',
-            'action_url' => 'https://app.inskola.net/student/dashboard',
+            'action_url' => '/assignments/' . $this->submission->assignment->id . '/submissions',
         ];
     }
 }
