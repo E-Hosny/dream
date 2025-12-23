@@ -341,7 +341,7 @@
                 <!-- Action Button -->
                 @isset($actionText)
                     <div class="action-button">
-                        <a href="https://app.inskola.net/student/dashboard" class="btn" style="color: #ffffff;">
+                        <a href="{{ $actionUrl }}" class="btn" style="color: #ffffff;">
                             {{ $actionText }}
                         </a>
                     </div>
@@ -383,7 +383,7 @@
                             ]
                         )
                         <br><br>
-                        <a href="https://app.inskola.net/student/dashboard">https://app.inskola.net/student/dashboard</a>
+                        <a href="{{ $actionUrl }}">{{ $actionUrl }}</a>
                     </div>
                 @endisset
             </div>

@@ -53,7 +53,7 @@ class NewAssignmentNotification extends Notification implements ShouldQueue
             ->line('📅 **تاريخ الإضافة:** ' . $this->assignment->created_at->format('Y-m-d h:i A'))
             ->line('📎 **اسم الملف:** ' . $this->assignment->file_name)
             ->line('---')
-            ->action('📄 شاهد الواجب وابدأ الحل', 'https://app.inskola.net/student/dashboard')
+            ->action('📄 شاهد الواجب وابدأ الحل', url('/student/courses/' . $this->course->id))
             ->line('**نصائح للنجاح:**')
             ->line('• اقرأ التعليمات بعناية')
             ->line('• ابدأ الحل مبكراً، لا تؤجل!')
@@ -73,7 +73,7 @@ class NewAssignmentNotification extends Notification implements ShouldQueue
         return [
             'type' => 'new_assignment',
             'title' => 'واجب جديد 📝',
-            'message' => 'تم إضافة واجب جديد: ' . $this->assignment->title,
+            'message' => 'تم إضافة واجب جديد في مادة ' . ($this->course->title_ar ?? $this->course->title) . ': ' . $this->assignment->title,
             'assignment_id' => $this->assignment->id,
             'course_id' => $this->course->id,
             'course_title' => $this->course->title_ar ?? $this->course->title,
@@ -82,7 +82,7 @@ class NewAssignmentNotification extends Notification implements ShouldQueue
             'created_at' => $this->assignment->created_at,
             'icon' => 'document',
             'color' => 'blue',
-            'action_url' => 'https://app.inskola.net/student/dashboard',
+            'action_url' => '/student/courses/' . $this->course->id,
         ];
     }
 }

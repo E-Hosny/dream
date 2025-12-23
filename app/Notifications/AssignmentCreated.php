@@ -61,7 +61,7 @@ class AssignmentCreated extends Notification
         return [
             'type' => 'assignment_created',
             'title' => 'واجب جديد',
-            'message' => 'تم رفع واجب جديد بعنوان: ' . $this->assignment->title,
+            'message' => 'تم رفع واجب جديد في مادة ' . $this->assignment->meeting->course->title_ar . ' بعنوان: ' . $this->assignment->title,
             'teacher_name' => $this->teacher->name,
             'course_title' => $this->assignment->meeting->course->title_ar,
             'assignment_id' => $this->assignment->id,
@@ -72,7 +72,7 @@ class AssignmentCreated extends Notification
             'created_at' => now()->toISOString(),
             'icon' => 'assignment',
             'color' => 'blue',
-            'action_url' => 'https://app.inskola.net/student/dashboard',
+            'action_url' => '/student/courses/' . $this->assignment->meeting->course_id,
         ];
     }
 }
