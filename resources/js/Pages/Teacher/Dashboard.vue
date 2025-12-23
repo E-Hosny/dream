@@ -83,7 +83,7 @@ const t = (key) => {
             no_courses_message: 'لا توجد كورسات مخصصة لك بعد. اتصل بالإدارة للحصول على كورسات.',
             contact_admin: 'اتصل بالإدارة',
             course_management: 'إدارة الكورسات',
-            view_course: 'عرض الكورس',
+            view_course: 'عرض المادة',
             edit_course: 'تعديل الكورس',
             course_info: 'معلومات الكورس',
             total_courses: 'إجمالي الكورسات',
@@ -388,10 +388,20 @@ const endMeeting = async (courseId) => {
                         <!-- Course Header -->
                         <div class="flex items-start justify-between mb-6">
                             <div class="flex-1">
-                                <h3 class="text-2xl font-bold text-gray-900 mb-3">{{ currentLocale === 'ar' ? course.title : course.titleEn }}</h3>
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-2xl font-bold text-gray-900">{{ currentLocale === 'ar' ? course.title : course.titleEn }}</h3>
+                                    <Link :href="route('teacher.courses.show', course.id)"
+                                          class="px-5 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors inline-flex items-center shadow-md hover:shadow-lg">
+                                        <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                        </svg>
+                                        {{ t('view_course') }}
+                                    </Link>
+                                </div>
                                 <p class="text-gray-600 text-base line-clamp-2">{{ currentLocale === 'ar' ? course.description : course.descriptionEn }}</p>
                             </div>
-                            <div class="flex flex-col items-end space-y-3 rtl:space-x-reverse">
+                            <div class="flex flex-col items-end space-y-3 rtl:space-x-reverse ml-4 rtl:ml-0 rtl:mr-4">
                                 <span class="px-4 py-2 text-sm font-medium rounded-full" 
                                       :class="course.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
                                     {{ course.status === 'published' ? (currentLocale === 'en' ? 'Published' : 'منشور') : (currentLocale === 'en' ? 'Draft' : 'مسودة') }}
@@ -405,17 +415,7 @@ const endMeeting = async (courseId) => {
                         </div>
 
                         <!-- Course Details Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
-                                <svg class="h-6 w-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <div>
-                                    <p class="text-sm text-gray-500">{{ t('course_price') }}</p>
-                                    <p class="text-lg font-semibold text-gray-900">{{ formatCurrency(course.price) }}</p>
-                                </div>
-                            </div>
-                            
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-gray-50 rounded-lg">
                                 <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -510,20 +510,6 @@ const endMeeting = async (courseId) => {
                         <div class="flex items-center justify-between pt-6 border-t border-gray-200 mb-6">
                             <div class="text-sm text-gray-500">
                                 {{ currentLocale === 'en' ? 'Created' : 'تم الإنشاء' }}: {{ new Date(course.created_at).toLocaleDateString(currentLocale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US') }}
-                            </div>
-                            <div class="flex space-x-3 rtl:space-x-reverse">
-                                <Link :href="route('teacher.courses.show', course.id)"
-                                      class="px-4 py-2 text-sm font-medium text-brand hover:text-brand-dark hover:bg-brand/10 rounded-lg transition-colors inline-flex items-center">
-                                    <svg class="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                    </svg>
-                                    {{ t('view_course') }}
-                                </Link>
-                                <a :href="`/admin/courses/${course.id}/edit`" 
-                                   class="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors">
-                                    {{ t('edit_course') }}
-                                </a>
                             </div>
                         </div>
 
