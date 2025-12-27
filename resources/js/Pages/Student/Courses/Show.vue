@@ -599,7 +599,7 @@ const getSessionHeaderColor = (index) => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                             </svg>
                                             <span class="hidden sm:inline">{{ t('view_assignment') }}</span>
-                                            <span class="sm:hidden">عرض الواجب</span>
+                                            <span class="sm:hidden">{{ t('view_assignment') }}</span>
                                         </button>
                                         <button @click="downloadAssignment(meeting.assignment)"
                                                 class="flex-1 sm:flex-none px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center justify-center">
@@ -607,7 +607,7 @@ const getSessionHeaderColor = (index) => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                             </svg>
                                             <span class="hidden sm:inline">{{ t('download_assignment') }}</span>
-                                            <span class="sm:hidden">تحميل الواجب</span>
+                                            <span class="sm:hidden">{{ t('download_assignment') }}</span>
                                         </button>
                                         
                                         <button v-if="!meeting.assignment.submission || meeting.assignment.submission.status === 'not_submitted'"
@@ -617,7 +617,7 @@ const getSessionHeaderColor = (index) => {
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                             </svg>
                                             <span class="hidden sm:inline">{{ t('upload_solution') }}</span>
-                                            <span class="sm:hidden">رفع الحل</span>
+                                            <span class="sm:hidden">{{ t('upload_solution') }}</span>
                                         </button>
                                         
                                         <button v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'"
