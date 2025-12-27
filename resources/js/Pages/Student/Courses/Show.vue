@@ -343,6 +343,42 @@ const getSubmissionStatusClass = (status) => {
 const getSubmissionStatusText = (status) => {
     return t(status);
 };
+
+// دوال مساعدة لتحسين عرض الاجتماعات
+const getSessionNumber = (index) => {
+    // رقم الحصة (من الأحدث للأقدم)
+    return props.meetings.length - index;
+};
+
+const getSessionColorClasses = (index) => {
+    const colors = [
+        { bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600' },
+        { bg: 'bg-green-500', text: 'text-white', border: 'border-green-600' },
+        { bg: 'bg-purple-500', text: 'text-white', border: 'border-purple-600' },
+        { bg: 'bg-orange-500', text: 'text-white', border: 'border-orange-600' },
+        { bg: 'bg-pink-500', text: 'text-white', border: 'border-pink-600' },
+        { bg: 'bg-indigo-500', text: 'text-white', border: 'border-indigo-600' },
+        { bg: 'bg-teal-500', text: 'text-white', border: 'border-teal-600' },
+        { bg: 'bg-yellow-500', text: 'text-white', border: 'border-yellow-600' },
+    ];
+    const sessionNumber = getSessionNumber(index);
+    return colors[(sessionNumber - 1) % colors.length];
+};
+
+const getSessionHeaderColor = (index) => {
+    const colors = [
+        { bg: 'bg-blue-50', border: 'border-blue-200' },
+        { bg: 'bg-green-50', border: 'border-green-200' },
+        { bg: 'bg-purple-50', border: 'border-purple-200' },
+        { bg: 'bg-orange-50', border: 'border-orange-200' },
+        { bg: 'bg-pink-50', border: 'border-pink-200' },
+        { bg: 'bg-indigo-50', border: 'border-indigo-200' },
+        { bg: 'bg-teal-50', border: 'border-teal-200' },
+        { bg: 'bg-yellow-50', border: 'border-yellow-200' },
+    ];
+    const sessionNumber = getSessionNumber(index);
+    return colors[(sessionNumber - 1) % colors.length];
+};
 </script>
 
 <template>
@@ -416,20 +452,25 @@ const getSubmissionStatusText = (status) => {
                 <!-- Meetings List -->
                 <div v-if="meetings.length > 0" class="p-4 sm:p-6">
                     <div class="space-y-6">
-                        <div v-for="meeting in meetings" :key="meeting.id" 
-                             class="group bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-200 hover:shadow-md overflow-hidden">
-                        
+                        <div v-for="(meeting, index) in meetings" :key="meeting.id" 
+                             class="group bg-white rounded-lg border-2 transition-all duration-200 hover:shadow-lg overflow-hidden"
+                             :class="getSessionHeaderColor(index).border">
+                            
                             <!-- Meeting Header -->
-                            <div class="bg-gray-50 px-4 sm:px-6 py-4 border-b border-gray-200">
+                            <div class="px-4 sm:px-6 py-4 border-b-2" :class="[getSessionHeaderColor(index).bg, getSessionHeaderColor(index).border]">
                                 <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                        <div class="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100">
-                                            <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                            </svg>
+                                    <div class="flex items-center space-x-3 rtl:space-x-reverse flex-1">
+                                        <!-- Session Number Badge -->
+                                        <div class="flex items-center justify-center h-10 w-10 rounded-full font-bold text-sm shadow-md"
+                                             :class="[getSessionColorClasses(index).bg, getSessionColorClasses(index).text]">
+                                            {{ getSessionNumber(index) }}
                                         </div>
-                                        <div>
-                                            <div class="flex items-center space-x-2 rtl:space-x-reverse flex-wrap gap-2">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-2 rtl:space-x-reverse flex-wrap gap-2 mb-1">
+                                                <span class="px-3 py-1 rounded-full text-xs font-bold shadow-sm"
+                                                      :class="[getSessionColorClasses(index).bg, getSessionColorClasses(index).text]">
+                                                    {{ currentLocale === 'ar' ? `حصة ${getSessionNumber(index)}` : `Session ${getSessionNumber(index)}` }}
+                                                </span>
                                                 <h3 class="font-semibold text-gray-900 text-lg">{{ meeting.topic }}</h3>
                                                 <!-- Attendance Status - Show only for ended meetings -->
                                                 <span v-if="meeting.status === 'ended' && meeting.attendance_status" 
@@ -448,12 +489,12 @@ const getSubmissionStatusText = (status) => {
                                                     <span>{{ meeting.attendance_status === 'present' ? t('attended') : t('missed') }}</span>
                                                 </span>
                                             </div>
-                                            <div class="flex items-center space-x-2 rtl:space-x-reverse mt-1">
+                                            <div class="flex items-center space-x-2 rtl:space-x-reverse mt-1 flex-wrap gap-2">
                                                 <span :class="`px-2 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
                                                     {{ meeting.status_text }}
                                                 </span>
-                                                <span v-if="meeting.password && meeting.can_join" class="text-xs text-gray-500">
-                                                    {{ t('password') }}: <code class="bg-gray-100 px-1 rounded">{{ meeting.password }}</code>
+                                                <span v-if="meeting.password && meeting.can_join" class="text-xs text-gray-600">
+                                                    {{ t('password') }}: <code class="bg-white bg-opacity-50 px-1.5 py-0.5 rounded">{{ meeting.password }}</code>
                                                 </span>
                                             </div>
                                         </div>
@@ -589,11 +630,10 @@ const getSubmissionStatusText = (status) => {
                                             <span class="sm:hidden">{{ t('update') }}</span>
                                         </button>
                                     </div>
-                                </div>
                                 
-                                <!-- Student Submission Info -->
-                                <div v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'" 
-                                     class="mt-6 pt-4 border-t border-gray-200">
+                                    <!-- Student Submission Info -->
+                                    <div v-if="meeting.assignment.submission && meeting.assignment.submission.status !== 'not_submitted'" 
+                                         class="mt-6 pt-4 border-t border-gray-200">
                                     <div class="bg-green-50 rounded-lg p-4 border border-green-200">
                                         <h6 class="font-semibold text-gray-800 mb-3 flex items-center">
                                             <svg class="w-3 h-3 mr-2 rtl:mr-0 rtl:ml-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -728,6 +768,7 @@ const getSubmissionStatusText = (status) => {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
                                 </div>
                             </div>
                             
