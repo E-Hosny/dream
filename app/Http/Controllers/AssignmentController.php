@@ -266,12 +266,15 @@ class AssignmentController extends Controller
     }
 
     /**
-     * عرض حلول الطلاب للمعلم
+     * عرض حلول الطلاب للمعلم والأدمن
      */
     public function showSubmissions(Assignment $assignment)
     {
+        $user = Auth::user();
+        
         // تحقق من الصلاحية
-        if ($assignment->created_by !== Auth::id()) {
+        // الأدمن يمكنه الوصول لجميع الحلول
+        if (!$user->hasRole('admin') && $assignment->created_by !== $user->id) {
             abort(403, 'غير مسموح لك بعرض حلول هذا الواجب');
         }
 

@@ -40,6 +40,8 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         
         // Courses management
         Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);
+        Route::get('/courses/{course}/meetings', [App\Http\Controllers\Admin\CourseController::class, 'showMeetings'])->name('courses.meetings');
+        Route::delete('/courses/{course}/meetings/{meeting}', [App\Http\Controllers\Admin\CourseController::class, 'deleteMeeting'])->name('courses.meetings.delete');
         
         // Enrollments management
         Route::resource('enrollments', App\Http\Controllers\Admin\EnrollmentController::class);

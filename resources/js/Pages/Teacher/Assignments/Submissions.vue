@@ -1,10 +1,14 @@
 <script setup>
 import TeacherLayout from '@/Layouts/TeacherLayout.vue';
+import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Head, usePage, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
+const user = computed(() => page.props.auth.user);
+const isAdmin = computed(() => user.value?.roles?.includes('admin') || false);
+const Layout = computed(() => isAdmin.value ? AdminLayout : TeacherLayout);
 
 // البيانات من Controller
 const props = defineProps({
@@ -263,12 +267,12 @@ const renderStars = (stars) => {
 <template>
     <Head :title="t('assignment_submissions')" />
 
-    <TeacherLayout>
+    <component :is="Layout">
         <!-- Page Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
                 <div>
-                    <Link :href="`/teacher/courses/${assignment.meeting.course.id}`" 
+                    <Link :href="isAdmin ? `/admin/courses/${assignment.meeting.course.id}/meetings` : `/teacher/courses/${assignment.meeting.course.id}`" 
                           class="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
                         <svg class="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -631,5 +635,5 @@ const renderStars = (stars) => {
                 </div>
             </div>
         </div>
-    </TeacherLayout>
+    </component>
 </template>

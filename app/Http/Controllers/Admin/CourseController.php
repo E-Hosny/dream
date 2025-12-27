@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\User;
 use App\Models\CourseSchedule;
+use App\Models\ZoomMeeting;
+use App\Services\ZoomService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class CourseController extends Controller
@@ -162,5 +166,143 @@ class CourseController extends Controller
         $course->delete();
 
         return redirect()->route('admin.courses.index')->with('success', 'تم حذف الكورس بنجاح');
+    }
+
+    public function showMeetings(Course $course)
+    {
+        // تنظيف الاجتماعات القديمة
+        ZoomMeeting::cleanupOldMeetings();
+        
+        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
+        $meetings = ZoomMeeting::with('assignments')
+            ->where('course_id', $course->id)
+            ->orderBy('start_time', 'desc')
+            ->get()
+            ->map(function ($meeting) {
+                $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
+                
+                return [
+                    'id' => $meeting->id,
+                    'topic' => $meeting->topic,
+                    'start_time' => $meeting->start_time ? $meeting->start_time->format('Y-m-d H:i:s') : null,
+                    'end_time' => $meeting->end_time ? $meeting->end_time->format('Y-m-d H:i:s') : null,
+                    'actual_start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : null,
+                    'actual_end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
+                    'duration' => $meeting->duration,
+                    'status' => $meeting->status,
+                    'status_text' => $meeting->status_text,
+                    'status_color' => $meeting->status_color,
+                    'join_url' => $meeting->join_url,
+                    'start_url' => $meeting->start_url,
+                    'password' => $meeting->password,
+                    'created_at' => $meeting->created_at->format('Y-m-d H:i:s'),
+                    'zoom_meeting_id' => $meeting->zoom_meeting_id,
+                    'assignment' => $assignment ? [
+                        'id' => $assignment->id,
+                        'title' => $assignment->title,
+                        'description' => $assignment->description,
+                        'file_name' => $assignment->file_name,
+                        'file_type' => $assignment->file_type,
+                        'file_size' => $assignment->file_size,
+                        'formatted_file_size' => $assignment->formatted_file_size,
+                        'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
+                        'submissions_count' => $assignment->submissions_count,
+                        'corrected_submissions_count' => $assignment->corrected_submissions_count,
+                    ] : null,
+                ];
+            });
+            
+        // البحث عن اجتماع نشط
+        $activeMeeting = ZoomMeeting::where('course_id', $course->id)
+            ->activeAndValid()
+            ->first();
+            
+        $courseData = [
+            'id' => $course->id,
+            'title' => $course->title_ar,
+            'titleEn' => $course->title,
+            'activeMeeting' => $activeMeeting ? [
+                'id' => $activeMeeting->id,
+                'topic' => $activeMeeting->topic,
+                'start_time' => $activeMeeting->actual_start_time ? $activeMeeting->actual_start_time->format('Y-m-d H:i:s') : ($activeMeeting->start_time ? $activeMeeting->start_time->format('Y-m-d H:i:s') : null),
+                'duration' => $activeMeeting->duration,
+                'status' => $activeMeeting->status,
+            ] : null,
+            'hasActiveMeeting' => $activeMeeting !== null,
+        ];
+        
+        return Inertia::render('Admin/Courses/Meetings', [
+            'course' => $courseData,
+            'meetings' => $meetings,
+            'locale' => app()->getLocale(),
+        ]);
+    }
+
+    public function deleteMeeting(Course $course, ZoomMeeting $meeting)
+    {
+        // التحقق من أن الاجتماع مرتبط بهذا الكورس
+        if ($meeting->course_id !== $course->id) {
+            return back()->withErrors(['error' => 'هذا الاجتماع غير مرتبط بهذا الكورس']);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // الحصول على ZoomService للمستخدم المالك للاجتماع
+            $user = User::find($meeting->created_by);
+            $zoomService = null;
+            
+            if ($user && $user->zoom_account_id) {
+                $zoomAccount = \App\Models\ZoomAccount::find($user->zoom_account_id);
+                if ($zoomAccount && $zoomAccount->is_active) {
+                    $zoomService = new ZoomService($zoomAccount);
+                }
+            }
+            
+            // إذا لم يكن هناك حساب Zoom محدد، استخدم الحساب الافتراضي
+            if (!$zoomService) {
+                $zoomService = new ZoomService();
+            }
+
+            // محاولة حذف الاجتماع من Zoom (قد يفشل إذا كان الاجتماع غير موجود في Zoom)
+            try {
+                $zoomService->deleteMeeting($meeting->zoom_meeting_id);
+            } catch (\Exception $e) {
+                // إذا فشل الحذف من Zoom، نستمر في حذف السجل من قاعدة البيانات
+                Log::warning('Failed to delete meeting from Zoom: ' . $e->getMessage());
+            }
+
+            // حذف الاجتماع من قاعدة البيانات
+            $meeting->delete();
+
+            DB::commit();
+
+            // إرجاع JSON response عند الطلب من AJAX
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم حذف الاجتماع بنجاح'
+                ]);
+            }
+
+            return redirect()->route('admin.courses.meetings', $course->id)
+                ->with('success', 'تم حذف الاجتماع بنجاح');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Meeting Deletion Error: ' . $e->getMessage());
+
+            // إرجاع JSON response عند الطلب من AJAX
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء حذف الاجتماع: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->withErrors([
+                'error' => 'حدث خطأ أثناء حذف الاجتماع: ' . $e->getMessage()
+            ]);
+        }
     }
 }

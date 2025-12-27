@@ -204,7 +204,9 @@ const getLevelColor = (level) => {
                     <tbody class="bg-white divide-y divide-gray-200">
                         <tr v-for="course in courses.data" :key="course.id" class="hover:bg-gray-50">
                             <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">{{ course.title }}</div>
+                                <Link :href="route('admin.courses.meetings', course.id)" class="text-sm font-medium text-gray-900 hover:text-blue-600">
+                                    {{ course.title }}
+                                </Link>
                                 <div class="text-sm text-gray-500 truncate max-w-xs">{{ course.description }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
