@@ -11,15 +11,174 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Aws\S3\Exception\S3Exception;
 use Inertia\Inertia;
 
 class AssignmentController extends Controller
 {
     /**
+     * التحقق من إعدادات PHP للرفع
+     */
+    private function checkPhpUploadSettings()
+    {
+        $uploadMax = ini_get('upload_max_filesize');
+        $postMax = ini_get('post_max_size');
+        
+        // تحويل إلى بايت
+        $uploadMaxBytes = $this->convertToBytes($uploadMax);
+        $postMaxBytes = $this->convertToBytes($postMax);
+        $maxAllowed = min($uploadMaxBytes, $postMaxBytes);
+        
+        return [
+            'upload_max_filesize' => $uploadMax,
+            'post_max_size' => $postMax,
+            'max_allowed_bytes' => $maxAllowed,
+            'max_allowed_mb' => round($maxAllowed / (1024 * 1024), 2),
+        ];
+    }
+
+    /**
+     * تحويل القيم إلى بايت
+     */
+    private function convertToBytes($val)
+    {
+        $val = trim($val);
+        $last = strtolower($val[strlen($val)-1]);
+        $val = (int)$val;
+        
+        switch($last) {
+            case 'g': $val *= 1024;
+            case 'm': $val *= 1024;
+            case 'k': $val *= 1024;
+        }
+        
+        return $val;
+    }
+
+    /**
+     * التحقق من نوع الملف
+     */
+    private function validateFileType($file)
+    {
+        $allowedMimes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg',
+            'image/jpg',
+            'image/png'
+        ];
+        
+        $allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+        
+        $mime = $file->getMimeType();
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        return in_array($mime, $allowedMimes) || in_array($extension, $allowedExtensions);
+    }
+
+    /**
+     * تحسين رسائل خطأ validation
+     */
+    private function improveValidationErrors($errors)
+    {
+        if ($errors->has('assignment_file')) {
+            $fileErrors = $errors->get('assignment_file');
+            foreach ($fileErrors as $key => $error) {
+                if (str_contains($error, 'mimes')) {
+                    $fileErrors[$key] = 'نوع الملف غير مدعوم. الأنواع المسموحة: PDF, DOC, DOCX, JPG, JPEG, PNG';
+                } elseif (str_contains($error, 'max')) {
+                    $fileErrors[$key] = 'حجم الملف يتجاوز 10MB. الحد الأقصى المسموح: 10MB';
+                } elseif (str_contains($error, 'required')) {
+                    $fileErrors[$key] = 'يجب رفع ملف الواجب';
+                }
+            }
+            $errors->set('assignment_file', $fileErrors);
+        }
+        return $errors;
+    }
+
+    /**
      * رفع واجب جديد للاجتماع
      */
     public function store(Request $request)
     {
+        \Log::info('Assignment upload attempt started', [
+            'user_id' => Auth::id(),
+            'meeting_id' => $request->meeting_id,
+            'has_file' => $request->hasFile('assignment_file'),
+        ]);
+
+        // التحقق المبكر من وجود الملف
+        if (!$request->hasFile('assignment_file')) {
+            \Log::warning('Assignment upload failed: No file provided', [
+                'user_id' => Auth::id(),
+                'meeting_id' => $request->meeting_id,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assignment_file' => ['لم يتم رفع أي ملف. تأكد من اختيار ملف للرفع.']
+                ]
+            ], 422);
+        }
+
+        $file = $request->file('assignment_file');
+        
+        // التحقق من إعدادات PHP
+        $phpSettings = $this->checkPhpUploadSettings();
+        $maxAllowedBytes = $phpSettings['max_allowed_bytes'];
+        $fileSize = $file->getSize();
+        
+        \Log::info('File upload details', [
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $fileSize,
+            'file_size_mb' => round($fileSize / (1024 * 1024), 2),
+            'mime_type' => $file->getMimeType(),
+            'extension' => $file->getClientOriginalExtension(),
+            'php_upload_max' => $phpSettings['upload_max_filesize'],
+            'php_post_max' => $phpSettings['post_max_size'],
+            'php_max_allowed_mb' => $phpSettings['max_allowed_mb'],
+        ]);
+
+        // التحقق من حجم الملف مقارنة بإعدادات PHP
+        if ($fileSize > $maxAllowedBytes) {
+            \Log::warning('Assignment upload failed: File size exceeds PHP limits', [
+                'file_size' => $fileSize,
+                'max_allowed' => $maxAllowedBytes,
+                'php_upload_max' => $phpSettings['upload_max_filesize'],
+                'php_post_max' => $phpSettings['post_max_size'],
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assignment_file' => [
+                        "حجم الملف (" . round($fileSize / (1024 * 1024), 2) . "MB) يتجاوز الحد المسموح به في إعدادات السيرفر ({$phpSettings['max_allowed_mb']}MB). يرجى تقليل حجم الملف أو الاتصال بالدعم الفني."
+                    ]
+                ]
+            ], 422);
+        }
+
+        // التحقق من نوع الملف
+        if (!$this->validateFileType($file)) {
+            \Log::warning('Assignment upload failed: Invalid file type', [
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'extension' => $file->getClientOriginalExtension(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assignment_file' => ['نوع الملف غير مدعوم. الأنواع المسموحة: PDF, DOC, DOCX, JPG, JPEG, PNG']
+                ]
+            ], 422);
+        }
+
+        // Validation
         $validator = Validator::make($request->all(), [
             'meeting_id' => 'required|exists:zoom_meetings,id',
             'title' => 'required|string|max:255',
@@ -28,9 +187,21 @@ class AssignmentController extends Controller
         ]);
 
         if ($validator->fails()) {
+            $errors = $this->improveValidationErrors($validator->errors());
+            
+            \Log::warning('Assignment upload validation failed', [
+                'errors' => $errors->toArray(),
+                'file_info' => [
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $fileSize,
+                    'mime' => $file->getMimeType(),
+                    'extension' => $file->getClientOriginalExtension(),
+                ],
+            ]);
+
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $errors
             ], 422);
         }
 
@@ -39,16 +210,53 @@ class AssignmentController extends Controller
             
             // تحقق من أن المستخدم هو منشئ الاجتماع
             if ($meeting->created_by !== Auth::id()) {
+                \Log::warning('Assignment upload failed: Unauthorized access', [
+                    'user_id' => Auth::id(),
+                    'meeting_creator' => $meeting->created_by,
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'غير مسموح لك برفع واجب لهذا الاجتماع'
                 ], 403);
             }
 
+            \Log::info('Starting file upload to DigitalOcean Spaces', [
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $fileSize,
+            ]);
+
             // رفع الملف إلى DigitalOcean Spaces
-            $file = $request->file('assignment_file');
             $fileName = time() . '_' . $file->getClientOriginalName();
             $filePath = $file->storeAs('assignments', $fileName, 'spaces');
+
+            // التحقق من نجاح الرفع
+            if (!$filePath) {
+                \Log::error('Assignment upload failed: File storage returned false', [
+                    'file_name' => $file->getClientOriginalName(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'فشل رفع الملف إلى السيرفر. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.'
+                ], 500);
+            }
+
+            // التحقق من وجود الملف في Spaces
+            if (!Storage::disk('spaces')->exists($filePath)) {
+                \Log::error('Assignment upload failed: File not found in Spaces after upload', [
+                    'file_path' => $filePath,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تم رفع الملف لكن لم يتم العثور عليه. يرجى المحاولة مرة أخرى.'
+                ], 500);
+            }
+
+            \Log::info('File successfully uploaded to Spaces', [
+                'file_path' => $filePath,
+            ]);
 
             // إنشاء الواجب
             $assignment = Assignment::create([
@@ -57,10 +265,15 @@ class AssignmentController extends Controller
                 'description' => $request->description,
                 'file_path' => $filePath,
                 'file_name' => $file->getClientOriginalName(),
-                'file_type' => $file->getClientMimeType(),
+                'file_type' => $file->getMimeType(),
                 'file_size' => $file->getSize(),
                 'created_by' => Auth::id(),
                 'updated_by' => Auth::id(),
+            ]);
+
+            \Log::info('Assignment created successfully', [
+                'assignment_id' => $assignment->id,
+                'title' => $assignment->title,
             ]);
 
             // إرسال إشعارات للطلاب المسجلين في الكورس
@@ -83,7 +296,37 @@ class AssignmentController extends Controller
                 'assignment' => $assignment->load(['meeting', 'creator'])
             ]);
 
+        } catch (\Illuminate\Contracts\Filesystem\FileNotFoundException $e) {
+            \Log::error('Assignment upload failed: File not found exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على الملف. يرجى التأكد من اختيار ملف صحيح.'
+            ], 422);
+
+        } catch (\Aws\S3\Exception\S3Exception $e) {
+            \Log::error('Assignment upload failed: DigitalOcean Spaces error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getAwsErrorCode(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء رفع الملف إلى السيرفر. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.'
+            ], 500);
+
         } catch (\Exception $e) {
+            \Log::error('Assignment upload failed: Unexpected error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء رفع الواجب: ' . $e->getMessage()
@@ -96,12 +339,79 @@ class AssignmentController extends Controller
      */
     public function update(Request $request, Assignment $assignment)
     {
+        \Log::info('Assignment update attempt started', [
+            'user_id' => Auth::id(),
+            'assignment_id' => $assignment->id,
+            'has_file' => $request->hasFile('assignment_file'),
+        ]);
+
         // تحقق من الصلاحية
         if ($assignment->created_by !== Auth::id()) {
+            \Log::warning('Assignment update failed: Unauthorized access', [
+                'user_id' => Auth::id(),
+                'assignment_creator' => $assignment->created_by,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'غير مسموح لك بتعديل هذا الواجب'
             ], 403);
+        }
+
+        // إذا تم رفع ملف جديد، التحقق منه
+        if ($request->hasFile('assignment_file')) {
+            $file = $request->file('assignment_file');
+            
+            // التحقق من إعدادات PHP
+            $phpSettings = $this->checkPhpUploadSettings();
+            $maxAllowedBytes = $phpSettings['max_allowed_bytes'];
+            $fileSize = $file->getSize();
+            
+            \Log::info('File update details', [
+                'file_name' => $file->getClientOriginalName(),
+                'file_size' => $fileSize,
+                'file_size_mb' => round($fileSize / (1024 * 1024), 2),
+                'mime_type' => $file->getMimeType(),
+                'extension' => $file->getClientOriginalExtension(),
+                'php_upload_max' => $phpSettings['upload_max_filesize'],
+                'php_post_max' => $phpSettings['post_max_size'],
+                'php_max_allowed_mb' => $phpSettings['max_allowed_mb'],
+            ]);
+
+            // التحقق من حجم الملف مقارنة بإعدادات PHP
+            if ($fileSize > $maxAllowedBytes) {
+                \Log::warning('Assignment update failed: File size exceeds PHP limits', [
+                    'file_size' => $fileSize,
+                    'max_allowed' => $maxAllowedBytes,
+                    'php_upload_max' => $phpSettings['upload_max_filesize'],
+                    'php_post_max' => $phpSettings['post_max_size'],
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'errors' => [
+                        'assignment_file' => [
+                            "حجم الملف (" . round($fileSize / (1024 * 1024), 2) . "MB) يتجاوز الحد المسموح به في إعدادات السيرفر ({$phpSettings['max_allowed_mb']}MB). يرجى تقليل حجم الملف أو الاتصال بالدعم الفني."
+                        ]
+                    ]
+                ], 422);
+            }
+
+            // التحقق من نوع الملف
+            if (!$this->validateFileType($file)) {
+                \Log::warning('Assignment update failed: Invalid file type', [
+                    'file_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'extension' => $file->getClientOriginalExtension(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'errors' => [
+                        'assignment_file' => ['نوع الملف غير مدعوم. الأنواع المسموحة: PDF, DOC, DOCX, JPG, JPEG, PNG']
+                    ]
+                ], 422);
+            }
         }
 
         $validator = Validator::make($request->all(), [
@@ -111,9 +421,16 @@ class AssignmentController extends Controller
         ]);
 
         if ($validator->fails()) {
+            $errors = $this->improveValidationErrors($validator->errors());
+            
+            \Log::warning('Assignment update validation failed', [
+                'errors' => $errors->toArray(),
+                'assignment_id' => $assignment->id,
+            ]);
+
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $errors
             ], 422);
         }
 
@@ -126,25 +443,76 @@ class AssignmentController extends Controller
 
             // إذا تم رفع ملف جديد
             if ($request->hasFile('assignment_file')) {
+                $file = $request->file('assignment_file');
+                
+                \Log::info('Starting file update to DigitalOcean Spaces', [
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_size' => $file->getSize(),
+                    'old_file_path' => $assignment->file_path,
+                ]);
+
                 // حذف الملف القديم من Spaces
                 if ($assignment->file_path && Storage::disk('spaces')->exists($assignment->file_path)) {
-                    Storage::disk('spaces')->delete($assignment->file_path);
+                    try {
+                        Storage::disk('spaces')->delete($assignment->file_path);
+                        \Log::info('Old file deleted from Spaces', [
+                            'old_file_path' => $assignment->file_path,
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::warning('Failed to delete old file from Spaces', [
+                            'old_file_path' => $assignment->file_path,
+                            'error' => $e->getMessage(),
+                        ]);
+                        // لا نوقف العملية إذا فشل حذف الملف القديم
+                    }
                 }
 
                 // رفع الملف الجديد إلى Spaces
-                $file = $request->file('assignment_file');
                 $fileName = time() . '_' . $file->getClientOriginalName();
                 $filePath = $file->storeAs('assignments', $fileName, 'spaces');
+
+                // التحقق من نجاح الرفع
+                if (!$filePath) {
+                    \Log::error('Assignment update failed: File storage returned false', [
+                        'file_name' => $file->getClientOriginalName(),
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'فشل رفع الملف إلى السيرفر. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.'
+                    ], 500);
+                }
+
+                // التحقق من وجود الملف في Spaces
+                if (!Storage::disk('spaces')->exists($filePath)) {
+                    \Log::error('Assignment update failed: File not found in Spaces after upload', [
+                        'file_path' => $filePath,
+                    ]);
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'تم رفع الملف لكن لم يتم العثور عليه. يرجى المحاولة مرة أخرى.'
+                    ], 500);
+                }
+
+                \Log::info('File successfully uploaded to Spaces', [
+                    'file_path' => $filePath,
+                ]);
 
                 $updateData = array_merge($updateData, [
                     'file_path' => $filePath,
                     'file_name' => $file->getClientOriginalName(),
-                    'file_type' => $file->getClientMimeType(),
+                    'file_type' => $file->getMimeType(),
                     'file_size' => $file->getSize(),
                 ]);
             }
 
             $assignment->update($updateData);
+
+            \Log::info('Assignment updated successfully', [
+                'assignment_id' => $assignment->id,
+                'title' => $assignment->title,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -152,7 +520,37 @@ class AssignmentController extends Controller
                 'assignment' => $assignment->fresh()->load(['meeting', 'creator'])
             ]);
 
+        } catch (\Illuminate\Contracts\Filesystem\FileNotFoundException $e) {
+            \Log::error('Assignment update failed: File not found exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على الملف. يرجى التأكد من اختيار ملف صحيح.'
+            ], 422);
+
+        } catch (\Aws\S3\Exception\S3Exception $e) {
+            \Log::error('Assignment update failed: DigitalOcean Spaces error', [
+                'error' => $e->getMessage(),
+                'code' => $e->getAwsErrorCode(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء رفع الملف إلى السيرفر. يرجى المحاولة مرة أخرى أو الاتصال بالدعم الفني.'
+            ], 500);
+
         } catch (\Exception $e) {
+            \Log::error('Assignment update failed: Unexpected error', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تحديث الواجب: ' . $e->getMessage()
