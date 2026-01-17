@@ -21,6 +21,9 @@ class DashboardController extends Controller
         // جلب الكورسات المسجلة للطالب مع معلومات الكورس والمدرب
         $enrollments = CourseEnrollment::with(['course.instructor', 'course.schedules'])
             ->where('student_id', $user->id)
+            ->whereHas('course', function($query) {
+                $query->where('status', '!=', 'completed');
+            })
             ->get()
             ->map(function ($enrollment) {
                 $nextSchedule = $enrollment->course->next_schedule;

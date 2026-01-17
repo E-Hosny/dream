@@ -26,6 +26,7 @@ class DashboardController extends Controller
         // جلب الكورسات التي يدرسها المعلم مع المواعيد والاجتماعات النشطة
         $courses = Course::with(['schedules', 'enrollments.student'])
             ->where('instructor_id', $user->id)
+            ->where('status', '!=', 'completed')
             ->get()
             ->map(function ($course) {
                 $nextSchedule = $course->next_schedule;

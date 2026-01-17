@@ -51,6 +51,7 @@ const t = (key) => {
             draft: 'Draft',
             published: 'Published',
             archived: 'Archived',
+            completed: 'Completed',
             beginner: 'Beginner',
             intermediate: 'Intermediate',
             advanced: 'Advanced'
@@ -79,6 +80,7 @@ const t = (key) => {
             draft: 'مسودة',
             published: 'منشور',
             archived: 'مؤرشف',
+            completed: 'مكتمل',
             beginner: 'مبتدئ',
             intermediate: 'متوسط',
             advanced: 'متقدم'
@@ -98,6 +100,7 @@ const getStatusColor = (status) => {
         case 'published': return 'bg-green-100 text-green-800';
         case 'draft': return 'bg-yellow-100 text-yellow-800';
         case 'archived': return 'bg-gray-100 text-gray-800';
+        case 'completed': return 'bg-blue-100 text-blue-800';
         default: return 'bg-gray-100 text-gray-800';
     }
 };
@@ -150,6 +153,7 @@ const getLevelColor = (level) => {
                         <option value="draft">{{ t('draft') }}</option>
                         <option value="published">{{ t('published') }}</option>
                         <option value="archived">{{ t('archived') }}</option>
+                        <option value="completed">{{ t('completed') }}</option>
                     </select>
                 </div>
                 <div>

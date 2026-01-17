@@ -67,6 +67,7 @@ const t = (key) => {
             draft: 'Draft',
             published: 'Published',
             archived: 'Archived',
+            completed: 'Completed',
             add_requirement: 'Add Requirement',
             add_outcome: 'Add Learning Outcome',
             optional: 'Optional',
@@ -111,6 +112,7 @@ const t = (key) => {
             draft: 'مسودة',
             published: 'منشور',
             archived: 'مؤرشف',
+            completed: 'مكتمل',
             add_requirement: 'إضافة متطلب',
             add_outcome: 'إضافة مخرج تعلم',
             optional: 'اختياري',
@@ -460,6 +462,7 @@ const submit = () => {
                                 <option value="draft">{{ t('draft') }}</option>
                                 <option value="published">{{ t('published') }}</option>
                                 <option value="archived">{{ t('archived') }}</option>
+                                <option value="completed">{{ t('completed') }}</option>
                             </select>
                             <div v-if="form.errors.status" class="mt-3 flex items-center text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
                                 <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

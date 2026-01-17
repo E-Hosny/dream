@@ -104,17 +104,82 @@ class AssignmentController extends Controller
      */
     public function store(Request $request)
     {
+        // التحقق من إعدادات PHP أولاً
+        $phpSettings = $this->checkPhpUploadSettings();
+        $postMaxBytes = $phpSettings['max_allowed_bytes'];
+        $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? (int)$_SERVER['CONTENT_LENGTH'] : 0;
+        
+        // إضافة logging أكثر تفصيلاً
         \Log::info('Assignment upload attempt started', [
             'user_id' => Auth::id(),
             'meeting_id' => $request->meeting_id,
             'has_file' => $request->hasFile('assignment_file'),
+            'php_post_max' => $phpSettings['post_max_size'],
+            'php_upload_max' => $phpSettings['upload_max_filesize'],
+            'content_length' => $contentLength,
+            'content_length_mb' => $contentLength > 0 ? round($contentLength / (1024 * 1024), 2) : 0,
+            'request_method' => $request->method(),
+            'content_type' => $request->header('Content-Type'),
+            '_files_count' => count($_FILES),
         ]);
+
+        // التحقق من post_max_size قبل التحقق من الملف
+        if ($contentLength > 0 && $contentLength > $postMaxBytes) {
+            \Log::error('Assignment upload failed: Request size exceeds post_max_size', [
+                'content_length' => $contentLength,
+                'content_length_mb' => round($contentLength / (1024 * 1024), 2),
+                'post_max_size' => $phpSettings['post_max_size'],
+                'post_max_bytes' => $postMaxBytes,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assignment_file' => [
+                        "حجم البيانات المرسلة (" . round($contentLength / (1024 * 1024), 2) . "MB) يتجاوز الحد المسموح به في إعدادات السيرفر ({$phpSettings['post_max_size']}). يرجى تقليل حجم الملف أو الاتصال بالدعم الفني لتعديل إعدادات السيرفر."
+                    ]
+                ]
+            ], 422);
+        }
+
+        // التحقق من وجود الملف في $_FILES مباشرة
+        if (empty($_FILES) && !$request->hasFile('assignment_file')) {
+            \Log::warning('Assignment upload failed: No file in request', [
+                'user_id' => Auth::id(),
+                'meeting_id' => $request->meeting_id,
+                '_files' => $_FILES,
+                'php_post_max' => $phpSettings['post_max_size'],
+                'php_upload_max' => $phpSettings['upload_max_filesize'],
+                'content_length' => $contentLength,
+                'content_length_mb' => $contentLength > 0 ? round($contentLength / (1024 * 1024), 2) : 0,
+            ]);
+
+            // إذا كان CONTENT_LENGTH أكبر من post_max_size، فهذا يعني أن PHP تجاهل الطلب
+            if ($contentLength > 0 && $contentLength > $postMaxBytes) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => [
+                        'assignment_file' => [
+                            "حجم البيانات المرسلة (" . round($contentLength / (1024 * 1024), 2) . "MB) يتجاوز الحد المسموح به ({$phpSettings['post_max_size']}). يرجى تقليل حجم الملف أو الاتصال بالدعم الفني."
+                        ]
+                    ]
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'assignment_file' => ['لم يتم رفع أي ملف. تأكد من اختيار ملف للرفع.']
+                ]
+            ], 422);
+        }
 
         // التحقق المبكر من وجود الملف
         if (!$request->hasFile('assignment_file')) {
             \Log::warning('Assignment upload failed: No file provided', [
                 'user_id' => Auth::id(),
                 'meeting_id' => $request->meeting_id,
+                '_files' => $_FILES,
             ]);
 
             return response()->json([
@@ -127,8 +192,7 @@ class AssignmentController extends Controller
 
         $file = $request->file('assignment_file');
         
-        // التحقق من إعدادات PHP
-        $phpSettings = $this->checkPhpUploadSettings();
+        // التحقق من حجم الملف
         $maxAllowedBytes = $phpSettings['max_allowed_bytes'];
         $fileSize = $file->getSize();
         

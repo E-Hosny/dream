@@ -90,6 +90,7 @@
                                         <option value="draft">{{ t('draft') }}</option>
                                         <option value="published">{{ t('published') }}</option>
                                         <option value="archived">{{ t('archived') }}</option>
+                                        <option value="completed">{{ t('completed') }}</option>
                                     </select>
                                     <InputError :message="form.errors.status" class="mt-2" />
                                 </div>
@@ -501,6 +502,7 @@ const t = (key) => {
             draft: 'Draft',
             published: 'Published',
             archived: 'Archived',
+            completed: 'Completed',
             // Level translations
             beginner: 'Beginner',
             intermediate: 'Intermediate',
@@ -558,6 +560,7 @@ const t = (key) => {
             draft: 'مسودة',
             published: 'منشور',
             archived: 'مؤرشف',
+            completed: 'مكتمل',
             // Level translations
             beginner: 'مبتدئ',
             intermediate: 'متوسط',
