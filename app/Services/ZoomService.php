@@ -103,7 +103,7 @@ class ZoomService
                     'use_pmi' => false,
                     'approval_type' => 0,
                     'audio' => 'both',
-                    'auto_recording' => 'none'
+                    'auto_recording' => 'cloud'
                 ]
             ]);
 
@@ -149,7 +149,8 @@ class ZoomService
                     'host_video' => true,
                     'participant_video' => true,
                     'join_before_host' => true,
-                    'mute_upon_entry' => false
+                    'mute_upon_entry' => false,
+                    'auto_recording' => 'cloud'
                 ]
             ]);
 
