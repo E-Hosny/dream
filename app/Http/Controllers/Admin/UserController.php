@@ -51,12 +51,19 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name']
+            'role' => ['required', 'string', 'exists:roles,name'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'specialty' => ['nullable', 'string', 'max:255'],
+            'grade_level' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $role = strtolower($validated['role']);
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone' => $this->nullableString($validated['phone'] ?? null),
+            'specialty' => $role === 'teacher' ? $this->nullableString($validated['specialty'] ?? null) : null,
+            'grade_level' => $role === 'student' ? $this->nullableString($validated['grade_level'] ?? null) : null,
             'password' => Hash::make($validated['password']),
         ]);
 
@@ -87,16 +94,30 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        if (! $request->filled('password')) {
+            $request->merge([
+                'password' => null,
+                'password_confirmation' => null,
+            ]);
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'string', 'exists:roles,name']
+            'role' => ['required', 'string', 'exists:roles,name'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'specialty' => ['nullable', 'string', 'max:255'],
+            'grade_level' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $role = strtolower($validated['role']);
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'phone' => $this->nullableString($validated['phone'] ?? null),
+            'specialty' => $role === 'teacher' ? $this->nullableString($validated['specialty'] ?? null) : null,
+            'grade_level' => $role === 'student' ? $this->nullableString($validated['grade_level'] ?? null) : null,
         ];
 
         if (!empty($validated['password'])) {
@@ -239,5 +260,12 @@ class UserController extends Controller
                 'message' => 'حدث خطأ أثناء إلغاء ربط الحساب'
             ], 500);
         }
+    }
+
+    private function nullableString(?string $value): ?string
+    {
+        $trimmed = $value !== null ? trim($value) : '';
+
+        return $trimmed === '' ? null : $trimmed;
     }
 }

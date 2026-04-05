@@ -36,8 +36,10 @@ const t = (key) => {
             name: 'Name',
             email: 'Email',
             role: 'Role',
+            specialty_or_grade: 'Specialty / Grade',
             created_at: 'Created At',
             actions: 'Actions',
+            empty_cell: '—',
             edit: 'Edit',
             delete: 'Delete',
             view: 'View',
@@ -54,8 +56,10 @@ const t = (key) => {
             name: 'الاسم',
             email: 'البريد الإلكتروني',
             role: 'الدور',
+            specialty_or_grade: 'التخصص / الصف',
             created_at: 'تاريخ الإنشاء',
             actions: 'الإجراءات',
+            empty_cell: '—',
             edit: 'تعديل',
             delete: 'حذف',
             view: 'عرض',
@@ -72,6 +76,26 @@ const deleteUser = (user) => {
         router.delete(route('admin.users.destroy', user.id));
     }
 };
+
+const primaryRoleLower = (user) => {
+    const name = user.roles?.[0]?.name;
+    return String(name ?? '').toLowerCase().trim();
+};
+
+/** للمعلم: التخصص | للطالب: الصف | غير ذلك: فارغ */
+const roleProfileCell = (user) => {
+    const r = primaryRoleLower(user);
+    if (r === 'teacher') {
+        const v = String(user.specialty ?? '').trim();
+        return v || null;
+    }
+    if (r === 'student') {
+        const v = String(user.grade_level ?? '').trim();
+        return v || null;
+    }
+    return null;
+};
+
 </script>
 
 <template>
@@ -139,6 +163,9 @@ const deleteUser = (user) => {
                                 {{ t('role') }}
                             </th>
                             <th class="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {{ t('specialty_or_grade') }}
+                            </th>
+                            <th class="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 {{ t('created_at') }}
                             </th>
                             <th class="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -171,6 +198,11 @@ const deleteUser = (user) => {
                                     'bg-blue-100 text-blue-800'
                                 ]">
                                     {{ role.name }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm max-w-xs break-words">
+                                <span :class="roleProfileCell(user) ? 'text-gray-800' : 'text-gray-400'">
+                                    {{ roleProfileCell(user) ?? t('empty_cell') }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

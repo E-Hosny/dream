@@ -1,22 +1,64 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 
-defineProps({
-    roles: Array
+const props = defineProps({
+    roles: { type: Array, default: () => [] }
 });
 
 const form = useForm({
     name: '',
     email: '',
+    phone: '',
     password: '',
     password_confirmation: '',
-    role: 'student'
+    role: 'student',
+    specialty: '',
+    grade_level: ''
 });
+
+// إن لم تطابق form.role أي :value في الخيارات (اختلاف حالة الأحرف أو اسم غير موجود) يبقى الـ select فارغاً في المتصفح
+watch(
+    () => props.roles,
+    (list) => {
+        if (!list?.length) {
+            return;
+        }
+        const names = list.map((r) => String(r.name));
+        const cur = String(form.role ?? '');
+        const exact = names.find((n) => n === cur);
+        if (exact !== undefined) {
+            return;
+        }
+        const ci = names.find((n) => n.toLowerCase() === cur.toLowerCase());
+        if (ci !== undefined) {
+            form.role = ci;
+            return;
+        }
+        const student = names.find((n) => n.toLowerCase() === 'student');
+        form.role = student ?? names[0];
+    },
+    { immediate: true, deep: true }
+);
+
+/** مقارنة الدور بدون حساسية لحالة الأحرف (تفادي اختلاف التخزين في DB مثل Student) */
+const normalizedRole = computed(() => String(form.role ?? '').toLowerCase().trim());
+
+const isTeacher = computed(() => normalizedRole.value === 'teacher');
+const isStudent = computed(() => normalizedRole.value === 'student');
+
+const roleDisplayName = (name) => {
+    const n = String(name ?? '').toLowerCase().trim();
+    const ar = currentLocale.value === 'ar';
+    if (n === 'admin') return ar ? 'مدير' : 'Admin';
+    if (n === 'teacher') return ar ? 'معلم' : 'Teacher';
+    if (n === 'student') return ar ? 'طالب' : 'Student';
+    return String(name ?? '');
+};
 
 // Translation helper
 const t = (key) => {
@@ -34,7 +76,14 @@ const t = (key) => {
             name_placeholder: 'Enter full name',
             email_placeholder: 'Enter email address',
             password_placeholder: 'Enter password',
-            confirm_password_placeholder: 'Confirm password'
+            confirm_password_placeholder: 'Confirm password',
+            phone: 'Mobile number',
+            phone_placeholder: 'Optional',
+            specialty: 'Specialty',
+            specialty_placeholder: 'Optional',
+            grade_level: 'Grade / class',
+            grade_level_placeholder: 'Optional',
+            optional: 'Optional'
         },
         ar: {
             create_user: 'إنشاء مستخدم جديد',
@@ -49,7 +98,14 @@ const t = (key) => {
             name_placeholder: 'أدخل الاسم الكامل',
             email_placeholder: 'أدخل البريد الإلكتروني',
             password_placeholder: 'أدخل كلمة المرور',
-            confirm_password_placeholder: 'أكد كلمة المرور'
+            confirm_password_placeholder: 'أكد كلمة المرور',
+            phone: 'رقم الجوال',
+            phone_placeholder: 'اختياري',
+            specialty: 'التخصص',
+            specialty_placeholder: 'اختياري',
+            grade_level: 'الصف الدراسي',
+            grade_level_placeholder: 'اختياري',
+            optional: 'اختياري'
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -79,7 +135,7 @@ const submit = () => {
         </div>
 
         <!-- Create Form -->
-        <div class="bg-white rounded-2xl shadow-xl border-0 overflow-hidden backdrop-blur-sm bg-white/95">
+        <div class="bg-white rounded-2xl shadow-xl border-0 overflow-visible backdrop-blur-sm bg-white/95">
             <div class="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-6">
                 <h2 class="text-xl font-semibold text-white">{{ currentLocale === 'ar' ? 'بيانات المستخدم الجديد' : 'New User Information' }}</h2>
                 <p class="text-indigo-100 mt-1">{{ currentLocale === 'ar' ? 'أدخل جميع البيانات المطلوبة بعناية' : 'Please fill in all required information carefully' }}</p>
@@ -143,6 +199,24 @@ const submit = () => {
                     </div>
                 </div>
 
+                <!-- Phone (optional) -->
+                <div class="group">
+                    <label for="phone" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-indigo-600">
+                        {{ t('phone') }}
+                        <span class="text-gray-400 font-normal text-xs mr-1 rtl:mr-0 rtl:ml-1">({{ t('optional') }})</span>
+                    </label>
+                    <input
+                        id="phone"
+                        v-model="form.phone"
+                        type="text"
+                        autocomplete="tel"
+                        :placeholder="t('phone_placeholder')"
+                        class="w-full px-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                        :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.phone }"
+                    >
+                    <div v-if="form.errors.phone" class="mt-2 text-sm text-red-600">{{ form.errors.phone }}</div>
+                </div>
+
                 <!-- Password Fields Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <!-- Password Field -->
@@ -204,42 +278,66 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Role Field -->
+                <!-- Role Field: بدون أيقونات فوق الـ select (تسبب إخفاء النص في RTL/Chrome) -->
                 <div class="group">
                     <label for="role" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-indigo-600">
                         {{ t('role') }}
                     </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-4 rtl:pl-0 rtl:pr-4 pointer-events-none z-10">
-                            <svg class="w-5 h-5 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            </svg>
-                        </div>
-                        <select
-                            id="role"
-                            v-model="form.role"
-                            class="w-full pl-12 rtl:pl-4 rtl:pr-12 pr-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg appearance-none"
-                            :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.role }"
-                            required
-                        >
-                            <option v-for="role in roles" :key="role.id" :value="role.name">
-                                {{ role.name === 'admin' ? (currentLocale === 'ar' ? 'مدير' : 'Admin') :
-                                   role.name === 'teacher' ? (currentLocale === 'ar' ? 'معلم' : 'Teacher') :
-                                   (currentLocale === 'ar' ? 'طالب' : 'Student') }}
-                            </option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 flex items-center pr-4 rtl:pr-0 rtl:pl-4 pointer-events-none">
-                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                    </div>
+                    <select
+                        id="role"
+                        v-model="form.role"
+                        :dir="currentLocale === 'ar' ? 'rtl' : 'ltr'"
+                        required
+                        class="block w-full min-h-[3.25rem] px-4 py-3 text-base leading-normal text-gray-900 bg-white border border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 [color-scheme:light]"
+                        :class="{ 'ring-2 ring-red-500 border-red-300': form.errors.role }"
+                    >
+                        <option v-if="!roles.length" value="" disabled>
+                            {{ currentLocale === 'ar' ? 'لا توجد أدوار في النظام' : 'No roles available' }}
+                        </option>
+                        <option v-for="role in roles" :key="role.id" :value="role.name">
+                            {{ roleDisplayName(role.name) }}
+                        </option>
+                    </select>
                     <div v-if="form.errors.role" class="mt-2 flex items-center text-sm text-red-600">
                         <svg class="w-4 h-4 mr-1 rtl:mr-0 rtl:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                         {{ form.errors.role }}
                     </div>
+                </div>
+
+                <!-- Teacher: specialty (optional) -->
+                <div v-if="isTeacher" class="group">
+                    <label for="specialty" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-indigo-600">
+                        {{ t('specialty') }}
+                        <span class="text-gray-400 font-normal text-xs mr-1 rtl:mr-0 rtl:ml-1">({{ t('optional') }})</span>
+                    </label>
+                    <input
+                        id="specialty"
+                        v-model="form.specialty"
+                        type="text"
+                        :placeholder="t('specialty_placeholder')"
+                        class="w-full px-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                        :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.specialty }"
+                    >
+                    <div v-if="form.errors.specialty" class="mt-2 text-sm text-red-600">{{ form.errors.specialty }}</div>
+                </div>
+
+                <!-- Student: grade level (optional) -->
+                <div v-if="isStudent" class="group">
+                    <label for="grade_level" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-indigo-600">
+                        {{ t('grade_level') }}
+                        <span class="text-gray-400 font-normal text-xs mr-1 rtl:mr-0 rtl:ml-1">({{ t('optional') }})</span>
+                    </label>
+                    <input
+                        id="grade_level"
+                        v-model="form.grade_level"
+                        type="text"
+                        :placeholder="t('grade_level_placeholder')"
+                        class="w-full px-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                        :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.grade_level }"
+                    >
+                    <div v-if="form.errors.grade_level" class="mt-2 text-sm text-red-600">{{ form.errors.grade_level }}</div>
                 </div>
 
                 <!-- Action Buttons -->
