@@ -17,6 +17,8 @@ Route::get("/language/{locale}", [LanguageController::class, "change"])
     ->where("locale", "[a-z]{2}");
 
 Route::middleware(['auth', 'role.redirect'])->group(function () {
+    Route::get('/announcements/{announcement}/image', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'image'])->name('announcements.image');
+
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
@@ -54,6 +56,9 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::get('/settings', function () {
             return Inertia::render('Admin/Settings/Index');
         })->name('settings.index');
+        Route::get('/settings/general-messages', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'index'])->name('settings.general-messages.index');
+        Route::post('/settings/general-messages', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'store'])->name('settings.general-messages.store');
+        Route::delete('/settings/general-messages/{announcement}', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'destroy'])->name('settings.general-messages.destroy');
 
         // Zoom Meetings Management
         Route::resource('zoom-meetings', \App\Http\Controllers\ZoomMeetingController::class);

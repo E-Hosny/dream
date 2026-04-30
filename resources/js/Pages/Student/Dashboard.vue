@@ -197,7 +197,8 @@ const t = (key) => {
             meeting_password: 'Password',
             refresh_page: 'Refresh',
             join_meeting_now: 'Join Meeting',
-            meeting_available: 'Meeting Available'
+            meeting_available: 'Meeting Available',
+            important_announcement: 'Important Announcement'
         },
         ar: {
             student_dashboard: 'لوحة تحكم الطالب',
@@ -223,7 +224,8 @@ const t = (key) => {
             meeting_password: 'كلمة المرور',
             refresh_page: 'تحديث',
             join_meeting_now: 'انضم للاجتماع',
-            meeting_available: 'اجتماع متاح'
+            meeting_available: 'اجتماع متاح',
+            important_announcement: 'تنبيه مهم'
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -342,6 +344,19 @@ const getStatusText = (status) => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Active Announcement -->
+                    <div v-if="enrollment.active_announcement" class="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-sm font-semibold text-yellow-900">
+                            {{ t('important_announcement') }}: {{ enrollment.active_announcement.title }}
+                        </p>
+                        <p class="text-sm text-yellow-800 mt-1">{{ enrollment.active_announcement.message }}</p>
+                        <img
+                            v-if="enrollment.active_announcement.image_url"
+                            :src="enrollment.active_announcement.image_url"
+                            class="mt-3 w-full max-h-72 object-contain rounded-md border border-yellow-100 bg-white p-2"
+                        >
                     </div>
 
                     <!-- Course Schedule -->

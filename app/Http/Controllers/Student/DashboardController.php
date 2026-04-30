@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ZoomMeeting;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\CourseAnnouncement;
 use App\Models\MeetingAttendance;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -27,6 +29,10 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($enrollment) {
                 $nextSchedule = $enrollment->course->next_schedule;
+                $activeAnnouncement = CourseAnnouncement::where('course_id', $enrollment->course->id)
+                    ->currentlyVisible()
+                    ->orderByDesc('starts_at')
+                    ->first();
                 
                 return [
                     'id' => $enrollment->id,
@@ -55,6 +61,11 @@ class DashboardController extends Controller
                     ] : null,
                     'course_id' => $enrollment->course->id,
                     'hasActiveMeeting' => $this->hasActiveMeeting($enrollment->course->id),
+                    'active_announcement' => $activeAnnouncement ? [
+                        'title' => $activeAnnouncement->title,
+                        'message' => $activeAnnouncement->message,
+                        'image_url' => $activeAnnouncement->image_path ? route('announcements.image', $activeAnnouncement->id) : null,
+                    ] : null,
                     'course' => [
                         'title' => $enrollment->course->title_ar,
                         'titleEn' => $enrollment->course->title,
@@ -399,11 +410,23 @@ class DashboardController extends Controller
             ->first();
             
         $nextSchedule = $course->next_schedule;
+        $activeAnnouncement = CourseAnnouncement::where('course_id', $course->id)
+            ->currentlyVisible()
+            ->orderByDesc('starts_at')
+            ->first();
         
         $courseData = [
             'id' => $course->id,
             'title' => $course->title_ar,
             'titleEn' => $course->title,
+            'studentMessage' => $course->student_message,
+            'activeAnnouncement' => $activeAnnouncement ? [
+                'title' => $activeAnnouncement->title,
+                'message' => $activeAnnouncement->message,
+                'image_url' => $activeAnnouncement->image_path ? route('announcements.image', $activeAnnouncement->id) : null,
+                'starts_at' => $activeAnnouncement->starts_at?->format('Y-m-d H:i:s'),
+                'ends_at' => $activeAnnouncement->ends_at?->format('Y-m-d H:i:s'),
+            ] : null,
             'activeMeeting' => $activeMeeting ? [
                 'id' => $activeMeeting->id,
                 'topic' => $activeMeeting->topic,

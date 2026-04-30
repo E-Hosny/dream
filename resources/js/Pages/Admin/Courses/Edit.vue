@@ -206,6 +206,18 @@
                                     ></textarea>
                                     <InputError :message="form.errors.description_ar" class="mt-2" />
                                 </div>
+                                
+                                <div class="md:col-span-2">
+                                    <InputLabel :value="t('student_message')" for="student_message" />
+                                    <textarea
+                                        id="student_message"
+                                        v-model="form.student_message"
+                                        rows="3"
+                                        class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-blue-500 dark:focus:border-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600 rounded-md shadow-sm"
+                                        :placeholder="t('student_message_placeholder')"
+                                    ></textarea>
+                                    <InputError :message="form.errors.student_message" class="mt-2" />
+                                </div>
                             </div>
                         </div>
 
@@ -398,6 +410,7 @@ const form = useForm({
     title_ar: props.course.title_ar || '',
     description: props.course.description || '',
     description_ar: props.course.description_ar || '',
+    student_message: props.course.student_message || '',
     price: props.course.price || 0,
     duration_hours: props.course.duration_hours || 1,
     level: props.course.level || 'beginner',
@@ -475,6 +488,8 @@ const t = (key) => {
             end_date: 'End Date',
             description: 'Description (English)',
             description_ar: 'Description (Arabic)',
+            student_message: 'Student Message',
+            student_message_placeholder: 'This message appears next to the join meeting button for students.',
             requirements_and_outcomes: 'Requirements and Learning Outcomes',
             requirements: 'Requirements',
             learning_outcomes: 'Learning Outcomes',
@@ -533,6 +548,8 @@ const t = (key) => {
             end_date: 'تاريخ الانتهاء',
             description: 'الوصف (إنجليزي)',
             description_ar: 'الوصف (عربي)',
+            student_message: 'رسالة للطلاب',
+            student_message_placeholder: 'تظهر هذه الرسالة بجوار زر دخول الاجتماع للطالب.',
             requirements_and_outcomes: 'المتطلبات والنتائج التعليمية',
             requirements: 'المتطلبات',
             learning_outcomes: 'النتائج التعليمية',

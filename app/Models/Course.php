@@ -25,6 +25,7 @@ class Course extends Model
         'end_date',
         'requirements',
         'learning_outcomes',
+        'student_message',
     ];
 
     protected $casts = [

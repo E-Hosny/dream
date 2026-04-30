@@ -15,6 +15,7 @@ const form = useForm({
     title_ar: '',
     description: '',
     description_ar: '',
+    student_message: '',
     price: 0,
     duration_hours: 1,
     level: 'beginner',
@@ -48,6 +49,8 @@ const t = (key) => {
             title_ar: 'Course Title (Arabic)',
             description: 'Description (English)',
             description_ar: 'Description (Arabic)',
+            student_message: 'Student Message',
+            student_message_help: 'This message appears next to the join meeting button for students.',
             instructor: 'Instructor',
             price: 'Price',
             duration: 'Duration (Hours)',
@@ -93,6 +96,8 @@ const t = (key) => {
             title_ar: 'عنوان الكورس (عربي)',
             description: 'الوصف (إنجليزي)',
             description_ar: 'الوصف (عربي)',
+            student_message: 'رسالة للطلاب',
+            student_message_help: 'تظهر هذه الرسالة بجوار زر دخول الاجتماع للطالب.',
             instructor: 'المدرس',
             price: 'السعر',
             duration: 'المدة (ساعات)',
@@ -334,6 +339,28 @@ const submit = () => {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 {{ form.errors.description_ar }}
+                            </div>
+                        </div>
+
+                        <!-- Student Message -->
+                        <div class="md:col-span-2 group">
+                            <label for="student_message" class="block text-sm font-bold text-gray-800 mb-3 transition-colors group-focus-within:text-emerald-600">
+                                {{ t('student_message') }} <span class="text-gray-500 text-sm">({{ t('optional') }})</span>
+                            </label>
+                            <textarea
+                                id="student_message"
+                                v-model="form.student_message"
+                                rows="3"
+                                class="w-full px-4 py-4 text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg resize-none"
+                                :class="{ 'border-red-500 ring-red-100': form.errors.student_message }"
+                                :placeholder="t('student_message_help')"
+                            ></textarea>
+                            <p class="mt-2 text-xs text-gray-500">{{ t('student_message_help') }}</p>
+                            <div v-if="form.errors.student_message" class="mt-3 flex items-center text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                {{ form.errors.student_message }}
                             </div>
                         </div>
 
