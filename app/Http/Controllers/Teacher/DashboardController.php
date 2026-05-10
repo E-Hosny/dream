@@ -72,9 +72,10 @@ class DashboardController extends Controller
                         ];
                     }),
                     'nextSchedule' => $nextSchedule ? [
+                        'id' => $nextSchedule->id,
                         'day' => $nextSchedule->localized_day_name,
                         'time' => $nextSchedule->start_time->format('H:i'),
-                        'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans()
+                        'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans(),
                     ] : null,
                     'activeMeeting' => $activeMeeting ? [
                         'id' => $activeMeeting->id,
