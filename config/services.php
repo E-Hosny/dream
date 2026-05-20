@@ -48,4 +48,10 @@ return [
         'client_secret' => env('ZOOM_CLIENT_SECRET'),
     ],
 
+    'moyasar' => [
+        'secret_key' => env('MOYASAR_SECRET_KEY'),
+        'currency' => env('MOYASAR_CURRENCY', 'SAR'),
+        'webhook_secret' => env('MOYASAR_WEBHOOK_SECRET'),
+    ],
+
 ];

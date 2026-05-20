@@ -16,6 +16,10 @@ Route::get("/language/{locale}", [LanguageController::class, "change"])
     ->name("language.change")
     ->where("locale", "[a-z]{2}");
 
+// Moyasar webhook (no auth, no CSRF)
+Route::post('/webhooks/moyasar', [\App\Http\Controllers\MoyasarWebhookController::class, 'handle'])
+    ->name('moyasar.webhook');
+
 Route::middleware(['auth', 'role.redirect'])->group(function () {
     Route::get('/announcements/{announcement}/image', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'image'])->name('announcements.image');
 
@@ -48,6 +52,12 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         // Enrollments management
         Route::resource('enrollments', App\Http\Controllers\Admin\EnrollmentController::class);
         Route::post('/enrollments/bulk', [App\Http\Controllers\Admin\EnrollmentController::class, 'bulkEnroll'])->name('enrollments.bulk');
+
+        // Payments management
+        Route::resource('payments', App\Http\Controllers\Admin\PaymentController::class)->only(['index', 'create', 'store']);
+
+        Route::get('/api/courses/{course}/enrolled-students', [App\Http\Controllers\Admin\PaymentController::class, 'enrolledStudents'])
+            ->name('api.courses.enrolled-students');
         
         Route::get('/reports', function () {
             return Inertia::render('Admin/Reports/Index');
@@ -176,6 +186,8 @@ Route::middleware(['auth'])->group(function () {
     // Student Routes
     Route::prefix('student')->name('student.')->middleware(['auth', 'role:student'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/payments/success', [\App\Http\Controllers\Student\PaymentController::class, 'success'])
+            ->name('payments.success');
         Route::get('/active-meetings', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetings'])->name('active-meetings');
         Route::get('/courses/{course}/active-meeting-status', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingStatus'])->name('active-meeting-status');
         Route::get('/courses/{course}/active-meeting', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingForCourse'])->name('active-meeting');

@@ -11,28 +11,40 @@ use App\Models\ZoomMeeting;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\CourseAnnouncement;
+use App\Models\CoursePayment;
 use App\Models\MeetingAttendance;
+use App\Services\CoursePaymentSyncService;
 use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(CoursePaymentSyncService $paymentSync)
     {
         $user = Auth::user();
+
+        // مزامنة حالة الفواتير غير المدفوعة من Moyasar (يعالج حالات عدم وصول webhook)
+        $paymentSync->syncStudentUnpaidPayments($user->id);
         
         // جلب الكورسات المسجلة للطالب مع معلومات الكورس والمدرب
+        $pendingPayments = CoursePayment::where('student_id', $user->id)
+            ->unpaid()
+            ->get()
+            ->keyBy('course_id');
+
         $enrollments = CourseEnrollment::with(['course.instructor', 'course.schedules'])
             ->where('student_id', $user->id)
             ->whereHas('course', function($query) {
                 $query->where('status', '!=', 'completed');
             })
             ->get()
-            ->map(function ($enrollment) {
+            ->map(function ($enrollment) use ($pendingPayments) {
                 $nextSchedule = $enrollment->course->next_schedule;
                 $activeAnnouncement = CourseAnnouncement::where('course_id', $enrollment->course->id)
                     ->currentlyVisible()
                     ->orderByDesc('starts_at')
                     ->first();
+
+                $pendingPayment = $pendingPayments->get($enrollment->course->id);
                 
                 return [
                     'id' => $enrollment->id,
@@ -70,7 +82,12 @@ class DashboardController extends Controller
                         'title' => $enrollment->course->title_ar,
                         'titleEn' => $enrollment->course->title,
                         'instructor' => $enrollment->course->instructor->name,
-                    ]
+                    ],
+                    'pending_payment' => $pendingPayment ? [
+                        'amount_format' => $pendingPayment->amount_format,
+                        'payment_url' => $pendingPayment->moyasar_invoice_url,
+                        'description' => $pendingPayment->description,
+                    ] : null,
                 ];
             });
 

@@ -198,7 +198,10 @@ const t = (key) => {
             refresh_page: 'Refresh',
             join_meeting_now: 'Join Meeting',
             meeting_available: 'Meeting Available',
-            important_announcement: 'Important Announcement'
+            important_announcement: 'Important Announcement',
+            payment_due: 'Payment Due',
+            pay_now: 'Pay Now',
+            payment_amount: 'Amount due'
         },
         ar: {
             student_dashboard: 'لوحة تحكم الطالب',
@@ -225,7 +228,10 @@ const t = (key) => {
             refresh_page: 'تحديث',
             join_meeting_now: 'انضم للاجتماع',
             meeting_available: 'اجتماع متاح',
-            important_announcement: 'تنبيه مهم'
+            important_announcement: 'تنبيه مهم',
+            payment_due: 'مبلغ مستحق',
+            pay_now: 'ادفع الآن',
+            payment_amount: 'المبلغ المستحق'
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -253,6 +259,10 @@ const getStatusText = (status) => {
     <Head :title="t('student_dashboard')" />
 
     <StudentLayout>
+        <div v-if="$page.props.flash?.success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+            {{ $page.props.flash.success }}
+        </div>
+
         <!-- Page Header -->
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -366,6 +376,38 @@ const getStatusText = (status) => {
                                     {{ t('join_meeting_now') }}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Payment -->
+                    <div v-if="enrollment.pending_payment" class="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-300">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                                <svg class="h-6 w-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-semibold text-amber-900">
+                                        {{ t('payment_due') }}
+                                    </p>
+                                    <p class="text-sm text-amber-800 mt-1">
+                                        {{ t('payment_amount') }}: <span class="font-bold">{{ enrollment.pending_payment.amount_format }}</span>
+                                    </p>
+                                    <p v-if="enrollment.pending_payment.description" class="text-xs text-amber-700 mt-1">
+                                        {{ enrollment.pending_payment.description }}
+                                    </p>
+                                </div>
+                            </div>
+                            <a
+                                :href="enrollment.pending_payment.payment_url"
+                                target="_blank"
+                                class="px-6 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium shadow-md hover:shadow-lg inline-flex items-center justify-center shrink-0"
+                            >
+                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                                {{ t('pay_now') }}
+                            </a>
                         </div>
                     </div>
 
