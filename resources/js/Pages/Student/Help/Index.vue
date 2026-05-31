@@ -49,8 +49,8 @@ const t = (key) => {
 };
 
 // Contact information
-const whatsappNumber = '966542327025';
-const phoneNumber = '966542327025';
+const whatsappNumber = '966554966258';
+const phoneNumber = '966554966258';
 const emailAddress = 'inskola.academy@gmail.com';
 
 // WhatsApp link
