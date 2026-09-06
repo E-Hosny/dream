@@ -21,6 +21,9 @@ class ZoomMeeting extends Model
         'actual_start_time',
         'actual_end_time',
         'duration',
+        'session_price',
+        'is_paid',
+        'due_notice',
         'join_url',
         'start_url',
         'password',
@@ -37,6 +40,9 @@ class ZoomMeeting extends Model
         'start_time' => 'datetime',
         'actual_start_time' => 'datetime',
         'actual_end_time' => 'datetime',
+        'session_price' => 'decimal:2',
+        'is_paid' => 'boolean',
+        'due_notice' => 'boolean',
         'settings' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
@@ -182,6 +188,151 @@ class ZoomMeeting extends Model
     /**
      * تنظيف الاجتماعات القديمة
      */
+    /**
+     * ملخص المستحقات الظاهرة للطالب من الحصص المحددة بإشعار الاستحقاق.
+     */
+    public static function dueNoticeSummary(int $courseId, float $defaultSessionPrice = 0): ?array
+    {
+        $meetings = static::query()
+            ->where('course_id', $courseId)
+            ->where('due_notice', true)
+            ->where('is_paid', false)
+            ->get();
+
+        if ($meetings->isEmpty()) {
+            return null;
+        }
+
+        $sessionsCount = $meetings->count();
+        $amount = $meetings->sum(function (self $meeting) use ($defaultSessionPrice) {
+            return (float) ($meeting->session_price ?? $defaultSessionPrice);
+        });
+
+        return [
+            'sessions_count' => $sessionsCount,
+            'amount' => round($amount, 2),
+            'amount_format' => number_format($amount, 2) . ' ر.س',
+            'message_ar' => sprintf(
+                'لديك مبلغ مستحق بقيمة %s لعدد %d حصة.',
+                number_format($amount, 2) . ' ر.س',
+                $sessionsCount
+            ),
+            'message_en' => sprintf(
+                'You have an outstanding amount of %s for %d session(s).',
+                number_format($amount, 2) . ' SAR',
+                $sessionsCount
+            ),
+        ];
+    }
+
+    /**
+     * إحصائيات الحصص والدفع لشهر معيّن (YYYY-MM).
+     *
+     * @param  array<int>|null  $courseIds
+     */
+    public static function monthlyPaymentStats(?string $month = null, ?array $courseIds = null): array
+    {
+        $month = $month && preg_match('/^\d{4}-\d{2}$/', $month)
+            ? $month
+            : now('Asia/Riyadh')->format('Y-m');
+
+        $start = Carbon::createFromFormat('Y-m', $month, 'Asia/Riyadh')->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        $query = static::query()
+            ->with('course:id,price')
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('actual_start_time', [$start, $end])
+                    ->orWhere(function ($inner) use ($start, $end) {
+                        $inner->whereNull('actual_start_time')
+                            ->whereBetween('start_time', [$start, $end]);
+                    });
+            })
+            ->where('status', '!=', 'cancelled');
+
+        if ($courseIds !== null) {
+            if (empty($courseIds)) {
+                return self::emptyMonthlyStats($month, $start);
+            }
+            $query->whereIn('course_id', $courseIds);
+        }
+
+        $meetings = $query->get();
+
+        $totalCount = $meetings->count();
+        $paidMeetings = $meetings->where('is_paid', true);
+        $unpaidMeetings = $meetings->where('is_paid', false);
+
+        $priceOf = function (self $meeting): float {
+            return (float) ($meeting->session_price ?? $meeting->course?->price ?? 0);
+        };
+
+        $paidAmount = $paidMeetings->sum($priceOf);
+        $unpaidAmount = $unpaidMeetings->sum($priceOf);
+        $totalAmount = $paidAmount + $unpaidAmount;
+        $dueNoticeCount = $meetings->where('due_notice', true)->where('is_paid', false)->count();
+
+        $monthOptionsQuery = static::query()->where('status', '!=', 'cancelled');
+        if ($courseIds !== null) {
+            $monthOptionsQuery->whereIn('course_id', $courseIds);
+        }
+
+        $monthOptions = $monthOptionsQuery
+            ->get(['actual_start_time', 'start_time'])
+            ->map(function (self $meeting) {
+                $date = $meeting->actual_start_time ?? $meeting->start_time;
+                return $date ? $date->timezone('Asia/Riyadh')->format('Y-m') : null;
+            })
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
+        if (!in_array($month, $monthOptions, true)) {
+            array_unshift($monthOptions, $month);
+            $monthOptions = array_values(array_unique($monthOptions));
+            rsort($monthOptions);
+        }
+
+        return [
+            'month' => $month,
+            'month_label_ar' => $start->locale('ar')->translatedFormat('F Y'),
+            'month_label_en' => $start->locale('en')->translatedFormat('F Y'),
+            'total_sessions' => $totalCount,
+            'paid_sessions' => $paidMeetings->count(),
+            'unpaid_sessions' => $unpaidMeetings->count(),
+            'paid_amount' => round($paidAmount, 2),
+            'unpaid_amount' => round($unpaidAmount, 2),
+            'total_amount' => round($totalAmount, 2),
+            'paid_amount_format' => number_format($paidAmount, 2) . ' ر.س',
+            'unpaid_amount_format' => number_format($unpaidAmount, 2) . ' ر.س',
+            'total_amount_format' => number_format($totalAmount, 2) . ' ر.س',
+            'due_notice_sessions' => $dueNoticeCount,
+            'month_options' => $monthOptions,
+        ];
+    }
+
+    private static function emptyMonthlyStats(string $month, Carbon $start): array
+    {
+        return [
+            'month' => $month,
+            'month_label_ar' => $start->locale('ar')->translatedFormat('F Y'),
+            'month_label_en' => $start->locale('en')->translatedFormat('F Y'),
+            'total_sessions' => 0,
+            'paid_sessions' => 0,
+            'unpaid_sessions' => 0,
+            'paid_amount' => 0,
+            'unpaid_amount' => 0,
+            'total_amount' => 0,
+            'paid_amount_format' => '0.00 ر.س',
+            'unpaid_amount_format' => '0.00 ر.س',
+            'total_amount_format' => '0.00 ر.س',
+            'due_notice_sessions' => 0,
+            'month_options' => [$month],
+        ];
+    }
+
     public static function cleanupOldMeetings()
     {
         return static::where('status', 'started')

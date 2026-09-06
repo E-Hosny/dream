@@ -6,25 +6,46 @@ import { computed, ref } from 'vue';
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 
-defineProps({
+const props = defineProps({
     courses: Object,
-    filters: Object
+    filters: Object,
+    sessionStats: Object,
 });
 
 const searchForm = ref({
-    search: '',
-    status: '',
-    level: ''
+    search: props.filters?.search || '',
+    status: props.filters?.status || '',
+    level: props.filters?.level || '',
+    stats_month: props.sessionStats?.month || props.filters?.stats_month || '',
 });
 
 const search = () => {
-    router.get(route('admin.courses.index'), searchForm.value, {
+    router.get(route('admin.courses.index'), {
+        search: searchForm.value.search || undefined,
+        status: searchForm.value.status || undefined,
+        level: searchForm.value.level || undefined,
+        stats_month: searchForm.value.stats_month || undefined,
+    }, {
         preserveState: true,
-        replace: true
+        replace: true,
+        preserveScroll: true,
     });
 };
 
-// Translation helper
+const changeStatsMonth = () => {
+    search();
+};
+
+const formatMonthOption = (monthKey) => {
+    if (!monthKey) return '';
+    const [year, month] = monthKey.split('-');
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', {
+        year: 'numeric',
+        month: 'long',
+    });
+};
+
 const t = (key) => {
     const translations = {
         en: {
@@ -54,7 +75,16 @@ const t = (key) => {
             completed: 'Completed',
             beginner: 'Beginner',
             intermediate: 'Intermediate',
-            advanced: 'Advanced'
+            advanced: 'Advanced',
+            month_stats: 'Monthly sessions summary',
+            filter_by_month: 'Month',
+            total_sessions: 'Sessions taken',
+            paid_sessions: 'Paid sessions',
+            unpaid_sessions: 'Unpaid sessions',
+            paid_value: 'Paid value',
+            unpaid_value: 'Unpaid value',
+            total_value: 'Total value',
+            due_notice_sessions: 'Notified due sessions',
         },
         ar: {
             courses_management: 'إدارة الكورسات',
@@ -83,7 +113,16 @@ const t = (key) => {
             completed: 'مكتمل',
             beginner: 'مبتدئ',
             intermediate: 'متوسط',
-            advanced: 'متقدم'
+            advanced: 'متقدم',
+            month_stats: 'ملخص حصص الشهر',
+            filter_by_month: 'الشهر',
+            total_sessions: 'حصص تم أخذها',
+            paid_sessions: 'حصص مدفوعة',
+            unpaid_sessions: 'حصص غير مدفوعة',
+            paid_value: 'قيمة المدفوع',
+            unpaid_value: 'قيمة غير المدفوع',
+            total_value: 'الإجمالي',
+            due_notice_sessions: 'حصص بإشعار مستحق',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -119,7 +158,6 @@ const getLevelColor = (level) => {
     <Head :title="t('courses_management')" />
 
     <AdminLayout>
-        <!-- Page Header -->
         <div class="mb-8 flex items-center justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900">{{ t('courses_management') }}</h1>
@@ -133,14 +171,61 @@ const getLevelColor = (level) => {
             </Link>
         </div>
 
-        <!-- Filters -->
+        <div v-if="sessionStats" class="mb-6 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">{{ t('month_stats') }}</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ currentLocale === 'ar' ? sessionStats.month_label_ar : sessionStats.month_label_en }}
+                    </p>
+                </div>
+                <div class="w-full sm:w-56">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('filter_by_month') }}</label>
+                    <select
+                        v-model="searchForm.stats_month"
+                        class="w-full rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
+                        @change="changeStatsMonth"
+                    >
+                        <option
+                            v-for="monthKey in sessionStats.month_options"
+                            :key="monthKey"
+                            :value="monthKey"
+                        >
+                            {{ formatMonthOption(monthKey) }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                    <p class="text-xs text-slate-600 mb-1">{{ t('total_sessions') }}</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ sessionStats.total_sessions }}</p>
+                    <p class="text-sm font-semibold text-slate-700 mt-1">{{ sessionStats.total_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50 border border-green-200 p-4">
+                    <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
+                    <p class="text-2xl font-bold text-green-800">{{ sessionStats.paid_sessions }}</p>
+                    <p class="text-sm font-semibold text-green-700 mt-1">{{ sessionStats.paid_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>
+                    <p class="text-2xl font-bold text-amber-800">{{ sessionStats.unpaid_sessions }}</p>
+                    <p class="text-sm font-semibold text-amber-700 mt-1">{{ sessionStats.unpaid_amount_format }}</p>
+                    <p v-if="sessionStats.due_notice_sessions" class="text-xs text-amber-600 mt-2">
+                        {{ t('due_notice_sessions') }}: {{ sessionStats.due_notice_sessions }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-lg border-0 p-6 mb-6 backdrop-blur-sm bg-white/95">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('search') }}</label>
-                    <input 
+                    <input
                         v-model="searchForm.search"
-                        type="text" 
+                        type="text"
                         :placeholder="t('search_courses')"
                         class="w-full rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
                         @keyup.enter="search"
@@ -169,14 +254,13 @@ const getLevelColor = (level) => {
                     <button @click="search" class="bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-dark transition-colors">
                         {{ t('search') }}
                     </button>
-                    <button @click="searchForm = { search: '', status: '', level: '' }; search()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                    <button @click="searchForm = { search: '', status: '', level: '', stats_month: sessionStats?.month || '' }; search()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
                         {{ t('clear') }}
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Courses Table -->
         <div class="bg-white rounded-2xl shadow-xl border-0 overflow-hidden backdrop-blur-sm bg-white/95">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -253,7 +337,6 @@ const getLevelColor = (level) => {
                 </table>
             </div>
 
-            <!-- No Results -->
             <div v-if="courses.data.length === 0" class="text-center py-12">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"></path>
@@ -261,7 +344,6 @@ const getLevelColor = (level) => {
                 <h3 class="mt-2 text-sm font-medium text-gray-900">{{ t('no_courses') }}</h3>
             </div>
 
-            <!-- Pagination -->
             <div v-if="courses.links && courses.links.length > 3" class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
                 <div class="flex items-center justify-between">
                     <div class="text-sm text-gray-700">
@@ -274,10 +356,10 @@ const getLevelColor = (level) => {
                             :href="link.url"
                             :class="[
                                 'px-3 py-2 text-sm rounded-md',
-                                link.active 
-                                    ? 'bg-brand text-white' 
-                                    : link.url 
-                                        ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100' 
+                                link.active
+                                    ? 'bg-brand text-white'
+                                    : link.url
+                                        ? 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                                         : 'text-gray-400 cursor-not-allowed'
                             ]"
                         >

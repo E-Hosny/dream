@@ -139,6 +139,8 @@ class ZoomMeetingController extends Controller
                 'topic' => $request->topic,
                 'start_time' => $request->start_time,
                 'duration' => $request->duration,
+                'session_price' => optional(Course::find($request->course_id))->price,
+                'is_paid' => false,
                 'join_url' => $zoomData['join_url'],
                 'start_url' => $zoomData['start_url'],
                 'password' => $zoomData['password'],
@@ -659,6 +661,9 @@ class ZoomMeetingController extends Controller
                 ? ZoomMeeting::forCourseOnDate($courseId)->orderByDesc('id')->first()
                 : null;
 
+            $courseModel = $courseId ? Course::find($courseId) : null;
+            $sessionPrice = $courseModel ? (float) $courseModel->price : null;
+
             if ($existingToday) {
                 // نفس اليوم: حدّث نفس السجل بروابط Zoom الجديدة بدل إنشاء صف مكرر
                 $existingToday->update([
@@ -670,6 +675,7 @@ class ZoomMeetingController extends Controller
                     'start_time' => $existingToday->start_time ?: now(),
                     'actual_end_time' => null,
                     'duration' => $meetingData['duration'],
+                    'session_price' => $existingToday->session_price ?? $sessionPrice,
                     'join_url' => $meeting['join_url'],
                     'start_url' => $meeting['start_url'],
                     'password' => $meeting['password'],
@@ -695,6 +701,8 @@ class ZoomMeetingController extends Controller
                     'start_time' => now(),
                     'actual_start_time' => now(),
                     'duration' => $meetingData['duration'],
+                    'session_price' => $sessionPrice,
+                    'is_paid' => false,
                     'join_url' => $meeting['join_url'],
                     'start_url' => $meeting['start_url'],
                     'password' => $meeting['password'],
@@ -730,7 +738,7 @@ class ZoomMeetingController extends Controller
             // إرسال إشعار لجميع الطلاب المسجلين في الكورس (إذا كان الاجتماع مرتبط بكورس)
             // لا نعيد الإشعار عند استئناف جلسة نفس اليوم
             if ($courseId && !$existingToday) {
-                $course = Course::with('enrolledStudents')->find($courseId);
+                $course = $courseModel?->loadMissing('enrolledStudents') ?? Course::with('enrolledStudents')->find($courseId);
                 if ($course) {
                     foreach ($course->enrolledStudents as $student) {
                         $student->notify(new MeetingStartedNotification($zoomMeeting, $course));

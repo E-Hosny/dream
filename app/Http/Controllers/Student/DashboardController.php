@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
-    public function index(CoursePaymentSyncService $paymentSync)
+    public function index(Request $request, CoursePaymentSyncService $paymentSync)
     {
         $user = Auth::user();
 
@@ -88,11 +88,22 @@ class DashboardController extends Controller
                         'payment_url' => $pendingPayment->payment_url,
                         'description' => $pendingPayment->description,
                     ] : null,
+                    'sessions_due' => ZoomMeeting::dueNoticeSummary(
+                        $enrollment->course->id,
+                        (float) ($enrollment->course->price ?? 0)
+                    ),
                 ];
             });
 
+        $courseIds = CourseEnrollment::where('student_id', $user->id)
+            ->pluck('course_id')
+            ->unique()
+            ->values()
+            ->all();
+
         return Inertia::render('Student/Dashboard', [
             'enrollments' => $enrollments,
+            'sessionStats' => ZoomMeeting::monthlyPaymentStats($request->input('stats_month'), $courseIds),
             'locale' => app()->getLocale(),
         ]);
     }
@@ -437,6 +448,7 @@ class DashboardController extends Controller
             'title' => $course->title_ar,
             'titleEn' => $course->title,
             'studentMessage' => $course->student_message,
+            'sessionsDue' => ZoomMeeting::dueNoticeSummary($course->id, (float) ($course->price ?? 0)),
             'activeAnnouncement' => $activeAnnouncement ? [
                 'title' => $activeAnnouncement->title,
                 'message' => $activeAnnouncement->message,

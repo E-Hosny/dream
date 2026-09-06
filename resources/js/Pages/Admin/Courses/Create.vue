@@ -52,7 +52,7 @@ const t = (key) => {
             student_message: 'Student Message',
             student_message_help: 'This message appears next to the join meeting button for students.',
             instructor: 'Instructor',
-            price: 'Price',
+            price: 'Session price',
             duration: 'Duration (Hours)',
             level: 'Level',
             status: 'Status',
@@ -99,7 +99,7 @@ const t = (key) => {
             student_message: 'رسالة للطلاب',
             student_message_help: 'تظهر هذه الرسالة بجوار زر دخول الاجتماع للطالب.',
             instructor: 'المدرس',
-            price: 'السعر',
+            price: 'سعر الحصة الواحدة',
             duration: 'المدة (ساعات)',
             level: 'المستوى',
             status: 'الحالة',
@@ -408,7 +408,7 @@ const submit = () => {
                                     step="0.01"
                                     class="w-full pl-12 rtl:pl-4 rtl:pr-12 pr-4 py-4 text-gray-900 bg-white border-2 border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg"
                                     :class="{ 'border-red-500 ring-red-100': form.errors.price }"
-                                    placeholder="Enter course price"
+                                    placeholder="سعر الحصة الواحدة"
                                     required
                                 >
                             </div>

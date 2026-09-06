@@ -43,6 +43,7 @@ const t = (key) => {
             scheduled: 'Scheduled',
             join_now: 'Join Now',
             course_message: 'Course Message',
+            sessions_due_title: 'Outstanding sessions',
             announcement_message: 'Announcement',
             // Assignment translations
             assignment: 'Assignment',
@@ -96,6 +97,7 @@ const t = (key) => {
             scheduled: 'مجدول',
             join_now: 'انضم الآن',
             course_message: 'رسالة الكورس',
+            sessions_due_title: 'مستحقات الحصص',
             announcement_message: 'تنبيه مهم',
             // Assignment translations
             assignment: 'الواجب',
@@ -434,10 +436,28 @@ const getSessionHeaderColor = (index) => {
                 </div>
             </div>
 
+            <!-- Sessions due notice -->
+            <div v-if="course.sessionsDue" class="mb-6">
+                <div class="bg-rose-50 border border-rose-300 rounded-xl p-5">
+                    <p class="text-sm font-semibold text-rose-900">{{ t('sessions_due_title') }}</p>
+                    <p class="text-sm text-rose-800 mt-1">
+                        {{ currentLocale === 'ar' ? course.sessionsDue.message_ar : course.sessionsDue.message_en }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Course message (optional admin note) -->
+            <div v-if="course.studentMessage" class="mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+                    <p class="text-sm font-semibold text-blue-900">{{ t('course_message') }}</p>
+                    <p class="text-sm text-blue-800 mt-1 whitespace-pre-line">{{ course.studentMessage }}</p>
+                </div>
+            </div>
+
             <!-- Active Meeting Alert -->
             <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-8">
                 <div class="bg-green-50 border border-green-200 rounded-xl p-6">
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-4">
                         <div class="flex items-center space-x-4 rtl:space-x-reverse">
                             <div class="flex items-center justify-center h-10 w-10 rounded-full bg-green-100">
                                 <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,9 +467,15 @@ const getSessionHeaderColor = (index) => {
                             <div>
                                 <h3 class="text-lg font-semibold text-green-900">{{ t('meeting_active') }}</h3>
                                 <p class="text-green-700">{{ course.activeMeeting.topic }}</p>
+                                <p
+                                    v-if="course.sessionsDue"
+                                    class="mt-2 text-sm font-medium text-rose-700"
+                                >
+                                    {{ currentLocale === 'ar' ? course.sessionsDue.message_ar : course.sessionsDue.message_en }}
+                                </p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
                             <div v-if="course.activeAnnouncement" class="max-w-md px-4 py-3 bg-white border border-green-200 rounded-lg text-sm text-green-900 shadow-sm">
                                 <p class="font-semibold">{{ t('announcement_message') }}: {{ course.activeAnnouncement.title }}</p>
                                 <p class="mt-1 text-green-800">{{ course.activeAnnouncement.message }}</p>

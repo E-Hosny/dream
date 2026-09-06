@@ -1,18 +1,44 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
-import { Head, usePage, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, usePage, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
 
-// البيانات من Controller
 const props = defineProps({
     course: Object,
     meetings: Array,
+    sessionStats: Object,
 });
 
-// Translation helper
+const meetingsList = ref([...(props.meetings || [])]);
+const dueNoticeSummary = ref(props.course?.due_notice_summary || null);
+const sessionStats = computed(() => props.sessionStats || page.props.sessionStats || null);
+const togglingPaymentId = ref(null);
+const selectedIds = ref([]);
+const bulkBusy = ref(false);
+
+const changeStatsMonth = (event) => {
+    router.get(route('admin.courses.meetings', props.course.id), {
+        stats_month: event.target.value || undefined,
+    }, {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+};
+
+const formatMonthOption = (monthKey) => {
+    if (!monthKey) return '';
+    const [year, month] = monthKey.split('-');
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', {
+        year: 'numeric',
+        month: 'long',
+    });
+};
+
 const t = (key) => {
     const translations = {
         en: {
@@ -22,10 +48,24 @@ const t = (key) => {
             start_time: 'Start Time',
             end_time: 'End Time',
             meeting_duration: 'Duration',
+            session_price: 'Session price',
+            payment_status: 'Payment',
+            paid: 'Paid',
+            unpaid: 'Unpaid',
+            mark_as_paid: 'Mark as paid',
+            mark_as_unpaid: 'Mark as unpaid',
+            mark_selected_paid: 'Mark selected as paid',
+            mark_selected_unpaid: 'Mark selected as unpaid',
+            show_due_notice: 'Show due notice to student',
+            clear_due_notice: 'Clear due notice',
+            select_all: 'Select all',
+            clear_selection: 'Clear selection',
+            selected_count: 'selected',
+            due_notice_active: 'Due notice',
+            due_notice_banner: 'Student due notice is active',
             password: 'Password',
             no_meetings: 'No meetings yet',
             minutes: 'Minutes',
-            // Assignment translations
             assignment: 'Assignment',
             view: 'View',
             download: 'Download',
@@ -33,6 +73,17 @@ const t = (key) => {
             no_assignment_uploaded: 'No assignment uploaded yet',
             delete: 'Delete',
             delete_meeting: 'Delete Meeting',
+            select_meetings_first: 'Select at least one meeting first',
+            select_unpaid_for_notice: 'Select unpaid meetings to show the due notice',
+            month_stats: 'Monthly sessions summary',
+            filter_by_month: 'Month',
+            total_sessions: 'Sessions taken',
+            paid_sessions: 'Paid sessions',
+            unpaid_sessions: 'Unpaid sessions',
+            paid_value: 'Paid value',
+            unpaid_value: 'Unpaid value',
+            total_value: 'Total value',
+            due_notice_sessions: 'Notified due sessions',
         },
         ar: {
             course_details: 'تفاصيل الكورس',
@@ -41,10 +92,24 @@ const t = (key) => {
             start_time: 'وقت البداية',
             end_time: 'وقت النهاية',
             meeting_duration: 'المدة',
+            session_price: 'سعر الحصة',
+            payment_status: 'الدفع',
+            paid: 'مدفوعة',
+            unpaid: 'غير مدفوعة',
+            mark_as_paid: 'تعليمليم كمدفوعة',
+            mark_as_unpaid: 'إلغاء التعليم كمدفوعة',
+            mark_selected_paid: 'تعليمليم المحدد كمدفوع',
+            mark_selected_unpaid: 'تعليمليم المحدد كغير مدفوع',
+            show_due_notice: 'إظهار إشعار المستحقات للطالب',
+            clear_due_notice: 'إزالة إشعار المستحقات',
+            select_all: 'تحديد الكل',
+            clear_selection: 'إلغاء التحديد',
+            selected_count: 'محدد',
+            due_notice_active: 'إشعار مستحق',
+            due_notice_banner: 'إشعار المستحقات مفعّل للطالب',
             password: 'كلمة المرور',
             no_meetings: 'لا توجد اجتماعات بعد',
             minutes: 'دقائق',
-            // Assignment translations
             assignment: 'الواجب',
             view: 'عرض',
             download: 'تحميل',
@@ -52,12 +117,29 @@ const t = (key) => {
             no_assignment_uploaded: 'لم يتم رفع واجب بعد',
             delete: 'حذف',
             delete_meeting: 'حذف الاجتماع',
+            select_meetings_first: 'حدد حصة واحدة على الأقل أولاً',
+            select_unpaid_for_notice: 'حدد حصصاً غير مدفوعة لإظهار إشعار المستحقات',
+            month_stats: 'ملخص حصص الشهر',
+            filter_by_month: 'الشهر',
+            total_sessions: 'حصص تم أخذها',
+            paid_sessions: 'حصص مدفوعة',
+            unpaid_sessions: 'حصص غير مدفوعة',
+            paid_value: 'قيمة المدفوع',
+            unpaid_value: 'قيمة غير المدفوع',
+            total_value: 'الإجمالي',
+            due_notice_sessions: 'حصص بإشعار مستحق',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
 };
 
-// دالة تنسيق التاريخ والوقت
+const csrfHeaders = () => ({
+    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    'X-Requested-With': 'XMLHttpRequest',
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+});
+
 const formatDateTime = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -73,25 +155,203 @@ const formatDateTime = (dateString) => {
     return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', options);
 };
 
-// عرض ملف الواجب
+const allSelected = computed(() =>
+    meetingsList.value.length > 0 && selectedIds.value.length === meetingsList.value.length
+);
+
+const selectedUnpaidIds = computed(() =>
+    meetingsList.value
+        .filter((m) => selectedIds.value.includes(m.id) && !m.is_paid)
+        .map((m) => m.id)
+);
+
+const toggleSelect = (id) => {
+    if (selectedIds.value.includes(id)) {
+        selectedIds.value = selectedIds.value.filter((item) => item !== id);
+    } else {
+        selectedIds.value = [...selectedIds.value, id];
+    }
+};
+
+const toggleSelectAll = () => {
+    if (allSelected.value) {
+        selectedIds.value = [];
+    } else {
+        selectedIds.value = meetingsList.value.map((m) => m.id);
+    }
+};
+
+const clearSelection = () => {
+    selectedIds.value = [];
+};
+
+const applyMeetingUpdates = (updates) => {
+    const map = new Map(updates.map((item) => [item.id, item]));
+    meetingsList.value = meetingsList.value.map((meeting) => {
+        const update = map.get(meeting.id);
+        return update ? { ...meeting, ...update } : meeting;
+    });
+};
+
 const viewAssignment = (assignment) => {
     window.open(`/assignments/${assignment.id}/view`, '_blank');
 };
 
-// تحميل ملف الواجب
 const downloadAssignment = (assignment) => {
     window.open(`/assignments/${assignment.id}/download`, '_blank');
 };
 
-// عرض حلول الطلاب
 const viewSubmissions = (assignment) => {
     window.open(`/assignments/${assignment.id}/submissions`, '_blank');
 };
 
-// حذف الاجتماع
+const togglePayment = async (meeting) => {
+    if (togglingPaymentId.value || bulkBusy.value) {
+        return;
+    }
+
+    togglingPaymentId.value = meeting.id;
+
+    try {
+        const response = await fetch(route('admin.courses.meetings.payment', [props.course.id, meeting.id]), {
+            method: 'PATCH',
+            headers: csrfHeaders(),
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to update payment status');
+        }
+
+        applyMeetingUpdates([{
+            id: meeting.id,
+            is_paid: data.is_paid,
+            due_notice: data.due_notice,
+            session_price: data.session_price,
+            session_price_format: data.session_price_format,
+        }]);
+        dueNoticeSummary.value = data.due_notice_summary || null;
+    } catch (error) {
+        console.error('Error toggling meeting payment:', error);
+        alert(currentLocale.value === 'ar'
+            ? `تعذر تحديث حالة الدفع: ${error.message}`
+            : `Could not update payment status: ${error.message}`
+        );
+    } finally {
+        togglingPaymentId.value = null;
+    }
+};
+
+const bulkUpdatePayment = async (isPaid) => {
+    if (!selectedIds.value.length) {
+        alert(t('select_meetings_first'));
+        return;
+    }
+    if (bulkBusy.value) return;
+
+    bulkBusy.value = true;
+    try {
+        const response = await fetch(route('admin.courses.meetings.bulk-payment', props.course.id), {
+            method: 'PATCH',
+            headers: csrfHeaders(),
+            body: JSON.stringify({
+                meeting_ids: selectedIds.value,
+                is_paid: isPaid,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Bulk update failed');
+        }
+        applyMeetingUpdates(data.meetings || []);
+        dueNoticeSummary.value = data.due_notice_summary || null;
+        clearSelection();
+    } catch (error) {
+        console.error('Error bulk updating payment:', error);
+        alert(currentLocale.value === 'ar'
+            ? `تعذر تحديث الحصص: ${error.message}`
+            : `Could not update meetings: ${error.message}`
+        );
+    } finally {
+        bulkBusy.value = false;
+    }
+};
+
+const showDueNotice = async () => {
+    if (!selectedUnpaidIds.value.length) {
+        alert(t('select_unpaid_for_notice'));
+        return;
+    }
+    if (bulkBusy.value) return;
+
+    bulkBusy.value = true;
+    try {
+        const response = await fetch(route('admin.courses.meetings.due-notice', props.course.id), {
+            method: 'PATCH',
+            headers: csrfHeaders(),
+            body: JSON.stringify({
+                meeting_ids: selectedUnpaidIds.value,
+                due_notice: true,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to enable due notice');
+        }
+        applyMeetingUpdates(data.meetings || []);
+        dueNoticeSummary.value = data.due_notice_summary || null;
+        clearSelection();
+    } catch (error) {
+        console.error('Error enabling due notice:', error);
+        alert(currentLocale.value === 'ar'
+            ? `تعذر تفعيل الإشعار: ${error.message}`
+            : `Could not enable notice: ${error.message}`
+        );
+    } finally {
+        bulkBusy.value = false;
+    }
+};
+
+const clearDueNotice = async () => {
+    if (bulkBusy.value) return;
+
+    const confirmClear = confirm(currentLocale.value === 'ar'
+        ? 'هل تريد إزالة إشعار المستحقات من صفحة الطالب؟'
+        : 'Clear the due notice from the student page?'
+    );
+    if (!confirmClear) return;
+
+    bulkBusy.value = true;
+    try {
+        const response = await fetch(route('admin.courses.meetings.due-notice', props.course.id), {
+            method: 'PATCH',
+            headers: csrfHeaders(),
+            body: JSON.stringify({
+                meeting_ids: [],
+                due_notice: false,
+            }),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to clear due notice');
+        }
+        applyMeetingUpdates(data.meetings || []);
+        dueNoticeSummary.value = data.due_notice_summary || null;
+        clearSelection();
+    } catch (error) {
+        console.error('Error clearing due notice:', error);
+        alert(currentLocale.value === 'ar'
+            ? `تعذر إزالة الإشعار: ${error.message}`
+            : `Could not clear notice: ${error.message}`
+        );
+    } finally {
+        bulkBusy.value = false;
+    }
+};
+
 const deleteMeeting = async (meeting) => {
-    if (!confirm(currentLocale.value === 'ar' ? 
-        'هل أنت متأكد من حذف هذا الاجتماع؟ سيتم حذف جميع البيانات المرتبطة به أيضاً.' : 
+    if (!confirm(currentLocale.value === 'ar' ?
+        'هل أنت متأكد من حذف هذا الاجتماع؟ سيتم حذف جميع البيانات المرتبطة به أيضاً.' :
         'Are you sure you want to delete this meeting? All related data will be deleted too.'
     )) {
         return;
@@ -100,15 +360,9 @@ const deleteMeeting = async (meeting) => {
     try {
         const response = await fetch(`/admin/courses/${props.course.id}/meetings/${meeting.id}`, {
             method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
+            headers: csrfHeaders(),
         });
 
-        // التحقق من نوع المحتوى قبل parse
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
@@ -119,11 +373,9 @@ const deleteMeeting = async (meeting) => {
                 throw new Error(data.message || 'حدث خطأ أثناء حذف الاجتماع');
             }
         } else if (response.ok) {
-            // إذا كانت الاستجابة redirect (HTML) لكن status code 200
             alert(currentLocale.value === 'ar' ? 'تم حذف الاجتماع بنجاح!' : 'Meeting deleted successfully!');
             window.location.reload();
         } else {
-            // محاولة قراءة JSON حتى لو كان status code خطأ
             try {
                 const data = await response.json();
                 throw new Error(data.message || 'حدث خطأ أثناء حذف الاجتماع');
@@ -133,8 +385,8 @@ const deleteMeeting = async (meeting) => {
         }
     } catch (error) {
         console.error('Error deleting meeting:', error);
-        alert(currentLocale.value === 'ar' ? 
-            `حدث خطأ أثناء حذف الاجتماع: ${error.message}` : 
+        alert(currentLocale.value === 'ar' ?
+            `حدث خطأ أثناء حذف الاجتماع: ${error.message}` :
             `Error deleting meeting: ${error.message}`
         );
     }
@@ -145,7 +397,6 @@ const deleteMeeting = async (meeting) => {
     <Head :title="t('course_details')" />
 
     <AdminLayout>
-        <!-- Page Header -->
         <div class="mb-8">
             <div class="flex items-center justify-between">
                 <div>
@@ -160,41 +411,190 @@ const deleteMeeting = async (meeting) => {
             </div>
         </div>
 
-        <!-- Course Title -->
         <div class="max-w-6xl mx-auto mb-6">
             <h2 class="text-2xl font-bold text-gray-900">
                 {{ currentLocale === 'ar' ? course.title : course.titleEn }}
             </h2>
+            <p class="text-sm text-gray-600 mt-1">
+                {{ t('session_price') }}: <span class="font-semibold text-amber-700">{{ course.session_price_format }}</span>
+            </p>
         </div>
 
-        <!-- Meetings History -->
+        <div v-if="sessionStats" class="max-w-6xl mx-auto mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">{{ t('month_stats') }}</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ currentLocale === 'ar' ? sessionStats.month_label_ar : sessionStats.month_label_en }}
+                    </p>
+                </div>
+                <div class="w-full sm:w-56">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('filter_by_month') }}</label>
+                    <select
+                        :value="sessionStats.month"
+                        class="w-full rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
+                        @change="changeStatsMonth"
+                    >
+                        <option
+                            v-for="monthKey in sessionStats.month_options"
+                            :key="monthKey"
+                            :value="monthKey"
+                        >
+                            {{ formatMonthOption(monthKey) }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                    <p class="text-xs text-slate-600 mb-1">{{ t('total_sessions') }}</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ sessionStats.total_sessions }}</p>
+                    <p class="text-sm font-semibold text-slate-700 mt-1">{{ sessionStats.total_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50 border border-green-200 p-4">
+                    <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
+                    <p class="text-2xl font-bold text-green-800">{{ sessionStats.paid_sessions }}</p>
+                    <p class="text-sm font-semibold text-green-700 mt-1">{{ sessionStats.paid_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>
+                    <p class="text-2xl font-bold text-amber-800">{{ sessionStats.unpaid_sessions }}</p>
+                    <p class="text-sm font-semibold text-amber-700 mt-1">{{ sessionStats.unpaid_amount_format }}</p>
+                    <p v-if="sessionStats.due_notice_sessions" class="text-xs text-amber-600 mt-2">
+                        {{ t('due_notice_sessions') }}: {{ sessionStats.due_notice_sessions }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="max-w-6xl mx-auto">
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-xl font-semibold text-gray-900">{{ t('meetings_history') }}</h2>
+                <div class="flex flex-col gap-4 mb-6">
+                    <div class="flex items-center justify-between flex-wrap gap-3">
+                        <h2 class="text-xl font-semibold text-gray-900">{{ t('meetings_history') }}</h2>
+                        <div v-if="meetingsList.length" class="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                @click="toggleSelectAll"
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                            >
+                                {{ allSelected ? t('clear_selection') : t('select_all') }}
+                            </button>
+                            <span v-if="selectedIds.length" class="text-xs text-gray-500">
+                                {{ selectedIds.length }} {{ t('selected_count') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="dueNoticeSummary"
+                        class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                    >
+                        <p class="font-semibold">{{ t('due_notice_banner') }}</p>
+                        <p class="mt-1">
+                            {{ currentLocale === 'ar' ? dueNoticeSummary.message_ar : dueNoticeSummary.message_en }}
+                        </p>
+                    </div>
+
+                    <div
+                        v-if="meetingsList.length"
+                        class="flex flex-wrap gap-2 p-3 rounded-lg bg-gray-50 border border-gray-200"
+                    >
+                        <button
+                            type="button"
+                            @click="bulkUpdatePayment(true)"
+                            :disabled="bulkBusy || !selectedIds.length"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                            {{ t('mark_selected_paid') }}
+                        </button>
+                        <button
+                            type="button"
+                            @click="bulkUpdatePayment(false)"
+                            :disabled="bulkBusy || !selectedIds.length"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                        >
+                            {{ t('mark_selected_unpaid') }}
+                        </button>
+                        <button
+                            type="button"
+                            @click="showDueNotice"
+                            :disabled="bulkBusy || !selectedUnpaidIds.length"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {{ t('show_due_notice') }}
+                        </button>
+                        <button
+                            type="button"
+                            @click="clearDueNotice"
+                            :disabled="bulkBusy || !dueNoticeSummary"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-50"
+                        >
+                            {{ t('clear_due_notice') }}
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Meetings List -->
-                <div v-if="meetings.length > 0" class="space-y-6">
-                    <div v-for="meeting in meetings" :key="meeting.id" 
-                         class="p-6 rounded-lg border border-gray-200 hover:border-blue-300 transition-all duration-200 hover:shadow-md">
-                        
-                        <!-- Meeting Info -->
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-medium text-gray-900 text-lg">{{ meeting.topic }}</h3>
-                            <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                                <span :class="`px-3 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
-                                    {{ meeting.status_text }}
-                                </span>
-                                <button @click="deleteMeeting(meeting)"
+                <div v-if="meetingsList.length > 0" class="space-y-6">
+                    <div
+                        v-for="meeting in meetingsList"
+                        :key="meeting.id"
+                        class="p-6 rounded-lg border transition-all duration-200 hover:shadow-md"
+                        :class="[
+                            meeting.is_paid ? 'bg-green-50/40 border-green-200' : 'border-gray-200 hover:border-blue-300',
+                            selectedIds.includes(meeting.id) ? 'ring-2 ring-blue-400' : '',
+                            meeting.due_notice && !meeting.is_paid ? 'border-amber-400' : '',
+                        ]"
+                    >
+                        <div class="flex items-start gap-3 mb-4">
+                            <input
+                                type="checkbox"
+                                class="mt-1.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                :checked="selectedIds.includes(meeting.id)"
+                                @change="toggleSelect(meeting.id)"
+                            >
+                            <div class="flex-1 flex items-center justify-between gap-3 flex-wrap">
+                                <h3 class="font-medium text-gray-900 text-lg">{{ meeting.topic }}</h3>
+                                <div class="flex items-center space-x-2 rtl:space-x-reverse flex-wrap gap-2">
+                                    <span
+                                        v-if="meeting.due_notice && !meeting.is_paid"
+                                        class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
+                                    >
+                                        {{ t('due_notice_active') }}
+                                    </span>
+                                    <span
+                                        class="px-3 py-1 text-xs font-medium rounded-full"
+                                        :class="meeting.is_paid ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'"
+                                    >
+                                        {{ meeting.is_paid ? t('paid') : t('unpaid') }}
+                                    </span>
+                                    <span :class="`px-3 py-1 text-xs font-medium rounded-full ${meeting.status_color}`">
+                                        {{ meeting.status_text }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        @click="togglePayment(meeting)"
+                                        :disabled="togglingPaymentId === meeting.id || bulkBusy"
+                                        class="px-3 py-1.5 rounded-lg transition-colors text-xs font-medium disabled:opacity-50"
+                                        :class="meeting.is_paid
+                                            ? 'bg-amber-600 text-white hover:bg-amber-700'
+                                            : 'bg-green-600 text-white hover:bg-green-700'"
+                                    >
+                                        {{ meeting.is_paid ? t('mark_as_unpaid') : t('mark_as_paid') }}
+                                    </button>
+                                    <button
+                                        @click="deleteMeeting(meeting)"
                                         class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium"
-                                        :title="t('delete_meeting')">
-                                    {{ t('delete') }}
-                                </button>
+                                        :title="t('delete_meeting')"
+                                    >
+                                        {{ t('delete') }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-700 mb-4">
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm text-gray-700 mb-4 ps-7">
                             <div>
                                 <span class="font-medium">{{ t('start_time') }}:</span>
                                 <br>{{ formatDateTime(meeting.actual_start_time || meeting.start_time) }}
@@ -207,15 +607,19 @@ const deleteMeeting = async (meeting) => {
                                 <span class="font-medium">{{ t('meeting_duration') }}:</span>
                                 <br>{{ meeting.duration }} {{ t('minutes') }}
                             </div>
+                            <div>
+                                <span class="font-medium">{{ t('session_price') }}:</span>
+                                <br>
+                                <span class="font-semibold text-amber-700">{{ meeting.session_price_format }}</span>
+                            </div>
                         </div>
-                        
-                        <div v-if="meeting.password" class="mb-4 text-sm">
+
+                        <div v-if="meeting.password" class="mb-4 text-sm ps-7">
                             <span class="font-medium text-gray-700">{{ t('password') }}:</span>
                             <code class="ml-2 bg-gray-100 px-2 py-1 rounded">{{ meeting.password }}</code>
                         </div>
 
-                        <!-- Assignment Section -->
-                        <div class="border-t pt-4">
+                        <div class="border-t pt-4 ps-7">
                             <div class="flex items-center justify-between mb-3">
                                 <h4 class="font-medium text-gray-800">{{ t('assignment') }}</h4>
                                 <div class="flex space-x-2 rtl:space-x-reverse" v-if="meeting.assignment">
@@ -233,8 +637,7 @@ const deleteMeeting = async (meeting) => {
                                     </button>
                                 </div>
                             </div>
-                            
-                            <!-- Assignment Info -->
+
                             <div v-if="meeting.assignment" class="bg-gray-50 p-3 rounded-lg">
                                 <div class="flex items-center justify-between mb-2">
                                     <h5 class="font-medium text-gray-900">{{ meeting.assignment.title }}</h5>
@@ -248,19 +651,17 @@ const deleteMeeting = async (meeting) => {
                                     <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
                                 </div>
                             </div>
-                            
-                            <!-- No Assignment Message -->
+
                             <div v-else class="text-center py-4 text-gray-500 text-sm">
                                 {{ t('no_assignment_uploaded') }}
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- No Meetings Message -->
+
                 <div v-else class="text-center py-12">
                     <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                     </svg>
                     <h3 class="text-lg font-medium text-gray-900 mb-2">{{ t('no_meetings') }}</h3>
                     <p class="text-gray-500 mb-4">{{ currentLocale === 'ar' ? 'لم يتم عقد أي اجتماعات بعد' : 'No meetings have been held yet' }}</p>
@@ -269,4 +670,3 @@ const deleteMeeting = async (meeting) => {
         </div>
     </AdminLayout>
 </template>
-

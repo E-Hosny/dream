@@ -1,6 +1,6 @@
 <script setup>
 import StudentLayout from '@/Layouts/StudentLayout.vue';
-import { Head, usePage, Link } from '@inertiajs/vue3';
+import { Head, usePage, Link, router } from '@inertiajs/vue3';
 import { computed, ref, onMounted, onUnmounted } from 'vue';
 
 const page = usePage();
@@ -17,6 +17,27 @@ if (typeof window !== 'undefined' && page.props.csrfToken) {
 
 // استقبال البيانات من الخادم
 const enrollments = computed(() => page.props.enrollments || []);
+const sessionStats = computed(() => page.props.sessionStats || null);
+
+const changeStatsMonth = (event) => {
+    router.get(route('student.dashboard'), {
+        stats_month: event.target.value || undefined,
+    }, {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+};
+
+const formatMonthOption = (monthKey) => {
+    if (!monthKey) return '';
+    const [year, month] = monthKey.split('-');
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    return date.toLocaleDateString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', {
+        year: 'numeric',
+        month: 'long',
+    });
+};
 
 // State للتحديث وجلب البيانات
 const refreshing = ref(false);
@@ -201,7 +222,16 @@ const t = (key) => {
             important_announcement: 'Important Announcement',
             payment_due: 'Payment Due',
             pay_now: 'Pay Now',
-            payment_amount: 'Amount due'
+            payment_amount: 'Amount due',
+            sessions_due_title: 'Outstanding sessions',
+            month_stats: 'Monthly sessions summary',
+            filter_by_month: 'Month',
+            total_sessions: 'Sessions taken',
+            paid_sessions: 'Paid sessions',
+            unpaid_sessions: 'Unpaid sessions',
+            paid_value: 'Paid value',
+            unpaid_value: 'Unpaid value',
+            total_value: 'Total value',
         },
         ar: {
             student_dashboard: 'لوحة تحكم الطالب',
@@ -231,7 +261,16 @@ const t = (key) => {
             important_announcement: 'تنبيه مهم',
             payment_due: 'مبلغ مستحق',
             pay_now: 'ادفع الآن',
-            payment_amount: 'المبلغ المستحق'
+            payment_amount: 'المبلغ المستحق',
+            sessions_due_title: 'مستحقات الحصص',
+            month_stats: 'ملخص حصص الشهر',
+            filter_by_month: 'الشهر',
+            total_sessions: 'حصص تم أخذها',
+            paid_sessions: 'حصص مدفوعة',
+            unpaid_sessions: 'حصص غير مدفوعة',
+            paid_value: 'قيمة المدفوع',
+            unpaid_value: 'قيمة غير المدفوع',
+            total_value: 'الإجمالي',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -283,6 +322,52 @@ const getStatusText = (status) => {
                     </svg>
                     {{ t('refresh_page') }}
                 </button>
+            </div>
+        </div>
+
+        <!-- Monthly Stats -->
+        <div v-if="sessionStats" class="mb-6 bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900">{{ t('month_stats') }}</h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {{ currentLocale === 'ar' ? sessionStats.month_label_ar : sessionStats.month_label_en }}
+                    </p>
+                </div>
+                <div class="w-full sm:w-56">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('filter_by_month') }}</label>
+                    <select
+                        :value="sessionStats.month"
+                        class="w-full rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
+                        @change="changeStatsMonth"
+                    >
+                        <option
+                            v-for="monthKey in sessionStats.month_options"
+                            :key="monthKey"
+                            :value="monthKey"
+                        >
+                            {{ formatMonthOption(monthKey) }}
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="rounded-xl bg-slate-50 border border-slate-200 p-4">
+                    <p class="text-xs text-slate-600 mb-1">{{ t('total_sessions') }}</p>
+                    <p class="text-2xl font-bold text-slate-900">{{ sessionStats.total_sessions }}</p>
+                    <p class="text-sm font-semibold text-slate-700 mt-1">{{ sessionStats.total_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-green-50 border border-green-200 p-4">
+                    <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
+                    <p class="text-xl font-bold text-green-800">{{ sessionStats.paid_sessions }}</p>
+                    <p class="text-sm font-semibold text-green-700 mt-1">{{ sessionStats.paid_amount_format }}</p>
+                </div>
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                    <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>
+                    <p class="text-xl font-bold text-amber-800">{{ sessionStats.unpaid_sessions }}</p>
+                    <p class="text-sm font-semibold text-amber-700 mt-1">{{ sessionStats.unpaid_amount_format }}</p>
+                </div>
             </div>
         </div>
 
@@ -338,6 +423,24 @@ const getStatusText = (status) => {
                                 </svg>
                                 {{ t('view_course') }}
                             </Link>
+                        </div>
+                    </div>
+
+                    <!-- Sessions due notice (admin-selected unpaid meetings) -->
+                    <div
+                        v-if="enrollment.sessions_due"
+                        class="mb-4 p-4 bg-rose-50 rounded-lg border border-rose-300"
+                    >
+                        <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                            <svg class="h-6 w-6 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path>
+                            </svg>
+                            <div>
+                                <p class="text-sm font-semibold text-rose-900">{{ t('sessions_due_title') }}</p>
+                                <p class="text-sm text-rose-800 mt-1">
+                                    {{ currentLocale === 'ar' ? enrollment.sessions_due.message_ar : enrollment.sessions_due.message_en }}
+                                </p>
+                            </div>
                         </div>
                     </div>
                     

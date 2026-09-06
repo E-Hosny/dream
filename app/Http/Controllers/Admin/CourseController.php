@@ -35,9 +35,12 @@ class CourseController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $statsMonth = $request->input('stats_month');
+
         return Inertia::render('Admin/Courses/Index', [
             'courses' => $courses,
-            'filters' => $request->only(['search', 'status', 'level'])
+            'filters' => $request->only(['search', 'status', 'level', 'stats_month']),
+            'sessionStats' => ZoomMeeting::monthlyPaymentStats($statsMonth),
         ]);
     }
 
@@ -170,7 +173,7 @@ class CourseController extends Controller
         return redirect()->route('admin.courses.index')->with('success', 'تم حذف الكورس بنجاح');
     }
 
-    public function showMeetings(Course $course)
+    public function showMeetings(Request $request, Course $course)
     {
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
@@ -179,12 +182,17 @@ class CourseController extends Controller
         ZoomMeeting::consolidateAllDaysForCourse($course->id);
         
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
+        $sessionPrice = (float) ($course->price ?? 0);
+
         $meetings = ZoomMeeting::with('assignments')
             ->where('course_id', $course->id)
             ->orderBy('start_time', 'desc')
             ->get()
-            ->map(function ($meeting) {
+            ->map(function ($meeting) use ($sessionPrice) {
                 $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
+                $price = $meeting->session_price !== null
+                    ? (float) $meeting->session_price
+                    : $sessionPrice;
                 
                 return [
                     'id' => $meeting->id,
@@ -194,6 +202,10 @@ class CourseController extends Controller
                     'actual_start_time' => $meeting->actual_start_time ? $meeting->actual_start_time->format('Y-m-d H:i:s') : null,
                     'actual_end_time' => $meeting->actual_end_time ? $meeting->actual_end_time->format('Y-m-d H:i:s') : null,
                     'duration' => $meeting->duration,
+                    'session_price' => $price,
+                    'session_price_format' => number_format($price, 2) . ' ر.س',
+                    'is_paid' => (bool) $meeting->is_paid,
+                    'due_notice' => (bool) $meeting->due_notice,
                     'status' => $meeting->status,
                     'status_text' => $meeting->status_text,
                     'status_color' => $meeting->status_color,
@@ -221,11 +233,19 @@ class CourseController extends Controller
         $activeMeeting = ZoomMeeting::where('course_id', $course->id)
             ->activeAndValid()
             ->first();
+
+        $sessionStats = ZoomMeeting::monthlyPaymentStats(
+            $request->input('stats_month'),
+            [$course->id]
+        );
             
         $courseData = [
             'id' => $course->id,
             'title' => $course->title_ar,
             'titleEn' => $course->title,
+            'session_price' => $sessionPrice,
+            'session_price_format' => number_format($sessionPrice, 2) . ' ر.س',
+            'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $sessionPrice),
             'activeMeeting' => $activeMeeting ? [
                 'id' => $activeMeeting->id,
                 'topic' => $activeMeeting->topic,
@@ -239,7 +259,155 @@ class CourseController extends Controller
         return Inertia::render('Admin/Courses/Meetings', [
             'course' => $courseData,
             'meetings' => $meetings,
+            'sessionStats' => $sessionStats,
             'locale' => app()->getLocale(),
+        ]);
+    }
+
+    public function toggleMeetingPayment(Course $course, ZoomMeeting $meeting)
+    {
+        if ($meeting->course_id !== $course->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'هذا الاجتماع غير مرتبط بهذا الكورس',
+            ], 422);
+        }
+
+        if ($meeting->session_price === null) {
+            $meeting->session_price = $course->price;
+        }
+
+        $meeting->is_paid = !$meeting->is_paid;
+        if ($meeting->is_paid) {
+            $meeting->due_notice = false;
+        }
+        $meeting->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $meeting->is_paid ? 'تم تعليم الحصة كمدفوعة' : 'تم إلغاء تعليم الحصة كمدفوعة',
+            'is_paid' => (bool) $meeting->is_paid,
+            'due_notice' => (bool) $meeting->due_notice,
+            'session_price' => (float) ($meeting->session_price ?? $course->price ?? 0),
+            'session_price_format' => number_format((float) ($meeting->session_price ?? $course->price ?? 0), 2) . ' ر.س',
+            'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, (float) ($course->price ?? 0)),
+        ]);
+    }
+
+    public function bulkUpdateMeetingPayment(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'meeting_ids' => ['required', 'array', 'min:1'],
+            'meeting_ids.*' => ['integer'],
+            'is_paid' => ['required', 'boolean'],
+        ]);
+
+        $meetings = ZoomMeeting::where('course_id', $course->id)
+            ->whereIn('id', $validated['meeting_ids'])
+            ->get();
+
+        if ($meetings->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لم يتم العثور على الحصص المحددة',
+            ], 422);
+        }
+
+        $isPaid = (bool) $validated['is_paid'];
+        $defaultPrice = (float) ($course->price ?? 0);
+
+        foreach ($meetings as $meeting) {
+            if ($meeting->session_price === null) {
+                $meeting->session_price = $defaultPrice;
+            }
+            $meeting->is_paid = $isPaid;
+            if ($isPaid) {
+                $meeting->due_notice = false;
+            }
+            $meeting->save();
+        }
+
+        $updated = $meetings->map(function (ZoomMeeting $meeting) use ($defaultPrice) {
+            $price = (float) ($meeting->session_price ?? $defaultPrice);
+
+            return [
+                'id' => $meeting->id,
+                'is_paid' => (bool) $meeting->is_paid,
+                'due_notice' => (bool) $meeting->due_notice,
+                'session_price' => $price,
+                'session_price_format' => number_format($price, 2) . ' ر.س',
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => $isPaid ? 'تم تعليم الحصص المحددة كمدفوعة' : 'تم تعليم الحصص المحددة كغير مدفوعة',
+            'meetings' => $updated,
+            'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
+        ]);
+    }
+
+    public function updateMeetingsDueNotice(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'meeting_ids' => ['nullable', 'array'],
+            'meeting_ids.*' => ['integer'],
+            'due_notice' => ['required', 'boolean'],
+        ]);
+
+        $dueNotice = (bool) $validated['due_notice'];
+        $meetingIds = collect($validated['meeting_ids'] ?? []);
+        $defaultPrice = (float) ($course->price ?? 0);
+
+        if ($dueNotice) {
+            if ($meetingIds->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'اختر حصصاً غير مدفوعة لإظهار إشعار المستحقات',
+                ], 422);
+            }
+
+            // استبدال مجموعة الإشعار الحالية بالحصص المحددة فقط
+            ZoomMeeting::where('course_id', $course->id)
+                ->where('due_notice', true)
+                ->update(['due_notice' => false]);
+
+            ZoomMeeting::where('course_id', $course->id)
+                ->whereIn('id', $meetingIds)
+                ->where('is_paid', false)
+                ->update(['due_notice' => true]);
+        } elseif ($meetingIds->isNotEmpty()) {
+            ZoomMeeting::where('course_id', $course->id)
+                ->whereIn('id', $meetingIds)
+                ->update(['due_notice' => false]);
+        } else {
+            ZoomMeeting::where('course_id', $course->id)
+                ->where('due_notice', true)
+                ->update(['due_notice' => false]);
+        }
+
+        $updated = ZoomMeeting::where('course_id', $course->id)
+            ->get(['id', 'is_paid', 'due_notice', 'session_price'])
+            ->map(function (ZoomMeeting $meeting) use ($defaultPrice) {
+                $price = (float) ($meeting->session_price ?? $defaultPrice);
+
+                return [
+                    'id' => $meeting->id,
+                    'is_paid' => (bool) $meeting->is_paid,
+                    'due_notice' => (bool) $meeting->due_notice,
+                    'session_price' => $price,
+                    'session_price_format' => number_format($price, 2) . ' ر.س',
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'message' => $dueNotice
+                ? 'تم تفعيل إشعار المستحقات للطالب'
+                : 'تم إزالة إشعار المستحقات',
+            'meetings' => $updated,
+            'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
         ]);
     }
 
