@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class CoursePaymentSyncService
 {
     public function __construct(
-        private MoyasarService $moyasar
+        private PaddleService $paddle
     ) {}
 
     public function syncPayment(CoursePayment $payment): bool
@@ -17,15 +17,19 @@ class CoursePaymentSyncService
             return true;
         }
 
+        if (!$payment->paddle_transaction_id) {
+            return false;
+        }
+
         try {
-            $invoice = $this->moyasar->fetchInvoice($payment->moyasar_invoice_id);
-            $payment->syncFromMoyasarInvoice($invoice);
+            $transaction = $this->paddle->fetchTransaction($payment->paddle_transaction_id);
+            $payment->syncFromPaddleTransaction($transaction);
 
             return $payment->fresh()->isPaid();
         } catch (\Exception $e) {
-            Log::warning('Failed to sync payment status from Moyasar', [
+            Log::warning('Failed to sync payment status from Paddle', [
                 'payment_id' => $payment->id,
-                'invoice_id' => $payment->moyasar_invoice_id,
+                'transaction_id' => $payment->paddle_transaction_id,
                 'error' => $e->getMessage(),
             ]);
 
@@ -37,6 +41,7 @@ class CoursePaymentSyncService
     {
         CoursePayment::where('student_id', $studentId)
             ->unpaid()
+            ->whereNotNull('paddle_transaction_id')
             ->get()
             ->each(fn (CoursePayment $payment) => $this->syncPayment($payment));
     }
@@ -44,6 +49,7 @@ class CoursePaymentSyncService
     public function syncAllUnpaidPayments(): void
     {
         CoursePayment::unpaid()
+            ->whereNotNull('paddle_transaction_id')
             ->get()
             ->each(fn (CoursePayment $payment) => $this->syncPayment($payment));
     }

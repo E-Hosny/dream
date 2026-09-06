@@ -30,7 +30,7 @@ class StoreCoursePaymentRequest extends FormRequest
             'course_id.exists' => 'الكورس المحدد غير موجود',
             'amount.required' => 'يجب إدخال المبلغ',
             'amount.numeric' => 'المبلغ يجب أن يكون رقماً',
-            'amount.min' => 'الحد الأدنى للمبلغ هو 1 ريال',
+            'amount.min' => 'الحد الأدنى للمبلغ هو 1',
             'amount.max' => 'المبلغ كبير جداً',
         ];
     }

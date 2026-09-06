@@ -5,22 +5,23 @@ namespace App\Http\Controllers\Student;
 use App\Http\Controllers\Controller;
 use App\Models\CoursePayment;
 use App\Services\CoursePaymentSyncService;
-use App\Services\MoyasarService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
     /**
-     * Handle redirect after successful Moyasar payment.
+     * Handle redirect after successful Paddle checkout.
      */
     public function success(Request $request, CoursePaymentSyncService $syncService)
     {
         $user = Auth::user();
-        $invoiceId = $request->query('id') ?? $request->query('invoice');
+        $transactionId = $request->query('_ptxn')
+            ?? $request->query('transaction_id')
+            ?? $request->query('id');
 
-        if ($invoiceId) {
-            $payment = CoursePayment::where('moyasar_invoice_id', $invoiceId)
+        if ($transactionId) {
+            $payment = CoursePayment::where('paddle_transaction_id', $transactionId)
                 ->where('student_id', $user->id)
                 ->first();
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\PaddleService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,10 +16,16 @@ class CoursePayment extends Model
         'amount_format',
         'currency',
         'description',
+        'paddle_transaction_id',
+        'paddle_checkout_url',
         'moyasar_invoice_id',
         'moyasar_invoice_url',
         'status',
         'paid_at',
+    ];
+
+    protected $appends = [
+        'payment_url',
     ];
 
     protected $casts = [
@@ -57,23 +64,47 @@ class CoursePayment extends Model
         return $query->whereIn('status', self::UNPAID_STATUSES);
     }
 
-    public static function findByMoyasarInvoiceId(string $invoiceId): ?self
+    public function getPaymentUrlAttribute(): ?string
     {
-        return static::where('moyasar_invoice_id', $invoiceId)->first();
+        $url = $this->paddle_checkout_url ?: $this->moyasar_invoice_url;
+
+        if ($this->paddle_transaction_id) {
+            return app(\App\Services\PaddleService::class)
+                ->normalizeCheckoutUrl($url, $this->paddle_transaction_id);
+        }
+
+        return $url;
     }
 
-    public function syncFromMoyasarInvoice(array $invoice): bool
+    public function getProviderPaymentIdAttribute(): ?string
     {
-        $status = $invoice['status'] ?? null;
+        return $this->paddle_transaction_id ?: $this->moyasar_invoice_id;
+    }
+
+    public static function findByPaddleTransactionId(string $transactionId): ?self
+    {
+        return static::where('paddle_transaction_id', $transactionId)->first();
+    }
+
+    public function syncFromPaddleTransaction(array $transaction): bool
+    {
+        $status = $transaction['status'] ?? null;
 
         if (!$status) {
             return false;
         }
 
-        $this->status = $status;
-
-        if ($status === 'paid') {
+        if (PaddleService::isPaidStatus($status)) {
+            $this->status = 'paid';
             $this->paid_at = $this->paid_at ?? now();
+        } elseif ($status === 'canceled') {
+            $this->status = 'canceled';
+        } elseif (in_array($status, ['past_due', 'failed'], true)) {
+            $this->status = 'failed';
+        }
+
+        if (!empty($transaction['checkout']['url'])) {
+            $this->paddle_checkout_url = $transaction['checkout']['url'];
         }
 
         $this->save();

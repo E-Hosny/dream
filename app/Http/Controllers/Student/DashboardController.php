@@ -22,7 +22,7 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // مزامنة حالة الفواتير غير المدفوعة من Moyasar (يعالج حالات عدم وصول webhook)
+        // مزامنة حالة الفواتير غير المدفوعة من Paddle (يعالج حالات عدم وصول webhook)
         $paymentSync->syncStudentUnpaidPayments($user->id);
         
         // جلب الكورسات المسجلة للطالب مع معلومات الكورس والمدرب
@@ -85,7 +85,7 @@ class DashboardController extends Controller
                     ],
                     'pending_payment' => $pendingPayment ? [
                         'amount_format' => $pendingPayment->amount_format,
-                        'payment_url' => $pendingPayment->moyasar_invoice_url,
+                        'payment_url' => $pendingPayment->payment_url,
                         'description' => $pendingPayment->description,
                     ] : null,
                 ];

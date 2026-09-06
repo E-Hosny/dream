@@ -77,7 +77,7 @@
                                     </div>
 
                                     <div>
-                                        <InputLabel for="amount" value="المبلغ (ريال سعودي)" class="text-amber-800 font-medium" />
+                                        <InputLabel for="amount" :value="`المبلغ (${currency})`" class="text-amber-800 font-medium" />
                                         <TextInput
                                             id="amount"
                                             type="number"
@@ -89,6 +89,9 @@
                                             required
                                         />
                                         <InputError :message="form.errors.amount" class="mt-2" />
+                                        <p class="text-sm text-amber-700 mt-1">
+                                            يُدخل المبلغ بالريال السعودي ويظهر كذلك للطالب. عند الدفع يُحوَّل إلى دولار بسعر 1 دولار = 3.75 ر.س.
+                                        </p>
                                     </div>
 
                                     <div>
@@ -138,6 +141,10 @@ import PrimaryButton from '@/Components/PrimaryButton.vue'
 
 defineProps({
     courses: Array,
+    currency: {
+        type: String,
+        default: 'SAR',
+    },
 })
 
 const form = useForm({

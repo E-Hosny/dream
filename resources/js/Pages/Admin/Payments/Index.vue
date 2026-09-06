@@ -43,6 +43,13 @@
                             </div>
                         </div>
 
+                        <div v-if="$page.props.flash?.success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+                            {{ $page.props.flash.success }}
+                        </div>
+                        <div v-if="$page.props.errors?.error" class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+                            {{ $page.props.errors.error }}
+                        </div>
+
                         <!-- Filters -->
                         <div class="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                             <input
@@ -84,7 +91,7 @@
                                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">المبلغ</th>
                                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">الحالة</th>
                                         <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">التاريخ</th>
-                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">رابط الدفع</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -97,7 +104,7 @@
                                             {{ payment.course?.title_ar || payment.course?.title }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-center">
-                                            {{ payment.amount_format || formatAmount(payment.amount) }}
+                                            {{ payment.amount_format || formatAmount(payment.amount, payment.currency) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
                                             <span :class="getStatusClass(payment.status)" class="inline-block px-2 py-1 text-xs font-medium rounded-full">
@@ -108,15 +115,42 @@
                                             {{ formatDate(payment.created_at) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            <a
-                                                v-if="payment.status === 'initiated'"
-                                                :href="payment.moyasar_invoice_url"
-                                                target="_blank"
-                                                class="text-amber-600 hover:text-amber-800 font-medium"
-                                            >
-                                                فتح رابط الدفع
-                                            </a>
-                                            <span v-else class="text-gray-400">—</span>
+                                            <div class="flex items-center justify-center gap-3">
+                                                <a
+                                                    v-if="payment.status === 'initiated'"
+                                                    :href="payment.payment_url"
+                                                    target="_blank"
+                                                    class="text-amber-600 hover:text-amber-800 font-medium"
+                                                >
+                                                    فتح الرابط
+                                                </a>
+                                                <button
+                                                    v-if="payment.status === 'initiated' && payment.payment_url"
+                                                    type="button"
+                                                    class="font-medium"
+                                                    :class="copiedId === payment.id ? 'text-green-600' : 'text-blue-600 hover:text-blue-800'"
+                                                    @click="copyPaymentLink(payment)"
+                                                >
+                                                    {{ copiedId === payment.id ? 'تم النسخ' : 'نسخ الرابط' }}
+                                                </button>
+                                                <button
+                                                    v-if="payment.status === 'initiated'"
+                                                    type="button"
+                                                    class="text-gray-600 hover:text-gray-800 font-medium"
+                                                    @click="cancelPayment(payment)"
+                                                >
+                                                    إلغاء
+                                                </button>
+                                                <button
+                                                    v-if="payment.status !== 'paid'"
+                                                    type="button"
+                                                    class="text-red-600 hover:text-red-800 font-medium"
+                                                    @click="deletePayment(payment)"
+                                                >
+                                                    حذف
+                                                </button>
+                                                <span v-if="payment.status === 'paid'" class="text-gray-400">—</span>
+                                            </div>
                                         </td>
                                     </tr>
                                     <tr v-if="!payments.data?.length">
@@ -153,7 +187,7 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { Link, router } from '@inertiajs/vue3'
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 
@@ -172,6 +206,35 @@ const searchForm = reactive({
     status: props.filters?.status || '',
 })
 
+const copiedId = ref(null)
+let copiedTimeout = null
+
+const copyPaymentLink = async (payment) => {
+    const url = payment.payment_url
+    if (!url) {
+        return
+    }
+
+    try {
+        await navigator.clipboard.writeText(url)
+    } catch (error) {
+        const input = document.createElement('textarea')
+        input.value = url
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand('copy')
+        document.body.removeChild(input)
+    }
+
+    copiedId.value = payment.id
+    if (copiedTimeout) {
+        clearTimeout(copiedTimeout)
+    }
+    copiedTimeout = setTimeout(() => {
+        copiedId.value = null
+    }, 2000)
+}
+
 const applyFilters = () => {
     router.get(route('admin.payments.index'), searchForm, {
         preserveState: true,
@@ -179,8 +242,29 @@ const applyFilters = () => {
     })
 }
 
-const formatAmount = (halalas) => {
-    return (halalas / 100).toFixed(2) + ' SAR'
+const cancelPayment = (payment) => {
+    if (!confirm('هل تريد إلغاء هذه الفاتورة غير المدفوعة؟ لن يستطيع الطالب الدفع بعدها.')) {
+        return
+    }
+
+    router.post(route('admin.payments.cancel', payment.id), {}, {
+        preserveScroll: true,
+    })
+}
+
+const deletePayment = (payment) => {
+    if (!confirm('هل تريد حذف هذه الفاتورة؟ لا يمكن التراجع عن هذا الإجراء.')) {
+        return
+    }
+
+    router.delete(route('admin.payments.destroy', payment.id), {
+        preserveScroll: true,
+    })
+}
+
+const formatAmount = (halalas, currency = 'SAR') => {
+    const label = currency === 'SAR' ? 'ر.س' : currency
+    return (halalas / 100).toFixed(2) + ' ' + label
 }
 
 const formatDate = (date) => {

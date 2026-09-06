@@ -9,7 +9,7 @@ use App\Models\CourseEnrollment;
 use App\Models\CoursePayment;
 use App\Models\User;
 use App\Services\CoursePaymentSyncService;
-use App\Services\MoyasarService;
+use App\Services\PaddleService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -57,6 +57,7 @@ class PaymentController extends Controller
     {
         return Inertia::render('Admin/Payments/Create', [
             'courses' => $this->coursesForSelect(),
+            'currency' => config('services.paddle.display_currency', 'SAR'),
         ]);
     }
 
@@ -74,7 +75,7 @@ class PaymentController extends Controller
         return response()->json(['students' => $students]);
     }
 
-    public function store(StoreCoursePaymentRequest $request, MoyasarService $moyasar)
+    public function store(StoreCoursePaymentRequest $request, PaddleService $paddle)
     {
         $validated = $request->validated();
 
@@ -98,29 +99,46 @@ class PaymentController extends Controller
 
         $student = User::findOrFail($validated['student_id']);
         $course = Course::findOrFail($validated['course_id']);
-        $amountHalalas = MoyasarService::sarToHalalas((float) $validated['amount']);
+        $sarMinor = PaddleService::toMinorUnits((float) $validated['amount']);
+        $usdMinor = $paddle->convertSarToUsdMinor($sarMinor);
+        $displayCurrency = $paddle->displayCurrency();
+        $courseTitle = $course->title_ar ?: $course->title;
         $description = $validated['description']
-            ?? "رسوم كورس: {$course->title_ar} - {$student->name}";
+            ?? "رسوم كورس: {$courseTitle} - {$student->name}";
+
+        if ($usdMinor < 70) {
+            $minimumSar = number_format(0.70 * $paddle->usdSarRate(), 2);
+
+            return back()->withErrors([
+                'amount' => "المبلغ بعد التحويل للدولار أقل من الحد الأدنى لدى Paddle. الحد الأدنى تقريباً {$minimumSar} ر.س",
+            ]);
+        }
 
         try {
-            $invoice = $moyasar->createInvoice(
-                $amountHalalas,
+            $transaction = $paddle->createTransaction(
+                $usdMinor,
                 $description,
-                route('moyasar.webhook'),
-                route('student.payments.success')
+                $courseTitle,
+                [
+                    'student_id' => $student->id,
+                    'course_id' => $course->id,
+                    'source' => 'inskola',
+                ],
+                $student->email,
+                $student->name
             );
 
             CoursePayment::create([
                 'student_id' => $validated['student_id'],
                 'course_id' => $validated['course_id'],
                 'created_by' => $request->user()->id,
-                'amount' => $invoice['amount'],
-                'amount_format' => $invoice['amount_format'] ?? null,
-                'currency' => $invoice['currency'] ?? 'SAR',
+                'amount' => $sarMinor,
+                'amount_format' => PaddleService::formatAmount($sarMinor, $displayCurrency),
+                'currency' => $displayCurrency,
                 'description' => $description,
-                'moyasar_invoice_id' => $invoice['id'],
-                'moyasar_invoice_url' => $invoice['url'],
-                'status' => $invoice['status'] ?? 'initiated',
+                'paddle_transaction_id' => $transaction['id'],
+                'paddle_checkout_url' => $transaction['checkout_url'],
+                'status' => 'initiated',
             ]);
 
             return redirect()->route('admin.payments.index')
@@ -128,6 +146,51 @@ class PaymentController extends Controller
         } catch (\RuntimeException $e) {
             return back()->withErrors(['error' => 'فشل إنشاء الفاتورة: ' . $e->getMessage()]);
         }
+    }
+
+    public function cancel(CoursePayment $payment, CoursePaymentSyncService $paymentSync, PaddleService $paddle)
+    {
+        if ($response = $this->guardUnpaidAction($payment, $paymentSync, 'إلغاء')) {
+            return $response;
+        }
+
+        $paddle->cancelTransaction($payment->paddle_transaction_id);
+
+        $payment->update([
+            'status' => 'canceled',
+        ]);
+
+        return back()->with('success', 'تم إلغاء الفاتورة بنجاح');
+    }
+
+    public function destroy(CoursePayment $payment, CoursePaymentSyncService $paymentSync, PaddleService $paddle)
+    {
+        if ($response = $this->guardUnpaidAction($payment, $paymentSync, 'حذف')) {
+            return $response;
+        }
+
+        $paddle->cancelTransaction($payment->paddle_transaction_id);
+        $payment->delete();
+
+        return back()->with('success', 'تم حذف الفاتورة بنجاح');
+    }
+
+    private function guardUnpaidAction(CoursePayment $payment, CoursePaymentSyncService $paymentSync, string $action)
+    {
+        if ($payment->paddle_transaction_id) {
+            $paymentSync->syncPayment($payment);
+            $payment->refresh();
+        }
+
+        if ($payment->isPaid()) {
+            return back()->withErrors(['error' => "لا يمكن {$action} فاتورة مدفوعة"]);
+        }
+
+        if (!$payment->isUnpaid() && $action === 'إلغاء') {
+            return back()->withErrors(['error' => 'يمكن إلغاء الفواتير غير المدفوعة فقط']);
+        }
+
+        return null;
     }
 
     private function coursesForSelect()

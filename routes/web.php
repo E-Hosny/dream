@@ -7,8 +7,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MailTestController;
 
 Route::get("/", function () {
+    $transactionId = request()->query('_ptxn');
+
+    if ($transactionId) {
+        return redirect('/checkout?_ptxn=' . urlencode($transactionId));
+    }
+
     return redirect()->route('login');
 });
+
+Route::get('/checkout', [\App\Http\Controllers\PaddleCheckoutController::class, 'show'])
+    ->name('paddle.checkout');
 
 
 
@@ -16,9 +25,9 @@ Route::get("/language/{locale}", [LanguageController::class, "change"])
     ->name("language.change")
     ->where("locale", "[a-z]{2}");
 
-// Moyasar webhook (no auth, no CSRF)
-Route::post('/webhooks/moyasar', [\App\Http\Controllers\MoyasarWebhookController::class, 'handle'])
-    ->name('moyasar.webhook');
+// Paddle webhook (no auth, no CSRF)
+Route::post('/webhooks/paddle', [\App\Http\Controllers\PaddleWebhookController::class, 'handle'])
+    ->name('paddle.webhook');
 
 Route::middleware(['auth', 'role.redirect'])->group(function () {
     Route::get('/announcements/{announcement}/image', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'image'])->name('announcements.image');
@@ -56,7 +65,8 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::post('/enrollments/bulk', [App\Http\Controllers\Admin\EnrollmentController::class, 'bulkEnroll'])->name('enrollments.bulk');
 
         // Payments management
-        Route::resource('payments', App\Http\Controllers\Admin\PaymentController::class)->only(['index', 'create', 'store']);
+        Route::resource('payments', App\Http\Controllers\Admin\PaymentController::class)->only(['index', 'create', 'store', 'destroy']);
+        Route::post('/payments/{payment}/cancel', [App\Http\Controllers\Admin\PaymentController::class, 'cancel'])->name('payments.cancel');
 
         Route::get('/api/courses/{course}/enrolled-students', [App\Http\Controllers\Admin\PaymentController::class, 'enrolledStudents'])
             ->name('api.courses.enrolled-students');

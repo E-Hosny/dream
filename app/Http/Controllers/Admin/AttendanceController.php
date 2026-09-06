@@ -169,6 +169,8 @@ class AttendanceController extends Controller
     public function courseReport($courseId, Request $request)
     {
         $course = Course::findOrFail($courseId);
+
+        ZoomMeeting::consolidateAllDaysForCourse((int) $courseId);
         
         // الحصول على جميع اجتماعات الكورس
         $meetingsQuery = ZoomMeeting::where('course_id', $courseId)

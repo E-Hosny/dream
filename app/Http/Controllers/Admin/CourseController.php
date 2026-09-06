@@ -174,6 +174,9 @@ class CourseController extends Controller
     {
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
+
+        // دمج جلسات نفس اليوم المكررة والإبقاء على الأطول
+        ZoomMeeting::consolidateAllDaysForCourse($course->id);
         
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
         $meetings = ZoomMeeting::with('assignments')
