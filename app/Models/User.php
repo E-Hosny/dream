@@ -23,6 +23,9 @@ class User extends Authenticatable
     protected $fillable = [
         "name",
         "email",
+        "phone",
+        "specialty",
+        "grade_level",
         "password",
         "zoom_account_id",
     ];

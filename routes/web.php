@@ -7,8 +7,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\MailTestController;
 
 Route::get("/", function () {
+    $transactionId = request()->query('_ptxn');
+
+    if ($transactionId) {
+        return redirect('/checkout?_ptxn=' . urlencode($transactionId));
+    }
+
     return redirect()->route('login');
 });
+
+Route::get('/checkout', [\App\Http\Controllers\PaddleCheckoutController::class, 'show'])
+    ->name('paddle.checkout');
 
 
 
@@ -16,7 +25,13 @@ Route::get("/language/{locale}", [LanguageController::class, "change"])
     ->name("language.change")
     ->where("locale", "[a-z]{2}");
 
+// Paddle webhook (no auth, no CSRF)
+Route::post('/webhooks/paddle', [\App\Http\Controllers\PaddleWebhookController::class, 'handle'])
+    ->name('paddle.webhook');
+
 Route::middleware(['auth', 'role.redirect'])->group(function () {
+    Route::get('/announcements/{announcement}/image', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'image'])->name('announcements.image');
+
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
@@ -24,6 +39,8 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/terms', [\App\Http\Controllers\TermsController::class, 'show'])->name('terms.show');
 
     // Admin Routes
     Route::prefix('admin')->name('admin.')->group(function () {
@@ -46,6 +63,13 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         // Enrollments management
         Route::resource('enrollments', App\Http\Controllers\Admin\EnrollmentController::class);
         Route::post('/enrollments/bulk', [App\Http\Controllers\Admin\EnrollmentController::class, 'bulkEnroll'])->name('enrollments.bulk');
+
+        // Payments management
+        Route::resource('payments', App\Http\Controllers\Admin\PaymentController::class)->only(['index', 'create', 'store', 'destroy']);
+        Route::post('/payments/{payment}/cancel', [App\Http\Controllers\Admin\PaymentController::class, 'cancel'])->name('payments.cancel');
+
+        Route::get('/api/courses/{course}/enrolled-students', [App\Http\Controllers\Admin\PaymentController::class, 'enrolledStudents'])
+            ->name('api.courses.enrolled-students');
         
         Route::get('/reports', function () {
             return Inertia::render('Admin/Reports/Index');
@@ -54,6 +78,9 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::get('/settings', function () {
             return Inertia::render('Admin/Settings/Index');
         })->name('settings.index');
+        Route::get('/settings/general-messages', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'index'])->name('settings.general-messages.index');
+        Route::post('/settings/general-messages', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'store'])->name('settings.general-messages.store');
+        Route::delete('/settings/general-messages/{announcement}', [App\Http\Controllers\Admin\CourseAnnouncementController::class, 'destroy'])->name('settings.general-messages.destroy');
 
         // Zoom Meetings Management
         Route::resource('zoom-meetings', \App\Http\Controllers\ZoomMeetingController::class);
@@ -171,6 +198,8 @@ Route::middleware(['auth'])->group(function () {
     // Student Routes
     Route::prefix('student')->name('student.')->middleware(['auth', 'role:student'])->group(function () {
         Route::get('/dashboard', [\App\Http\Controllers\Student\DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/payments/success', [\App\Http\Controllers\Student\PaymentController::class, 'success'])
+            ->name('payments.success');
         Route::get('/active-meetings', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetings'])->name('active-meetings');
         Route::get('/courses/{course}/active-meeting-status', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingStatus'])->name('active-meeting-status');
         Route::get('/courses/{course}/active-meeting', [\App\Http\Controllers\Student\DashboardController::class, 'getActiveMeetingForCourse'])->name('active-meeting');

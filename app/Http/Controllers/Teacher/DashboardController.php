@@ -26,6 +26,7 @@ class DashboardController extends Controller
         // جلب الكورسات التي يدرسها المعلم مع المواعيد والاجتماعات النشطة
         $courses = Course::with(['schedules', 'enrollments.student'])
             ->where('instructor_id', $user->id)
+            ->where('status', '!=', 'completed')
             ->get()
             ->map(function ($course) {
                 $nextSchedule = $course->next_schedule;
@@ -71,9 +72,10 @@ class DashboardController extends Controller
                         ];
                     }),
                     'nextSchedule' => $nextSchedule ? [
+                        'id' => $nextSchedule->id,
                         'day' => $nextSchedule->localized_day_name,
                         'time' => $nextSchedule->start_time->format('H:i'),
-                        'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans()
+                        'nextOccurrence' => $nextSchedule->next_occurrence->diffForHumans(),
                     ] : null,
                     'activeMeeting' => $activeMeeting ? [
                         'id' => $activeMeeting->id,
@@ -148,9 +150,14 @@ class DashboardController extends Controller
             DB::beginTransaction();
             
             // إنهاء الاجتماع
+            $startAt = $activeMeeting->actual_start_time ?: $activeMeeting->start_time ?: now();
+            $endAt = now();
+            $durationMinutes = max(1, (int) ceil($startAt->diffInSeconds($endAt) / 60));
+
             $activeMeeting->update([
                 'status' => 'ended',
-                'actual_end_time' => now(), // الوقت الفعلي لانتهاء الاجتماع
+                'actual_end_time' => $endAt,
+                'duration' => $durationMinutes,
                 'updated_by' => $user->id,
                 'updated_at' => now()
             ]);
@@ -221,6 +228,12 @@ class DashboardController extends Controller
 
             DB::commit();
             
+            ZoomMeeting::consolidateSameDaySessions(
+                (int) $courseId,
+                null,
+                $activeMeeting->id
+            );
+
             \Log::info("Meeting ended by teacher with attendance tracking. Meeting ID: {$activeMeeting->id}, Course ID: {$courseId}, Teacher ID: {$user->id}");
             
             return response()->json([

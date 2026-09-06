@@ -10,20 +10,41 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ZoomMeeting;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\CourseAnnouncement;
+use App\Models\CoursePayment;
 use App\Models\MeetingAttendance;
+use App\Services\CoursePaymentSyncService;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(CoursePaymentSyncService $paymentSync)
     {
         $user = Auth::user();
+
+        // مزامنة حالة الفواتير غير المدفوعة من Paddle (يعالج حالات عدم وصول webhook)
+        $paymentSync->syncStudentUnpaidPayments($user->id);
         
         // جلب الكورسات المسجلة للطالب مع معلومات الكورس والمدرب
+        $pendingPayments = CoursePayment::where('student_id', $user->id)
+            ->unpaid()
+            ->get()
+            ->keyBy('course_id');
+
         $enrollments = CourseEnrollment::with(['course.instructor', 'course.schedules'])
             ->where('student_id', $user->id)
+            ->whereHas('course', function($query) {
+                $query->where('status', '!=', 'completed');
+            })
             ->get()
-            ->map(function ($enrollment) {
+            ->map(function ($enrollment) use ($pendingPayments) {
                 $nextSchedule = $enrollment->course->next_schedule;
+                $activeAnnouncement = CourseAnnouncement::where('course_id', $enrollment->course->id)
+                    ->currentlyVisible()
+                    ->orderByDesc('starts_at')
+                    ->first();
+
+                $pendingPayment = $pendingPayments->get($enrollment->course->id);
                 
                 return [
                     'id' => $enrollment->id,
@@ -52,11 +73,21 @@ class DashboardController extends Controller
                     ] : null,
                     'course_id' => $enrollment->course->id,
                     'hasActiveMeeting' => $this->hasActiveMeeting($enrollment->course->id),
+                    'active_announcement' => $activeAnnouncement ? [
+                        'title' => $activeAnnouncement->title,
+                        'message' => $activeAnnouncement->message,
+                        'image_url' => $activeAnnouncement->image_path ? route('announcements.image', $activeAnnouncement->id) : null,
+                    ] : null,
                     'course' => [
                         'title' => $enrollment->course->title_ar,
                         'titleEn' => $enrollment->course->title,
                         'instructor' => $enrollment->course->instructor->name,
-                    ]
+                    ],
+                    'pending_payment' => $pendingPayment ? [
+                        'amount_format' => $pendingPayment->amount_format,
+                        'payment_url' => $pendingPayment->payment_url,
+                        'description' => $pendingPayment->description,
+                    ] : null,
                 ];
             });
 
@@ -396,11 +427,23 @@ class DashboardController extends Controller
             ->first();
             
         $nextSchedule = $course->next_schedule;
+        $activeAnnouncement = CourseAnnouncement::where('course_id', $course->id)
+            ->currentlyVisible()
+            ->orderByDesc('starts_at')
+            ->first();
         
         $courseData = [
             'id' => $course->id,
             'title' => $course->title_ar,
             'titleEn' => $course->title,
+            'studentMessage' => $course->student_message,
+            'activeAnnouncement' => $activeAnnouncement ? [
+                'title' => $activeAnnouncement->title,
+                'message' => $activeAnnouncement->message,
+                'image_url' => $activeAnnouncement->image_path ? route('announcements.image', $activeAnnouncement->id) : null,
+                'starts_at' => $activeAnnouncement->starts_at?->format('Y-m-d H:i:s'),
+                'ends_at' => $activeAnnouncement->ends_at?->format('Y-m-d H:i:s'),
+            ] : null,
             'activeMeeting' => $activeMeeting ? [
                 'id' => $activeMeeting->id,
                 'topic' => $activeMeeting->topic,

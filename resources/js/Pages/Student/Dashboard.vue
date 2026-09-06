@@ -197,7 +197,11 @@ const t = (key) => {
             meeting_password: 'Password',
             refresh_page: 'Refresh',
             join_meeting_now: 'Join Meeting',
-            meeting_available: 'Meeting Available'
+            meeting_available: 'Meeting Available',
+            important_announcement: 'Important Announcement',
+            payment_due: 'Payment Due',
+            pay_now: 'Pay Now',
+            payment_amount: 'Amount due'
         },
         ar: {
             student_dashboard: 'لوحة تحكم الطالب',
@@ -223,7 +227,11 @@ const t = (key) => {
             meeting_password: 'كلمة المرور',
             refresh_page: 'تحديث',
             join_meeting_now: 'انضم للاجتماع',
-            meeting_available: 'اجتماع متاح'
+            meeting_available: 'اجتماع متاح',
+            important_announcement: 'تنبيه مهم',
+            payment_due: 'مبلغ مستحق',
+            pay_now: 'ادفع الآن',
+            payment_amount: 'المبلغ المستحق'
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -251,6 +259,10 @@ const getStatusText = (status) => {
     <Head :title="t('student_dashboard')" />
 
     <StudentLayout>
+        <div v-if="$page.props.flash?.success" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
+            {{ $page.props.flash.success }}
+        </div>
+
         <!-- Page Header -->
         <div class="mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -299,19 +311,39 @@ const getStatusText = (status) => {
                                 </span>
                             </div>
                         </div>
-                        <Link :href="route('student.courses.show', enrollment.course_id)" 
-                              class="px-6 py-2 bg-gradient-to-r from-brand to-brand-dark text-white rounded-lg hover:from-brand-dark hover:to-brand transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center">
-                            <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            {{ t('view_course') }}
-                        </Link>
+                        <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 shrink-0 mt-3 sm:mt-0">
+                            <template v-if="activeMeetingStates[enrollment.course_id]">
+                                <span class="hidden sm:inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 self-center">
+                                    <svg class="w-2 h-2 mr-1 rtl:mr-0 rtl:ml-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                                        <circle cx="4" cy="4" r="4" />
+                                    </svg>
+                                    {{ t('meeting_available') }}
+                                </span>
+                                <button
+                                    type="button"
+                                    @click="joinMeeting(enrollment.course_id)"
+                                    class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-md hover:shadow-lg inline-flex items-center justify-center"
+                                >
+                                    <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    {{ t('join_meeting_now') }}
+                                </button>
+                            </template>
+                            <Link :href="route('student.courses.show', enrollment.course_id)"
+                                  class="px-6 py-2 bg-gradient-to-r from-brand to-brand-dark text-white rounded-lg hover:from-brand-dark hover:to-brand transition-all duration-200 shadow-md hover:shadow-lg inline-flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                {{ t('view_course') }}
+                            </Link>
+                        </div>
                     </div>
                     
                     <!-- Next Schedule -->
                     <div v-if="enrollment.nextSchedule" class="mb-4 p-4 bg-brand/5 rounded-lg border border-brand/20">
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center space-x-2 rtl:space-x-reverse">
                             <svg class="h-5 w-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -328,20 +360,68 @@ const getStatusText = (status) => {
                                 </p>
                                 </div>
                             </div>
-                            <!-- Join Meeting Button - Show if there's an active meeting -->
-                            <div v-if="activeMeetingStates[enrollment.course_id]" class="flex items-center space-x-2 rtl:space-x-reverse">
+                            <!-- Join meeting next to next-session block (same as before) -->
+                            <div v-if="activeMeetingStates[enrollment.course_id]" class="flex items-center space-x-2 rtl:space-x-reverse shrink-0 mt-3 sm:mt-0">
                                 <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                    <svg class="w-2 h-2 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                                    <svg class="w-2 h-2 mr-1 rtl:mr-0 rtl:ml-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
                                         <circle cx="4" cy="4" r="4" />
                                     </svg>
                                     {{ t('meeting_available') }}
                                 </span>
-                                <button @click="joinMeeting(enrollment.course_id)" 
-                                        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                                <button
+                                    type="button"
+                                    @click="joinMeeting(enrollment.course_id)"
+                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                                >
                                     {{ t('join_meeting_now') }}
                                 </button>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Pending Payment -->
+                    <div v-if="enrollment.pending_payment" class="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-300">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                                <svg class="h-6 w-6 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-semibold text-amber-900">
+                                        {{ t('payment_due') }}
+                                    </p>
+                                    <p class="text-sm text-amber-800 mt-1">
+                                        {{ t('payment_amount') }}: <span class="font-bold">{{ enrollment.pending_payment.amount_format }}</span>
+                                    </p>
+                                    <p v-if="enrollment.pending_payment.description" class="text-xs text-amber-700 mt-1">
+                                        {{ enrollment.pending_payment.description }}
+                                    </p>
+                                </div>
+                            </div>
+                            <a
+                                :href="enrollment.pending_payment.payment_url"
+                                target="_blank"
+                                class="px-6 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium shadow-md hover:shadow-lg inline-flex items-center justify-center shrink-0"
+                            >
+                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                                {{ t('pay_now') }}
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Active Announcement -->
+                    <div v-if="enrollment.active_announcement" class="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p class="text-sm font-semibold text-yellow-900">
+                            {{ t('important_announcement') }}: {{ enrollment.active_announcement.title }}
+                        </p>
+                        <p class="text-sm text-yellow-800 mt-1">{{ enrollment.active_announcement.message }}</p>
+                        <img
+                            v-if="enrollment.active_announcement.image_url"
+                            :src="enrollment.active_announcement.image_url"
+                            class="mt-3 w-full max-h-72 object-contain rounded-md border border-yellow-100 bg-white p-2"
+                        >
                     </div>
 
                     <!-- Course Schedule -->

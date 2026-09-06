@@ -353,6 +353,7 @@ class ZoomMeetingController extends Controller
             // تحديث حالة الاجتماع
             $meeting->update([
                 'status' => 'ended',
+                'actual_end_time' => now(),
                 'updated_by' => Auth::id()
             ]);
 
@@ -403,6 +404,14 @@ class ZoomMeetingController extends Controller
             }
 
             DB::commit();
+
+            if ($meeting->course_id) {
+                ZoomMeeting::consolidateSameDaySessions(
+                    (int) $meeting->course_id,
+                    null,
+                    $meeting->id
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -588,6 +597,56 @@ class ZoomMeetingController extends Controller
 
             Log::info('Creating instant meeting with data:', $meetingData);
 
+            $courseId = $request->input('course_id') ? (int) $request->input('course_id') : null;
+
+            // إن وُجد اجتماع نشط لنفس الكورس اليوم: أعد استخدامه بدل إنشاء جلسة جديدة
+            if ($courseId) {
+                $existingActive = ZoomMeeting::findActiveForCourseToday($courseId);
+                if ($existingActive) {
+                    MeetingAttendance::logAttendance(
+                        $existingActive->id,
+                        $teacher->id,
+                        MeetingAttendance::USER_TYPE_TEACHER,
+                        MeetingAttendance::ACTION_MEETING_START,
+                        [
+                            'zoom_meeting_id' => $existingActive->zoom_meeting_id,
+                            'course_id' => $courseId,
+                            'meeting_topic' => $existingActive->topic,
+                            'meeting_type' => 'instant',
+                            'reused_existing_session' => true,
+                        ]
+                    );
+
+                    Log::info('Reusing existing active meeting for course today', [
+                        'meeting_id' => $existingActive->id,
+                        'course_id' => $courseId,
+                        'teacher_id' => $teacher->id,
+                    ]);
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'تم استئناف اجتماع اليوم الحالي',
+                        'data' => [
+                            'meeting_id' => $existingActive->id,
+                            'start_url' => $existingActive->start_url,
+                            'join_url' => $existingActive->join_url,
+                            'password' => $existingActive->password,
+                            'reused' => true,
+                        ],
+                    ]);
+                }
+
+                // إنهاء اجتماعات started قديمة (من أيام سابقة أو راكدة)
+                ZoomMeeting::where('course_id', $courseId)
+                    ->where('status', 'started')
+                    ->where('created_at', '<', now()->subHours(2))
+                    ->update([
+                        'status' => 'ended',
+                        'actual_end_time' => DB::raw('COALESCE(actual_end_time, NOW())'),
+                        'updated_at' => now(),
+                    ]);
+            }
+
             // الحصول على ZoomService للمعلم
             $zoomService = $this->getZoomService($teacher->id);
 
@@ -596,34 +655,57 @@ class ZoomMeetingController extends Controller
             
             Log::info('Meeting created successfully:', $meeting);
 
-            // إنهاء أي اجتماعات قديمة نشطة لنفس الكورس قبل بدء اجتماع جديد
-            if ($request->input('course_id')) {
-                ZoomMeeting::where('course_id', $request->input('course_id'))
-                    ->where('status', 'started')
-                    ->where('created_at', '<', now()->subHours(2))
-                    ->update(['status' => 'ended', 'updated_at' => now()]);
+            $existingToday = $courseId
+                ? ZoomMeeting::forCourseOnDate($courseId)->orderByDesc('id')->first()
+                : null;
+
+            if ($existingToday) {
+                // نفس اليوم: حدّث نفس السجل بروابط Zoom الجديدة بدل إنشاء صف مكرر
+                $existingToday->update([
+                    'course_schedule_id' => $request->input('course_schedule_id') ?: $existingToday->course_schedule_id,
+                    'zoom_meeting_id' => $meeting['zoom_meeting_id'],
+                    'zoom_account_id' => $teacher->zoom_account_id,
+                    'topic' => $meetingData['topic'] ?: $existingToday->topic,
+                    'actual_start_time' => $existingToday->actual_start_time ?: now(),
+                    'start_time' => $existingToday->start_time ?: now(),
+                    'actual_end_time' => null,
+                    'duration' => $meetingData['duration'],
+                    'join_url' => $meeting['join_url'],
+                    'start_url' => $meeting['start_url'],
+                    'password' => $meeting['password'],
+                    'status' => 'started',
+                    'host_email' => $teacher->email,
+                    'updated_by' => $teacher->id,
+                ]);
+
+                $zoomMeeting = $existingToday->fresh();
+
+                Log::info('Updated existing same-day meeting instead of creating duplicate', [
+                    'meeting_id' => $zoomMeeting->id,
+                    'course_id' => $courseId,
+                ]);
+            } else {
+                // أول جلسة لهذا الكورس اليوم
+                $zoomMeeting = ZoomMeeting::create([
+                    'course_id' => $courseId,
+                    'course_schedule_id' => $request->input('course_schedule_id'),
+                    'zoom_meeting_id' => $meeting['zoom_meeting_id'],
+                    'zoom_account_id' => $teacher->zoom_account_id,
+                    'topic' => $meetingData['topic'],
+                    'start_time' => now(),
+                    'actual_start_time' => now(),
+                    'duration' => $meetingData['duration'],
+                    'join_url' => $meeting['join_url'],
+                    'start_url' => $meeting['start_url'],
+                    'password' => $meeting['password'],
+                    'status' => 'started',
+                    'host_email' => $teacher->email,
+                    'created_by' => $teacher->id,
+                    'updated_by' => $teacher->id,
+                ]);
+
+                Log::info('Zoom meeting saved to database:', $zoomMeeting->toArray());
             }
-
-            // حفظ بيانات الاجتماع في قاعدة البيانات
-            $zoomMeeting = ZoomMeeting::create([
-                'course_id' => $request->input('course_id'), // إضافة course_id
-                'course_schedule_id' => $request->input('course_schedule_id'), // إضافة course_schedule_id
-                'zoom_meeting_id' => $meeting['zoom_meeting_id'],
-                'zoom_account_id' => $teacher->zoom_account_id,
-                'topic' => $meetingData['topic'],
-                'start_time' => now(),
-                'actual_start_time' => now(), // الوقت الفعلي لبداية الاجتماع
-                'duration' => $meetingData['duration'],
-                'join_url' => $meeting['join_url'],
-                'start_url' => $meeting['start_url'],
-                'password' => $meeting['password'],
-                'status' => 'started', // تغيير من 'created' إلى 'started'
-                'host_email' => $teacher->email, // إضافة host_email
-                'created_by' => $teacher->id, // إضافة created_by
-                'updated_by' => $teacher->id  // إضافة updated_by
-            ]);
-
-            Log::info('Zoom meeting saved to database:', $zoomMeeting->toArray());
 
             // تسجيل بداية الاجتماع للمعلم
             MeetingAttendance::logAttendance(
@@ -633,9 +715,10 @@ class ZoomMeetingController extends Controller
                 MeetingAttendance::ACTION_MEETING_START,
                 [
                     'zoom_meeting_id' => $meeting['zoom_meeting_id'],
-                    'course_id' => $request->input('course_id'),
+                    'course_id' => $courseId,
                     'meeting_topic' => $meetingData['topic'],
-                    'meeting_type' => 'instant'
+                    'meeting_type' => 'instant',
+                    'resumed_same_day' => (bool) $existingToday,
                 ]
             );
 
@@ -645,8 +728,9 @@ class ZoomMeetingController extends Controller
             ]);
 
             // إرسال إشعار لجميع الطلاب المسجلين في الكورس (إذا كان الاجتماع مرتبط بكورس)
-            if ($request->input('course_id')) {
-                $course = Course::with('enrolledStudents')->find($request->input('course_id'));
+            // لا نعيد الإشعار عند استئناف جلسة نفس اليوم
+            if ($courseId && !$existingToday) {
+                $course = Course::with('enrolledStudents')->find($courseId);
                 if ($course) {
                     foreach ($course->enrolledStudents as $student) {
                         $student->notify(new MeetingStartedNotification($zoomMeeting, $course));
@@ -662,7 +746,9 @@ class ZoomMeetingController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إنشاء الاجتماع بنجاح',
+                'message' => $existingToday
+                    ? 'تم استئناف اجتماع اليوم بنجاح'
+                    : 'تم إنشاء الاجتماع بنجاح',
                 'data' => [
                     'meeting_id' => $zoomMeeting->id,
                     'start_url' => $meeting['start_url'],

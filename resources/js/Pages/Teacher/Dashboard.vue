@@ -155,7 +155,7 @@ const startMeeting = async (meetingId) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             }
         });
 
@@ -236,7 +236,7 @@ const endMeeting = async (courseId) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                'X-CSRF-TOKEN': page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             }
         });
 
@@ -388,16 +388,51 @@ const endMeeting = async (courseId) => {
                         <!-- Course Header -->
                         <div class="flex items-start justify-between mb-6">
                             <div class="flex-1">
-                                <div class="flex items-center justify-between mb-3">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                                     <h3 class="text-2xl font-bold text-gray-900">{{ currentLocale === 'ar' ? course.title : course.titleEn }}</h3>
-                                    <Link :href="route('teacher.courses.show', course.id)"
-                                          class="px-5 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors inline-flex items-center shadow-md hover:shadow-lg">
-                                        <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                        </svg>
-                                        {{ t('view_course') }}
-                                    </Link>
+                                    <div class="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 shrink-0">
+                                        <template v-if="course.hasActiveMeeting">
+                                            <span class="hidden sm:inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                                <svg class="w-2 h-2 mr-1 rtl:mr-0 rtl:ml-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                                                    <circle cx="4" cy="4" r="4" />
+                                                </svg>
+                                                {{ t('meeting_active') }}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                @click="endMeeting(course.id)"
+                                                class="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors inline-flex items-center justify-center shadow-md"
+                                            >
+                                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                                {{ t('end_meeting') }}
+                                            </button>
+                                        </template>
+                                        <template v-else-if="currentUser && currentUser.zoom_account_id">
+                                            <button
+                                                type="button"
+                                                @click="startInstantMeeting(course)"
+                                                class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors inline-flex items-center justify-center shadow-md"
+                                            >
+                                                <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                </svg>
+                                                {{ t('start_meeting') }}
+                                            </button>
+                                        </template>
+                                        <span v-else class="px-3 py-2 text-xs text-amber-800 bg-amber-50 rounded-lg border border-amber-200 self-center">
+                                            {{ currentLocale === 'ar' ? 'لا يوجد حساب Zoom مرتبط' : 'No Zoom account linked' }}
+                                        </span>
+                                        <Link :href="route('teacher.courses.show', course.id)"
+                                              class="px-5 py-2.5 text-sm font-semibold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors inline-flex items-center justify-center shadow-md hover:shadow-lg">
+                                            <svg class="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                            {{ t('view_course') }}
+                                        </Link>
+                                    </div>
                                 </div>
                                 <p class="text-gray-600 text-base line-clamp-2">{{ currentLocale === 'ar' ? course.description : course.descriptionEn }}</p>
                             </div>

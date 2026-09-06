@@ -42,6 +42,8 @@ const t = (key) => {
             ended: 'Ended',
             scheduled: 'Scheduled',
             join_now: 'Join Now',
+            course_message: 'Course Message',
+            announcement_message: 'Announcement',
             // Assignment translations
             assignment: 'Assignment',
             view_assignment: 'View Assignment',
@@ -93,6 +95,8 @@ const t = (key) => {
             ended: 'انتهى',
             scheduled: 'مجدول',
             join_now: 'انضم الآن',
+            course_message: 'رسالة الكورس',
+            announcement_message: 'تنبيه مهم',
             // Assignment translations
             assignment: 'الواجب',
             view_assignment: 'عرض الواجب',
@@ -415,6 +419,21 @@ const getSessionHeaderColor = (index) => {
 
         <!-- Main Content -->
         <div class="max-w-7xl mx-auto">
+            <!-- Active Announcement -->
+            <div v-if="course.activeAnnouncement" class="mb-6">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5">
+                    <p class="text-sm font-semibold text-yellow-900">
+                        {{ t('announcement_message') }}: {{ course.activeAnnouncement.title }}
+                    </p>
+                    <p class="text-sm text-yellow-800 mt-1">{{ course.activeAnnouncement.message }}</p>
+                    <img
+                        v-if="course.activeAnnouncement.image_url"
+                        :src="course.activeAnnouncement.image_url"
+                        class="mt-3 w-full max-h-80 object-contain rounded-lg border border-yellow-100 bg-white p-2"
+                    />
+                </div>
+            </div>
+
             <!-- Active Meeting Alert -->
             <div v-if="course.hasActiveMeeting && course.activeMeeting" class="mb-8">
                 <div class="bg-green-50 border border-green-200 rounded-xl p-6">
@@ -430,10 +449,17 @@ const getSessionHeaderColor = (index) => {
                                 <p class="text-green-700">{{ course.activeMeeting.topic }}</p>
                             </div>
                         </div>
-                        <button @click="joinMeeting(course.activeMeeting.id)" 
-                                class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
-                            {{ t('join_now') }}
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <div v-if="course.activeAnnouncement" class="max-w-md px-4 py-3 bg-white border border-green-200 rounded-lg text-sm text-green-900 shadow-sm">
+                                <p class="font-semibold">{{ t('announcement_message') }}: {{ course.activeAnnouncement.title }}</p>
+                                <p class="mt-1 text-green-800">{{ course.activeAnnouncement.message }}</p>
+                                <img v-if="course.activeAnnouncement.image_url" :src="course.activeAnnouncement.image_url" class="mt-2 rounded-md max-h-28 w-full object-cover border border-green-100" />
+                            </div>
+                            <button @click="joinMeeting(course.activeMeeting.id)" 
+                                    class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                                {{ t('join_now') }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -499,10 +525,16 @@ const getSessionHeaderColor = (index) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <button v-if="meeting.can_join" @click="joinMeeting(meeting.id)"
-                                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                                        {{ t('join_now') }}
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <div v-if="meeting.can_join && course.activeAnnouncement" class="max-w-xs px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+                                            <p class="font-semibold truncate">{{ course.activeAnnouncement.title }}</p>
+                                            <p class="mt-1">{{ course.activeAnnouncement.message }}</p>
+                                        </div>
+                                        <button v-if="meeting.can_join" @click="joinMeeting(meeting.id)"
+                                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                                            {{ t('join_now') }}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             

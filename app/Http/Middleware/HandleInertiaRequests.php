@@ -48,6 +48,10 @@ class HandleInertiaRequests extends Middleware
             'language' => __('app.language'),
             'available_locales' => config('app.available_locales'),
             'csrfToken' => csrf_token(),
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
         ];
     }
 }

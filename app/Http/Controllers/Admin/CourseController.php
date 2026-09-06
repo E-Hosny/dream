@@ -60,13 +60,14 @@ class CourseController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'duration_hours' => ['required', 'integer', 'min:1'],
             'level' => ['required', 'in:beginner,intermediate,advanced'],
-            'status' => ['required', 'in:draft,published,archived'],
+            'status' => ['required', 'in:draft,published,archived,completed'],
             'instructor_id' => ['required', 'exists:users,id'],
             'max_students' => ['nullable', 'integer', 'min:1'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'requirements' => ['nullable', 'array'],
             'learning_outcomes' => ['nullable', 'array'],
+            'student_message' => ['nullable', 'string'],
             'schedules' => ['nullable', 'array'],
             'schedules.*.day_of_week' => ['required', 'in:saturday,sunday,monday,tuesday,wednesday,thursday,friday'],
             'schedules.*.start_time' => ['required', 'date_format:H:i'],
@@ -122,13 +123,14 @@ class CourseController extends Controller
             'price' => ['required', 'numeric', 'min:0'],
             'duration_hours' => ['required', 'integer', 'min:1'],
             'level' => ['required', 'in:beginner,intermediate,advanced'],
-            'status' => ['required', 'in:draft,published,archived'],
+            'status' => ['required', 'in:draft,published,archived,completed'],
             'instructor_id' => ['required', 'exists:users,id'],
             'max_students' => ['nullable', 'integer', 'min:1'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after:start_date'],
             'requirements' => ['nullable', 'array'],
             'learning_outcomes' => ['nullable', 'array'],
+            'student_message' => ['nullable', 'string'],
             'schedules' => ['nullable', 'array'],
             'schedules.*.day_of_week' => ['required', 'in:saturday,sunday,monday,tuesday,wednesday,thursday,friday'],
             'schedules.*.start_time' => ['required', 'date_format:H:i'],
@@ -172,6 +174,9 @@ class CourseController extends Controller
     {
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
+
+        // دمج جلسات نفس اليوم المكررة والإبقاء على الأطول
+        ZoomMeeting::consolidateAllDaysForCourse($course->id);
         
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
         $meetings = ZoomMeeting::with('assignments')
