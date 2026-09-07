@@ -10,6 +10,17 @@
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border-0">
                     <div class="p-8 text-gray-900">
+                        <div
+                            v-if="Object.keys(form.errors).length"
+                            class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                        >
+                            <p class="font-semibold mb-1">تعذر إضافة التسجيل</p>
+                            <p v-if="form.errors.error">{{ form.errors.error }}</p>
+                            <ul v-else class="list-disc list-inside space-y-1">
+                                <li v-for="(message, key) in form.errors" :key="key">{{ message }}</li>
+                            </ul>
+                        </div>
+
                         <form @submit.prevent="submit" class="space-y-8">
                             <!-- Course Selection -->
                             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
@@ -174,7 +185,11 @@ const selectedStudent = computed(() => {
 })
 
 const submit = () => {
-    form.post(route('admin.enrollments.store'))
+    form.transform((data) => ({
+        ...data,
+        progress: data.progress === '' || data.progress === null ? null : data.progress,
+        enrolled_at: data.enrolled_at === '' || data.enrolled_at === null ? null : data.enrolled_at,
+    })).post(route('admin.enrollments.store'))
 }
 
 const getLevelText = (level) => {

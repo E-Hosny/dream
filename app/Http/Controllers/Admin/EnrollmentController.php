@@ -90,12 +90,12 @@ class EnrollmentController extends Controller
         }
 
         // تعيين تاريخ التسجيل إذا لم يتم تحديده
-        if (!isset($validated['enrolled_at'])) {
+        if (empty($validated['enrolled_at'])) {
             $validated['enrolled_at'] = now();
         }
 
         // تعيين التقدم إلى 0 إذا لم يتم تحديده
-        if (!isset($validated['progress']) || $validated['progress'] === '') {
+        if (!array_key_exists('progress', $validated) || $validated['progress'] === null || $validated['progress'] === '') {
             $validated['progress'] = 0;
         }
 

@@ -7,19 +7,26 @@ use Illuminate\Validation\Rule;
 
 class EnrollmentRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return auth()->check() && auth()->user()->hasRole('admin');
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
+    protected function prepareForValidation(): void
+    {
+        $payload = [];
+
+        foreach (['enrolled_at', 'completed_at', 'progress', 'final_grade'] as $field) {
+            if ($this->exists($field) && $this->input($field) === '') {
+                $payload[$field] = null;
+            }
+        }
+
+        if ($payload !== []) {
+            $this->merge($payload);
+        }
+    }
+
     public function rules(): array
     {
         $rules = [
@@ -30,25 +37,24 @@ class EnrollmentRequest extends FormRequest
             'enrolled_at' => ['nullable', 'date'],
         ];
 
-        // إضافة قواعد خاصة بالتحديث
         if ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
+            $enrollmentId = $this->route('enrollment')?->id ?? $this->route('enrollment');
+
             $rules['completed_at'] = ['nullable', 'date'];
             $rules['final_grade'] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules['student_id'][] = Rule::unique('course_enrollments', 'student_id')
+                ->where(fn ($query) => $query->where('course_id', $this->input('course_id')))
+                ->ignore($enrollmentId);
         }
 
-        // إضافة قواعد خاصة بالإنشاء
         if ($this->isMethod('POST')) {
-            $rules['progress'] = ['nullable', 'numeric', 'min:0', 'max:100'];
+            $rules['student_id'][] = Rule::unique('course_enrollments', 'student_id')
+                ->where(fn ($query) => $query->where('course_id', $this->input('course_id')));
         }
 
         return $rules;
     }
 
-    /**
-     * Get custom messages for validator errors.
-     *
-     * @return array
-     */
     public function messages(): array
     {
         return [
@@ -56,6 +62,7 @@ class EnrollmentRequest extends FormRequest
             'course_id.exists' => 'الكورس المختار غير موجود',
             'student_id.required' => 'يجب اختيار الطالب',
             'student_id.exists' => 'الطالب المختار غير موجود',
+            'student_id.unique' => 'هذا الطالب مسجل بالفعل في هذا الكورس',
             'status.required' => 'يجب تحديد حالة التسجيل',
             'status.in' => 'حالة التسجيل غير صحيحة',
             'progress.numeric' => 'التقدم يجب أن يكون رقماً',
@@ -69,11 +76,6 @@ class EnrollmentRequest extends FormRequest
         ];
     }
 
-    /**
-     * Get custom attribute names for validator errors.
-     *
-     * @return array
-     */
     public function attributes(): array
     {
         return [

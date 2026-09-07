@@ -10,6 +10,17 @@
             <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6 text-gray-900">
+                        <div
+                            v-if="Object.keys(form.errors).length"
+                            class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+                        >
+                            <p class="font-semibold mb-1">تعذر تحديث التسجيل</p>
+                            <p v-if="form.errors.error">{{ form.errors.error }}</p>
+                            <ul v-else class="list-disc list-inside space-y-1">
+                                <li v-for="(message, key) in form.errors" :key="key">{{ message }}</li>
+                            </ul>
+                        </div>
+
                         <form @submit.prevent="submit" class="space-y-6">
                             <!-- Course Selection -->
                             <div>
