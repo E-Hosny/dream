@@ -18,7 +18,8 @@ class UserController extends Controller
         $users = User::with('roles')
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('notification_email', 'like', "%{$search}%");
             })
             ->when($request->role, function ($query, $role) {
                 $query->role($role);
@@ -50,6 +51,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'notification_email' => ['nullable', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -61,6 +63,9 @@ class UserController extends Controller
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'notification_email' => in_array($role, ['teacher', 'student'], true)
+                ? $this->nullableString($validated['notification_email'] ?? null)
+                : null,
             'phone' => $this->nullableString($validated['phone'] ?? null),
             'specialty' => $role === 'teacher' ? $this->nullableString($validated['specialty'] ?? null) : null,
             'grade_level' => $role === 'student' ? $this->nullableString($validated['grade_level'] ?? null) : null,
@@ -104,6 +109,7 @@ class UserController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'notification_email' => ['nullable', 'string', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'role' => ['required', 'string', 'exists:roles,name'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -115,6 +121,9 @@ class UserController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
+            'notification_email' => in_array($role, ['teacher', 'student'], true)
+                ? $this->nullableString($validated['notification_email'] ?? null)
+                : null,
             'phone' => $this->nullableString($validated['phone'] ?? null),
             'specialty' => $role === 'teacher' ? $this->nullableString($validated['specialty'] ?? null) : null,
             'grade_level' => $role === 'student' ? $this->nullableString($validated['grade_level'] ?? null) : null,
@@ -149,7 +158,8 @@ class UserController extends Controller
             ->with(['roles', 'teachingCourses', 'zoomAccount'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('notification_email', 'like', "%{$search}%");
             })
             ->orderBy($request->sort ?? 'created_at', $request->direction ?? 'desc')
             ->paginate(10)
@@ -170,7 +180,8 @@ class UserController extends Controller
             ->with(['roles', 'enrolledCourses'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('notification_email', 'like', "%{$search}%");
             })
             ->orderBy($request->sort ?? 'created_at', $request->direction ?? 'desc')
             ->paginate(10)

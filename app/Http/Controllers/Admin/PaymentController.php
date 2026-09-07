@@ -124,7 +124,7 @@ class PaymentController extends Controller
                     'course_id' => $course->id,
                     'source' => 'inskola',
                 ],
-                $student->email,
+                $student->routeNotificationForMail(),
                 $student->name
             );
 

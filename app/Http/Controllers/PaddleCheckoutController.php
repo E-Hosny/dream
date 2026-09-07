@@ -41,7 +41,7 @@ class PaddleCheckoutController extends Controller
                 'clientToken' => config('services.paddle.client_token'),
                 'environment' => config('services.paddle.environment', 'sandbox'),
                 'successUrl' => url('/student/payments/success') . '?_ptxn=' . urlencode($transactionId),
-                'customerEmail' => $payment->student?->email,
+                'customerEmail' => $payment->student?->routeNotificationForMail(),
                 'customerCountry' => 'SA',
             ])
             ->header('Content-Security-Policy', '');

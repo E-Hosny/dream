@@ -23,6 +23,7 @@ class User extends Authenticatable
     protected $fillable = [
         "name",
         "email",
+        "notification_email",
         "phone",
         "specialty",
         "grade_level",
@@ -51,6 +52,25 @@ class User extends Authenticatable
             "email_verified_at" => "datetime",
             "password" => "hashed",
         ];
+    }
+
+    /**
+     * البريد المعتمد لإرسال كل إشعارات الميل (للطالب والمعلم وغيرهما).
+     * إن لم يُحدد بريد الإشعارات يُستخدم بريد الدخول.
+     */
+    public function routeNotificationForMail($notification = null): string
+    {
+        $notificationEmail = trim((string) ($this->notification_email ?? ''));
+
+        return $notificationEmail !== '' ? $notificationEmail : (string) $this->email;
+    }
+
+    /**
+     * عنوان الإشعارات الفعلي (للعرض في الواجهة).
+     */
+    public function getEffectiveNotificationEmailAttribute(): string
+    {
+        return $this->routeNotificationForMail();
     }
 
     // العلاقات - الكورسات التي يدرسها المعلم

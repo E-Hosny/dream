@@ -13,6 +13,7 @@ const props = defineProps({
 const form = useForm({
     name: '',
     email: '',
+    notification_email: '',
     phone: '',
     password: '',
     password_confirmation: '',
@@ -68,6 +69,8 @@ const t = (key) => {
             back_to_users: 'Back to Users',
             name: 'Full Name',
             email: 'Email Address',
+            notification_email: 'Notification email',
+            notification_email_help: 'All system emails will be sent here. Leave empty to use the login email.',
             password: 'Password',
             confirm_password: 'Confirm Password',
             role: 'User Role',
@@ -75,6 +78,7 @@ const t = (key) => {
             cancel: 'Cancel',
             name_placeholder: 'Enter full name',
             email_placeholder: 'Enter email address',
+            notification_email_placeholder: 'Enter notification email',
             password_placeholder: 'Enter password',
             confirm_password_placeholder: 'Confirm password',
             phone: 'Mobile number',
@@ -90,6 +94,8 @@ const t = (key) => {
             back_to_users: 'العودة للمستخدمين',
             name: 'الاسم الكامل',
             email: 'البريد الإلكتروني',
+            notification_email: 'بريد الإشعارات',
+            notification_email_help: 'تُرسل كل إشعارات النظام إلى هذا البريد. اتركه فارغاً لاستخدام بريد الدخول.',
             password: 'كلمة المرور',
             confirm_password: 'تأكيد كلمة المرور',
             role: 'دور المستخدم',
@@ -97,6 +103,7 @@ const t = (key) => {
             cancel: 'إلغاء',
             name_placeholder: 'أدخل الاسم الكامل',
             email_placeholder: 'أدخل البريد الإلكتروني',
+            notification_email_placeholder: 'أدخل بريد الإشعارات',
             password_placeholder: 'أدخل كلمة المرور',
             confirm_password_placeholder: 'أكد كلمة المرور',
             phone: 'رقم الجوال',
@@ -197,6 +204,24 @@ const submit = () => {
                         </svg>
                         {{ form.errors.email }}
                     </div>
+                </div>
+
+                <!-- Notification Email (teacher / student) -->
+                <div v-if="isTeacher || isStudent" class="group">
+                    <label for="notification_email" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-indigo-600">
+                        {{ t('notification_email') }}
+                        <span class="text-gray-400 font-normal text-xs mr-1 rtl:mr-0 rtl:ml-1">({{ t('optional') }})</span>
+                    </label>
+                    <input
+                        id="notification_email"
+                        v-model="form.notification_email"
+                        type="email"
+                        :placeholder="t('notification_email_placeholder')"
+                        class="w-full px-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                        :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.notification_email }"
+                    >
+                    <p class="mt-2 text-xs text-gray-500">{{ t('notification_email_help') }}</p>
+                    <div v-if="form.errors.notification_email" class="mt-2 text-sm text-red-600">{{ form.errors.notification_email }}</div>
                 </div>
 
                 <!-- Phone (optional) -->

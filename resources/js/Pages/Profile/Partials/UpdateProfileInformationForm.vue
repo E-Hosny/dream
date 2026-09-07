@@ -15,10 +15,15 @@ defineProps({
 });
 
 const user = usePage().props.auth.user;
+const roles = user?.roles || [];
+const canSetNotificationEmail = Array.isArray(roles)
+    ? roles.some((role) => ['teacher', 'student'].includes(String(role).toLowerCase()))
+    : false;
 
 const form = useForm({
     name: user.name,
     email: user.email,
+    notification_email: user.notification_email || '',
 });
 </script>
 
@@ -95,6 +100,27 @@ const form = useForm({
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     {{ form.errors.email }}
+                </div>
+            </div>
+
+            <!-- Notification Email -->
+            <div v-if="canSetNotificationEmail" class="group">
+                <label for="notification_email" class="block text-sm font-semibold text-gray-800 mb-3 transition-colors group-focus-within:text-emerald-600">
+                    Notification Email
+                </label>
+                <input
+                    id="notification_email"
+                    v-model="form.notification_email"
+                    type="email"
+                    placeholder="Email for system notifications"
+                    class="w-full px-4 py-4 text-gray-900 bg-gray-50 border-0 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 shadow-sm hover:shadow-md focus:shadow-lg"
+                    :class="{ 'ring-2 ring-red-500 bg-red-50': form.errors.notification_email }"
+                >
+                <p class="mt-2 text-xs text-gray-500">
+                    All system notifications will be sent to this address. Leave empty to use your login email.
+                </p>
+                <div v-if="form.errors.notification_email" class="mt-2 text-sm text-red-600">
+                    {{ form.errors.notification_email }}
                 </div>
             </div>
 

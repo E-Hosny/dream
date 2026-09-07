@@ -36,6 +36,7 @@ const t = (key) => {
             edit: 'Edit',
             name: 'Name',
             email: 'Email',
+            notification_email: 'Notification email',
             phone: 'Mobile number',
             role: 'Role',
             specialty: 'Specialty',
@@ -50,6 +51,7 @@ const t = (key) => {
             edit: 'تعديل',
             name: 'الاسم',
             email: 'البريد الإلكتروني',
+            notification_email: 'بريد الإشعارات',
             phone: 'رقم الجوال',
             role: 'الدور',
             specialty: 'التخصص',
@@ -100,6 +102,10 @@ const display = (value) => (value && String(value).trim() !== '' ? value : null)
                     <div>
                         <p class="text-sm font-medium text-gray-500 mb-1">{{ t('email') }}</p>
                         <p class="text-lg text-gray-900">{{ user.email }}</p>
+                    </div>
+                    <div v-if="isTeacher || isStudent">
+                        <p class="text-sm font-medium text-gray-500 mb-1">{{ t('notification_email') }}</p>
+                        <p class="text-lg text-gray-900">{{ display(user.notification_email) ?? t('not_set') }}</p>
                     </div>
                     <div>
                         <p class="text-sm font-medium text-gray-500 mb-1">{{ t('phone') }}</p>
