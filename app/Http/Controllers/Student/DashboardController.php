@@ -36,6 +36,8 @@ class DashboardController extends Controller
             ->whereHas('course', function($query) {
                 $query->where('status', '!=', 'completed');
             })
+            ->orderByDesc('enrolled_at')
+            ->orderByDesc('id')
             ->get()
             ->map(function ($enrollment) use ($pendingPayments) {
                 $nextSchedule = $enrollment->course->next_schedule;
@@ -364,13 +366,14 @@ class DashboardController extends Controller
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
         
-        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات وحلول الطالب
+        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات وحلول الطالب (الأحدث أولاً)
         $meetings = ZoomMeeting::with(['assignments.submissions' => function ($query) use ($user) {
                 $query->where('student_id', $user->id);
             }])
             ->where('course_id', $courseId)
             ->whereIn('status', ['started', 'ended', 'scheduled']) // الطالب يرى الاجتماعات المنتهية أيضاً
-            ->orderBy('start_time', 'desc')
+            ->orderByRaw('COALESCE(actual_start_time, start_time) DESC')
+            ->orderByDesc('id')
             ->get()
             ->map(function ($meeting) use ($user) {
                 $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع

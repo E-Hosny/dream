@@ -23,10 +23,12 @@ class DashboardController extends Controller
         // تنظيف الاجتماعات القديمة أولاً
         ZoomMeeting::cleanupOldMeetings();
         
-        // جلب الكورسات التي يدرسها المعلم مع المواعيد والاجتماعات النشطة
+        // جلب الكورسات التي يدرسها المعلم مع المواعيد والاجتماعات النشطة (الأحدث أولاً)
         $courses = Course::with(['schedules', 'enrollments.student'])
             ->where('instructor_id', $user->id)
             ->where('status', '!=', 'completed')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->get()
             ->map(function ($course) {
                 $nextSchedule = $course->next_schedule;
@@ -277,10 +279,11 @@ class DashboardController extends Controller
         // تنظيف الاجتماعات القديمة
         ZoomMeeting::cleanupOldMeetings();
         
-        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
+        // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات (الأحدث أولاً)
         $meetings = ZoomMeeting::with('assignments')
             ->where('course_id', $courseId)
-            ->orderBy('start_time', 'desc')
+            ->orderByRaw('COALESCE(actual_start_time, start_time) DESC')
+            ->orderByDesc('id')
             ->get()
             ->map(function ($meeting) {
                 $assignment = $meeting->assignments->first(); // واجب واحد فقط لكل اجتماع
