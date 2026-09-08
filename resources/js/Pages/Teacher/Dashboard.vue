@@ -130,9 +130,9 @@ const meetingLoading = ref(false);
 
 // Helper function to format currency
 const formatCurrency = (amount) => {
-    return new Intl.NumberFormat(currentLocale.value, {
+    return new Intl.NumberFormat(currentLocale.value === 'ar' ? 'ar-SA' : 'en-SA', {
         style: 'currency',
-        currency: 'EGP', // Assuming EGP for Egyptian Pound
+        currency: 'SAR',
     }).format(amount);
 };
 
