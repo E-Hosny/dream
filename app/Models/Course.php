@@ -174,6 +174,17 @@ class Course extends Model
     }
 
     /**
+     * تعديل رصيد الحصص المدفوعة مقدماً المتبقية دون تغيير الحصص التي طُبّق عليها الدفع مسبقاً.
+     */
+    public function setPrepaidRemaining(int $count): array
+    {
+        $count = max(0, $count);
+        $this->update(['prepaid_sessions' => $count]);
+
+        return $this->fresh()->prepaidSummary();
+    }
+
+    /**
      * استهلاك حصة واحدة من رصيد الدفع المقدم عند إنشاء اجتماع جديد.
      */
     public function consumePrepaidForMeeting(ZoomMeeting $meeting): bool

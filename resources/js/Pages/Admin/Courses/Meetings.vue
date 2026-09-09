@@ -17,6 +17,7 @@ const dueNoticeSummary = ref(props.course?.due_notice_summary || null);
 const prepaid = ref(props.course?.prepaid || { remaining: 0, applied_count: 0, remaining_value: 0, remaining_value_format: '0.00 ر.س' });
 const prepaidCount = ref(null);
 const prepaidInput = ref(null);
+const prepaidMode = ref('add');
 const showPrepaidForm = ref(false);
 const sessionStats = ref(props.sessionStats || page.props.sessionStats || null);
 watch(() => props.sessionStats, (value) => {
@@ -100,6 +101,7 @@ const t = (key) => {
             prepaid_title: 'Prepaid',
             prepaid_count: 'Sessions',
             add_prepaid: 'Add prepaid sessions',
+            edit_prepaid: 'Edit',
             save_prepaid: 'Save',
             cancel: 'Cancel',
             prepaid_badge: 'Prepaid',
@@ -152,6 +154,7 @@ const t = (key) => {
             prepaid_title: 'دفع مقدم',
             prepaid_count: 'عدد الحصص',
             add_prepaid: 'إضافة حصص مدفوعة مقدماً',
+            edit_prepaid: 'تعديل',
             save_prepaid: 'حفظ',
             cancel: 'إلغاء',
             prepaid_badge: 'مدفوعة مقدماً',
@@ -224,15 +227,18 @@ const statsMonthPayload = () => ({
     stats_month: sessionStats.value?.month || undefined,
 });
 
-const openPrepaidForm = async () => {
-    prepaidCount.value = null;
+const openPrepaidForm = async (mode = 'add') => {
+    prepaidMode.value = mode;
+    prepaidCount.value = mode === 'edit' ? Number(prepaid.value?.remaining || 0) : null;
     showPrepaidForm.value = true;
     await nextTick();
     prepaidInput.value?.focus();
+    prepaidInput.value?.select?.();
 };
 
 const cancelPrepaidForm = () => {
     showPrepaidForm.value = false;
+    prepaidMode.value = 'add';
     prepaidCount.value = null;
 };
 
@@ -331,9 +337,10 @@ const bulkUpdatePayment = async (isPaid) => {
     }
 };
 
-const addPrepaid = async () => {
+const savePrepaid = async () => {
+    const isEdit = prepaidMode.value === 'edit';
     const count = Number(prepaidCount.value);
-    if (!count || count < 1) {
+    if (!Number.isFinite(count) || count < 0 || (!isEdit && count < 1)) {
         alert(t('enter_prepaid_count'));
         return;
     }
@@ -346,21 +353,22 @@ const addPrepaid = async () => {
             headers: csrfHeaders(),
             body: JSON.stringify({
                 sessions: count,
+                mode: isEdit ? 'set' : 'add',
                 ...statsMonthPayload(),
             }),
         });
         const data = await response.json();
         if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Failed to add prepaid sessions');
+            throw new Error(data.message || 'Failed to save prepaid sessions');
         }
         applyMeetingUpdates(data.meetings || []);
         applyLiveStats(data);
         cancelPrepaidForm();
     } catch (error) {
-        console.error('Error adding prepaid sessions:', error);
+        console.error('Error saving prepaid sessions:', error);
         alert(currentLocale.value === 'ar'
-            ? `تعذر إضافة الدفع المقدم: ${error.message}`
-            : `Could not add prepaid sessions: ${error.message}`
+            ? `تعذر حفظ الحصص المدفوعة مقدماً: ${error.message}`
+            : `Could not save prepaid sessions: ${error.message}`
         );
     } finally {
         bulkBusy.value = false;
@@ -512,29 +520,38 @@ const deleteMeeting = async (meeting) => {
                     </p>
                 </div>
                 <div class="flex items-end gap-2">
-                    <button
-                        v-if="!showPrepaidForm"
-                        type="button"
-                        @click="openPrepaidForm"
-                        class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
-                    >
-                        {{ t('add_prepaid') }}
-                    </button>
+                    <template v-if="!showPrepaidForm">
+                        <button
+                            type="button"
+                            @click="openPrepaidForm('add')"
+                            class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+                        >
+                            {{ t('add_prepaid') }}
+                        </button>
+                        <button
+                            v-if="prepaid.remaining"
+                            type="button"
+                            @click="openPrepaidForm('edit')"
+                            class="px-4 py-2 rounded-lg text-sm font-medium border border-emerald-600 text-emerald-700 hover:bg-emerald-50"
+                        >
+                            {{ t('edit_prepaid') }}
+                        </button>
+                    </template>
                     <template v-else>
                         <input
                             ref="prepaidInput"
                             v-model.number="prepaidCount"
                             type="number"
-                            min="1"
+                            :min="prepaidMode === 'edit' ? 0 : 1"
                             max="200"
                             class="w-32 rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
                             :placeholder="t('prepaid_count')"
                             :aria-label="t('prepaid_count')"
-                            @keydown.enter.prevent="addPrepaid"
+                            @keydown.enter.prevent="savePrepaid"
                         >
                         <button
                             type="button"
-                            @click="addPrepaid"
+                            @click="savePrepaid"
                             :disabled="bulkBusy"
                             class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
                         >
@@ -588,12 +605,14 @@ const deleteMeeting = async (meeting) => {
                     <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
                     <p class="text-2xl font-bold text-green-800">{{ paidDisplayCount }}</p>
                     <p class="text-sm font-semibold text-green-700 mt-1">{{ paidDisplayAmount }}</p>
-                    <div
+                    <button
                         v-if="prepaid.remaining"
-                        class="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                        type="button"
+                        class="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-200"
+                        @click="openPrepaidForm('edit')"
                     >
                         {{ t('prepaid_in_paid') }}: {{ prepaid.remaining }} ({{ prepaid.remaining_value_format }})
-                    </div>
+                    </button>
                 </div>
                 <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
                     <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>

@@ -371,13 +371,28 @@ class CourseController extends Controller
 
     public function addPrepaidSessions(Request $request, Course $course)
     {
+        $mode = $request->input('mode', 'add') === 'set' ? 'set' : 'add';
         $validated = $request->validate([
-            'sessions' => ['required', 'integer', 'min:1', 'max:200'],
+            'sessions' => ['required', 'integer', 'min:'.($mode === 'set' ? '0' : '1'), 'max:200'],
         ]);
+
+        $defaultPrice = (float) ($course->price ?? 0);
+
+        if ($mode === 'set') {
+            $prepaid = $course->setPrepaidRemaining((int) $validated['sessions']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تعديل رصيد الحصص المدفوعة مقدماً',
+                'meetings' => [],
+                'prepaid' => $prepaid,
+                'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
+                'session_stats' => $this->courseSessionStats($course, $request),
+            ]);
+        }
 
         $result = $course->addPrepaidSessions((int) $validated['sessions']);
         $course->refresh();
-        $defaultPrice = (float) ($course->price ?? 0);
 
         $updated = ZoomMeeting::where('course_id', $course->id)
             ->get(['id', 'is_paid', 'is_prepaid', 'due_notice', 'session_price'])
@@ -413,14 +428,15 @@ class CourseController extends Controller
         ]);
     }
 
-    public function clearPrepaidSessions(Course $course)
+    public function clearPrepaidSessions(Request $request, Course $course)
     {
-        $course->update(['prepaid_sessions' => 0]);
+        $prepaid = $course->setPrepaidRemaining(0);
 
         return response()->json([
             'success' => true,
             'message' => 'تم مسح رصيد الحصص المدفوعة مقدماً المتبقية',
-            'prepaid' => $course->fresh()->prepaidSummary(),
+            'prepaid' => $prepaid,
+            'session_stats' => $this->courseSessionStats($course, $request),
         ]);
     }
 
