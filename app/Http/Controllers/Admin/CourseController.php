@@ -266,7 +266,7 @@ class CourseController extends Controller
         ]);
     }
 
-    public function toggleMeetingPayment(Course $course, ZoomMeeting $meeting)
+    public function toggleMeetingPayment(Request $request, Course $course, ZoomMeeting $meeting)
     {
         if ($meeting->course_id !== $course->id) {
             return response()->json([
@@ -301,6 +301,7 @@ class CourseController extends Controller
             'session_price_format' => number_format((float) ($meeting->session_price ?? $course->price ?? 0), 2) . ' ر.س',
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, (float) ($course->price ?? 0)),
             'prepaid' => $course->fresh()->prepaidSummary(),
+            'session_stats' => $this->courseSessionStats($course, $request),
         ]);
     }
 
@@ -364,6 +365,7 @@ class CourseController extends Controller
             'meetings' => $updated,
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
             'prepaid' => $course->fresh()->prepaidSummary(),
+            'session_stats' => $this->courseSessionStats($course, $request),
         ]);
     }
 
@@ -407,6 +409,7 @@ class CourseController extends Controller
             'meetings' => $updated,
             'prepaid' => $course->prepaidSummary(),
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
+            'session_stats' => $this->courseSessionStats($course, $request),
         ]);
     }
 
@@ -555,5 +558,13 @@ class CourseController extends Controller
                 'error' => 'حدث خطأ أثناء حذف الاجتماع: ' . $e->getMessage()
             ]);
         }
+    }
+
+    private function courseSessionStats(Course $course, Request $request): array
+    {
+        return ZoomMeeting::monthlyPaymentStats(
+            $request->input('stats_month'),
+            [$course->id]
+        );
     }
 }

@@ -1,7 +1,7 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import { Head, usePage, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 const page = usePage();
 const currentLocale = computed(() => page.props.locale || 'ar');
@@ -14,9 +14,20 @@ const props = defineProps({
 
 const meetingsList = ref([...(props.meetings || [])]);
 const dueNoticeSummary = ref(props.course?.due_notice_summary || null);
-const prepaid = ref(props.course?.prepaid || { remaining: 0, applied_count: 0, remaining_value_format: '0.00 ر.س' });
-const prepaidCount = ref(6);
-const sessionStats = computed(() => props.sessionStats || page.props.sessionStats || null);
+const prepaid = ref(props.course?.prepaid || { remaining: 0, applied_count: 0, remaining_value: 0, remaining_value_format: '0.00 ر.س' });
+const prepaidCount = ref(null);
+const prepaidInput = ref(null);
+const showPrepaidForm = ref(false);
+const sessionStats = ref(props.sessionStats || page.props.sessionStats || null);
+watch(() => props.sessionStats, (value) => {
+    sessionStats.value = value || null;
+});
+const paidDisplayCount = computed(() => (sessionStats.value?.paid_taken_sessions || 0) + (prepaid.value?.remaining || 0));
+const paidDisplayAmount = computed(() => {
+    const takenAmount = (sessionStats.value?.paid_amount || 0) - (sessionStats.value?.prepaid_amount || 0);
+    const total = takenAmount + (Number(prepaid.value?.remaining_value) || 0);
+    return Number(total).toFixed(2) + ' ر.س';
+});
 const togglingPaymentId = ref(null);
 const selectedIds = ref([]);
 const bulkBusy = ref(false);
@@ -86,14 +97,13 @@ const t = (key) => {
             unpaid_value: 'Unpaid value',
             total_value: 'Total value',
             due_notice_sessions: 'Notified due sessions',
-            prepaid_title: 'Prepaid sessions',
-            prepaid_remaining: 'Remaining prepaid',
-            prepaid_applied: 'Already applied',
-            prepaid_count: 'Number of sessions',
+            prepaid_title: 'Prepaid',
+            prepaid_count: 'Sessions',
             add_prepaid: 'Add prepaid sessions',
-            clear_prepaid: 'Clear remaining credit',
-            prepaid_help: 'Unpaid sessions taken so far will be marked paid first. The rest stay as credit for upcoming sessions.',
+            save_prepaid: 'Save',
+            cancel: 'Cancel',
             prepaid_badge: 'Prepaid',
+            prepaid_in_paid: 'prepaid remaining',
             enter_prepaid_count: 'Enter how many sessions were prepaid',
         },
         ar: {
@@ -140,13 +150,12 @@ const t = (key) => {
             total_value: 'الإجمالي',
             due_notice_sessions: 'حصص بإشعار مستحق',
             prepaid_title: 'دفع مقدم',
-            prepaid_remaining: 'رصيد الحصص المتبقية',
-            prepaid_applied: 'حُصص طُبّق عليها الدفع المقدم',
             prepaid_count: 'عدد الحصص',
             add_prepaid: 'إضافة حصص مدفوعة مقدماً',
-            clear_prepaid: 'مسح الرصيد المتبقي',
-            prepaid_help: 'تُعلَّم الحصص الحالية غير المدفوعة أولاً، والباقي يبقى رصيداً للحصص القادمة.',
+            save_prepaid: 'حفظ',
+            cancel: 'إلغاء',
             prepaid_badge: 'مدفوعة مقدماً',
+            prepaid_in_paid: 'مدفوعة مقدماً',
             enter_prepaid_count: 'أدخل عدد الحصص المدفوعة مقدماً',
         }
     };
@@ -205,6 +214,28 @@ const clearSelection = () => {
     selectedIds.value = [];
 };
 
+const applyLiveStats = (data) => {
+    dueNoticeSummary.value = data.due_notice_summary || dueNoticeSummary.value;
+    if (data.prepaid) prepaid.value = data.prepaid;
+    if (data.session_stats) sessionStats.value = data.session_stats;
+};
+
+const statsMonthPayload = () => ({
+    stats_month: sessionStats.value?.month || undefined,
+});
+
+const openPrepaidForm = async () => {
+    prepaidCount.value = null;
+    showPrepaidForm.value = true;
+    await nextTick();
+    prepaidInput.value?.focus();
+};
+
+const cancelPrepaidForm = () => {
+    showPrepaidForm.value = false;
+    prepaidCount.value = null;
+};
+
 const applyMeetingUpdates = (updates) => {
     const map = new Map(updates.map((item) => [item.id, item]));
     meetingsList.value = meetingsList.value.map((meeting) => {
@@ -236,6 +267,7 @@ const togglePayment = async (meeting) => {
         const response = await fetch(route('admin.courses.meetings.payment', [props.course.id, meeting.id]), {
             method: 'PATCH',
             headers: csrfHeaders(),
+            body: JSON.stringify(statsMonthPayload()),
         });
 
         const data = await response.json();
@@ -251,8 +283,7 @@ const togglePayment = async (meeting) => {
             session_price: data.session_price,
             session_price_format: data.session_price_format,
         }]);
-        dueNoticeSummary.value = data.due_notice_summary || null;
-        if (data.prepaid) prepaid.value = data.prepaid;
+        applyLiveStats(data);
     } catch (error) {
         console.error('Error toggling meeting payment:', error);
         alert(currentLocale.value === 'ar'
@@ -279,6 +310,7 @@ const bulkUpdatePayment = async (isPaid) => {
             body: JSON.stringify({
                 meeting_ids: selectedIds.value,
                 is_paid: isPaid,
+                ...statsMonthPayload(),
             }),
         });
         const data = await response.json();
@@ -286,8 +318,7 @@ const bulkUpdatePayment = async (isPaid) => {
             throw new Error(data.message || 'Bulk update failed');
         }
         applyMeetingUpdates(data.meetings || []);
-        dueNoticeSummary.value = data.due_notice_summary || null;
-        if (data.prepaid) prepaid.value = data.prepaid;
+        applyLiveStats(data);
         clearSelection();
     } catch (error) {
         console.error('Error bulk updating payment:', error);
@@ -313,51 +344,23 @@ const addPrepaid = async () => {
         const response = await fetch(route('admin.courses.meetings.prepaid', props.course.id), {
             method: 'PATCH',
             headers: csrfHeaders(),
-            body: JSON.stringify({ sessions: count }),
+            body: JSON.stringify({
+                sessions: count,
+                ...statsMonthPayload(),
+            }),
         });
         const data = await response.json();
         if (!response.ok || !data.success) {
             throw new Error(data.message || 'Failed to add prepaid sessions');
         }
         applyMeetingUpdates(data.meetings || []);
-        dueNoticeSummary.value = data.due_notice_summary || null;
-        if (data.prepaid) prepaid.value = data.prepaid;
-        alert(data.message);
+        applyLiveStats(data);
+        cancelPrepaidForm();
     } catch (error) {
         console.error('Error adding prepaid sessions:', error);
         alert(currentLocale.value === 'ar'
             ? `تعذر إضافة الدفع المقدم: ${error.message}`
             : `Could not add prepaid sessions: ${error.message}`
-        );
-    } finally {
-        bulkBusy.value = false;
-    }
-};
-
-const clearPrepaid = async () => {
-    if (!prepaid.value?.remaining) return;
-    if (!confirm(currentLocale.value === 'ar'
-        ? 'مسح رصيد الحصص المدفوعة مقدماً المتبقية فقط؟ الحصص التي طُبّق عليها الدفع المقدم لن تتغير.'
-        : 'Clear remaining prepaid credit only? Already applied sessions stay paid.'
-    )) return;
-    if (bulkBusy.value) return;
-
-    bulkBusy.value = true;
-    try {
-        const response = await fetch(route('admin.courses.meetings.prepaid.clear', props.course.id), {
-            method: 'DELETE',
-            headers: csrfHeaders(),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-            throw new Error(data.message || 'Failed to clear prepaid credit');
-        }
-        if (data.prepaid) prepaid.value = data.prepaid;
-    } catch (error) {
-        console.error('Error clearing prepaid sessions:', error);
-        alert(currentLocale.value === 'ar'
-            ? `تعذر مسح الرصيد: ${error.message}`
-            : `Could not clear prepaid credit: ${error.message}`
         );
     } finally {
         bulkBusy.value = false;
@@ -499,57 +502,52 @@ const deleteMeeting = async (meeting) => {
         </div>
 
         <div class="max-w-6xl mx-auto mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">
-                {{ currentLocale === 'ar' ? course.title : course.titleEn }}
-            </h2>
-            <p class="text-sm text-gray-600 mt-1">
-                {{ t('session_price') }}: <span class="font-semibold text-amber-700">{{ course.session_price_format }}</span>
-            </p>
-        </div>
-
-        <div class="max-w-6xl mx-auto mb-6 bg-white rounded-xl shadow-sm border border-emerald-100 p-5 sm:p-6">
-            <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
+            <div class="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                    <h2 class="text-lg font-semibold text-gray-900">{{ t('prepaid_title') }}</h2>
-                    <p class="text-sm text-gray-500 mt-1">{{ t('prepaid_help') }}</p>
-                    <div class="flex flex-wrap gap-4 mt-3">
-                        <p class="text-sm text-emerald-800">
-                            {{ t('prepaid_remaining') }}:
-                            <span class="font-bold">{{ prepaid.remaining || 0 }}</span>
-                            <span v-if="prepaid.remaining" class="text-emerald-700">({{ prepaid.remaining_value_format }})</span>
-                        </p>
-                        <p class="text-sm text-gray-600">
-                            {{ t('prepaid_applied') }}: <span class="font-semibold">{{ prepaid.applied_count || 0 }}</span>
-                        </p>
-                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">
+                        {{ currentLocale === 'ar' ? course.title : course.titleEn }}
+                    </h2>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ t('session_price') }}: <span class="font-semibold text-amber-700">{{ course.session_price_format }}</span>
+                    </p>
                 </div>
-                <div class="flex flex-wrap items-end gap-2">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('prepaid_count') }}</label>
+                <div class="flex items-end gap-2">
+                    <button
+                        v-if="!showPrepaidForm"
+                        type="button"
+                        @click="openPrepaidForm"
+                        class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+                    >
+                        {{ t('add_prepaid') }}
+                    </button>
+                    <template v-else>
                         <input
+                            ref="prepaidInput"
                             v-model.number="prepaidCount"
                             type="number"
                             min="1"
                             max="200"
-                            class="w-28 rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
+                            class="w-32 rounded-lg border-gray-300 focus:border-brand focus:ring-brand"
+                            :placeholder="t('prepaid_count')"
+                            :aria-label="t('prepaid_count')"
+                            @keydown.enter.prevent="addPrepaid"
                         >
-                    </div>
-                    <button
-                        type="button"
-                        @click="addPrepaid"
-                        :disabled="bulkBusy"
-                        class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                        {{ t('add_prepaid') }}
-                    </button>
-                    <button
-                        type="button"
-                        @click="clearPrepaid"
-                        :disabled="bulkBusy || !prepaid.remaining"
-                        class="px-4 py-2 rounded-lg text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50"
-                    >
-                        {{ t('clear_prepaid') }}
-                    </button>
+                        <button
+                            type="button"
+                            @click="addPrepaid"
+                            :disabled="bulkBusy"
+                            class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                            {{ t('save_prepaid') }}
+                        </button>
+                        <button
+                            type="button"
+                            @click="cancelPrepaidForm"
+                            class="px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100"
+                        >
+                            {{ t('cancel') }}
+                        </button>
+                    </template>
                 </div>
             </div>
         </div>
@@ -588,8 +586,14 @@ const deleteMeeting = async (meeting) => {
                 </div>
                 <div class="rounded-xl bg-green-50 border border-green-200 p-4">
                     <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
-                    <p class="text-2xl font-bold text-green-800">{{ sessionStats.paid_sessions }}</p>
-                    <p class="text-sm font-semibold text-green-700 mt-1">{{ sessionStats.paid_amount_format }}</p>
+                    <p class="text-2xl font-bold text-green-800">{{ paidDisplayCount }}</p>
+                    <p class="text-sm font-semibold text-green-700 mt-1">{{ paidDisplayAmount }}</p>
+                    <div
+                        v-if="prepaid.remaining"
+                        class="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                    >
+                        {{ t('prepaid_in_paid') }}: {{ prepaid.remaining }} ({{ prepaid.remaining_value_format }})
+                    </div>
                 </div>
                 <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
                     <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>

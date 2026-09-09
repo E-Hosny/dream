@@ -85,6 +85,7 @@ const t = (key) => {
             unpaid_value: 'Unpaid value',
             total_value: 'Total value',
             due_notice_sessions: 'Notified due sessions',
+            prepaid_in_paid: 'prepaid',
         },
         ar: {
             courses_management: 'إدارة الكورسات',
@@ -123,6 +124,7 @@ const t = (key) => {
             unpaid_value: 'قيمة غير المدفوع',
             total_value: 'الإجمالي',
             due_notice_sessions: 'حصص بإشعار مستحق',
+            prepaid_in_paid: 'مدفوعة مقدماً',
         }
     };
     return translations[currentLocale.value]?.[key] || key;
@@ -207,6 +209,12 @@ const getLevelColor = (level) => {
                     <p class="text-xs text-green-700 mb-1">{{ t('paid_sessions') }}</p>
                     <p class="text-2xl font-bold text-green-800">{{ sessionStats.paid_sessions }}</p>
                     <p class="text-sm font-semibold text-green-700 mt-1">{{ sessionStats.paid_amount_format }}</p>
+                    <div
+                        v-if="sessionStats.prepaid_sessions"
+                        class="mt-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"
+                    >
+                        {{ t('prepaid_in_paid') }}: {{ sessionStats.prepaid_sessions }} ({{ sessionStats.prepaid_amount_format }})
+                    </div>
                 </div>
                 <div class="rounded-xl bg-amber-50 border border-amber-200 p-4">
                     <p class="text-xs text-amber-700 mb-1">{{ t('unpaid_sessions') }}</p>

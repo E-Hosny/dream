@@ -274,6 +274,22 @@ class ZoomMeeting extends Model
         $totalAmount = $paidAmount + $unpaidAmount;
         $dueNoticeCount = $meetings->where('due_notice', true)->where('is_paid', false)->count();
 
+        $coursesQuery = Course::query()->select(['id', 'price', 'prepaid_sessions']);
+        if ($courseIds !== null) {
+            $coursesQuery->whereIn('id', $courseIds);
+        }
+
+        $prepaidRemaining = 0;
+        $prepaidValue = 0.0;
+        foreach ($coursesQuery->get() as $course) {
+            $count = (int) ($course->prepaid_sessions ?? 0);
+            $prepaidRemaining += $count;
+            $prepaidValue += $count * (float) ($course->price ?? 0);
+        }
+
+        $paidWithPrepaid = $paidMeetings->count() + $prepaidRemaining;
+        $paidAmountWithPrepaid = $paidAmount + $prepaidValue;
+
         $monthOptionsQuery = static::query()->where('status', '!=', 'cancelled');
         if ($courseIds !== null) {
             $monthOptionsQuery->whereIn('course_id', $courseIds);
@@ -302,12 +318,16 @@ class ZoomMeeting extends Model
             'month_label_ar' => $start->locale('ar')->translatedFormat('F Y'),
             'month_label_en' => $start->locale('en')->translatedFormat('F Y'),
             'total_sessions' => $totalCount,
-            'paid_sessions' => $paidMeetings->count(),
+            'paid_sessions' => $paidWithPrepaid,
+            'paid_taken_sessions' => $paidMeetings->count(),
+            'prepaid_sessions' => $prepaidRemaining,
+            'prepaid_amount' => round($prepaidValue, 2),
+            'prepaid_amount_format' => number_format($prepaidValue, 2) . ' ر.س',
             'unpaid_sessions' => $unpaidMeetings->count(),
-            'paid_amount' => round($paidAmount, 2),
+            'paid_amount' => round($paidAmountWithPrepaid, 2),
             'unpaid_amount' => round($unpaidAmount, 2),
             'total_amount' => round($totalAmount, 2),
-            'paid_amount_format' => number_format($paidAmount, 2) . ' ر.س',
+            'paid_amount_format' => number_format($paidAmountWithPrepaid, 2) . ' ر.س',
             'unpaid_amount_format' => number_format($unpaidAmount, 2) . ' ر.س',
             'total_amount_format' => number_format($totalAmount, 2) . ' ر.س',
             'due_notice_sessions' => $dueNoticeCount,
@@ -323,6 +343,10 @@ class ZoomMeeting extends Model
             'month_label_en' => $start->locale('en')->translatedFormat('F Y'),
             'total_sessions' => 0,
             'paid_sessions' => 0,
+            'paid_taken_sessions' => 0,
+            'prepaid_sessions' => 0,
+            'prepaid_amount' => 0,
+            'prepaid_amount_format' => '0.00 ر.س',
             'unpaid_sessions' => 0,
             'paid_amount' => 0,
             'unpaid_amount' => 0,
