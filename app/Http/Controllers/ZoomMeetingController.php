@@ -151,6 +151,10 @@ class ZoomMeetingController extends Controller
                 'updated_by' => Auth::id()
             ]);
 
+            if ($meeting->course) {
+                $meeting->course->consumePrepaidForMeeting($meeting);
+            }
+
             DB::commit();
 
             return redirect()->route('zoom-meetings.index')
@@ -711,6 +715,10 @@ class ZoomMeetingController extends Controller
                     'created_by' => $teacher->id,
                     'updated_by' => $teacher->id,
                 ]);
+
+                if ($courseModel) {
+                    $courseModel->consumePrepaidForMeeting($zoomMeeting);
+                }
 
                 Log::info('Zoom meeting saved to database:', $zoomMeeting->toArray());
             }

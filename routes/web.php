@@ -60,6 +60,8 @@ Route::middleware(['auth', 'role.redirect'])->group(function () {
         Route::get('/courses/{course}/meetings', [App\Http\Controllers\Admin\CourseController::class, 'showMeetings'])->name('courses.meetings');
         Route::patch('/courses/{course}/meetings/{meeting}/payment', [App\Http\Controllers\Admin\CourseController::class, 'toggleMeetingPayment'])->name('courses.meetings.payment');
         Route::patch('/courses/{course}/meetings/bulk-payment', [App\Http\Controllers\Admin\CourseController::class, 'bulkUpdateMeetingPayment'])->name('courses.meetings.bulk-payment');
+        Route::patch('/courses/{course}/meetings/prepaid', [App\Http\Controllers\Admin\CourseController::class, 'addPrepaidSessions'])->name('courses.meetings.prepaid');
+        Route::delete('/courses/{course}/meetings/prepaid', [App\Http\Controllers\Admin\CourseController::class, 'clearPrepaidSessions'])->name('courses.meetings.prepaid.clear');
         Route::patch('/courses/{course}/meetings/due-notice', [App\Http\Controllers\Admin\CourseController::class, 'updateMeetingsDueNotice'])->name('courses.meetings.due-notice');
         Route::delete('/courses/{course}/meetings/{meeting}', [App\Http\Controllers\Admin\CourseController::class, 'deleteMeeting'])->name('courses.meetings.delete');
         

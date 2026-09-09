@@ -205,6 +205,7 @@ class CourseController extends Controller
                     'session_price' => $price,
                     'session_price_format' => number_format($price, 2) . ' ر.س',
                     'is_paid' => (bool) $meeting->is_paid,
+                    'is_prepaid' => (bool) $meeting->is_prepaid,
                     'due_notice' => (bool) $meeting->due_notice,
                     'status' => $meeting->status,
                     'status_text' => $meeting->status_text,
@@ -245,6 +246,7 @@ class CourseController extends Controller
             'titleEn' => $course->title,
             'session_price' => $sessionPrice,
             'session_price_format' => number_format($sessionPrice, 2) . ' ر.س',
+            'prepaid' => $course->prepaidSummary(),
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $sessionPrice),
             'activeMeeting' => $activeMeeting ? [
                 'id' => $activeMeeting->id,
@@ -277,9 +279,15 @@ class CourseController extends Controller
             $meeting->session_price = $course->price;
         }
 
+        $wasPrepaid = (bool) $meeting->is_prepaid;
         $meeting->is_paid = !$meeting->is_paid;
         if ($meeting->is_paid) {
             $meeting->due_notice = false;
+        } else {
+            if ($wasPrepaid) {
+                $course->restorePrepaidFromMeeting($meeting);
+            }
+            $meeting->is_prepaid = false;
         }
         $meeting->save();
 
@@ -287,10 +295,12 @@ class CourseController extends Controller
             'success' => true,
             'message' => $meeting->is_paid ? 'تم تعليم الحصة كمدفوعة' : 'تم إلغاء تعليم الحصة كمدفوعة',
             'is_paid' => (bool) $meeting->is_paid,
+            'is_prepaid' => (bool) $meeting->is_prepaid,
             'due_notice' => (bool) $meeting->due_notice,
             'session_price' => (float) ($meeting->session_price ?? $course->price ?? 0),
             'session_price_format' => number_format((float) ($meeting->session_price ?? $course->price ?? 0), 2) . ' ر.س',
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, (float) ($course->price ?? 0)),
+            'prepaid' => $course->fresh()->prepaidSummary(),
         ]);
     }
 
@@ -320,9 +330,17 @@ class CourseController extends Controller
             if ($meeting->session_price === null) {
                 $meeting->session_price = $defaultPrice;
             }
+
+            if (!$isPaid && $meeting->is_prepaid) {
+                $course->restorePrepaidFromMeeting($meeting);
+                $meeting->is_prepaid = false;
+            }
+
             $meeting->is_paid = $isPaid;
             if ($isPaid) {
                 $meeting->due_notice = false;
+            } else {
+                $meeting->is_prepaid = false;
             }
             $meeting->save();
         }
@@ -333,6 +351,7 @@ class CourseController extends Controller
             return [
                 'id' => $meeting->id,
                 'is_paid' => (bool) $meeting->is_paid,
+                'is_prepaid' => (bool) $meeting->is_prepaid,
                 'due_notice' => (bool) $meeting->due_notice,
                 'session_price' => $price,
                 'session_price_format' => number_format($price, 2) . ' ر.س',
@@ -344,6 +363,61 @@ class CourseController extends Controller
             'message' => $isPaid ? 'تم تعليم الحصص المحددة كمدفوعة' : 'تم تعليم الحصص المحددة كغير مدفوعة',
             'meetings' => $updated,
             'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
+            'prepaid' => $course->fresh()->prepaidSummary(),
+        ]);
+    }
+
+    public function addPrepaidSessions(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'sessions' => ['required', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        $result = $course->addPrepaidSessions((int) $validated['sessions']);
+        $course->refresh();
+        $defaultPrice = (float) ($course->price ?? 0);
+
+        $updated = ZoomMeeting::where('course_id', $course->id)
+            ->get(['id', 'is_paid', 'is_prepaid', 'due_notice', 'session_price'])
+            ->map(function (ZoomMeeting $meeting) use ($defaultPrice) {
+                $price = (float) ($meeting->session_price ?? $defaultPrice);
+
+                return [
+                    'id' => $meeting->id,
+                    'is_paid' => (bool) $meeting->is_paid,
+                    'is_prepaid' => (bool) $meeting->is_prepaid,
+                    'due_notice' => (bool) $meeting->due_notice,
+                    'session_price' => $price,
+                    'session_price_format' => number_format($price, 2) . ' ر.س',
+                ];
+            })
+            ->values();
+
+        $parts = [];
+        if ($result['applied'] > 0) {
+            $parts[] = "تم تعليم {$result['applied']} حصة حالية كمدفوعة مقدماً";
+        }
+        if ($result['leftover_added'] > 0) {
+            $parts[] = "أُضيفت {$result['leftover_added']} حصة لرصيد الحصص القادمة";
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $parts ? implode('، ', $parts) : 'تم تحديث الدفع المقدم',
+            'meetings' => $updated,
+            'prepaid' => $course->prepaidSummary(),
+            'due_notice_summary' => ZoomMeeting::dueNoticeSummary($course->id, $defaultPrice),
+        ]);
+    }
+
+    public function clearPrepaidSessions(Course $course)
+    {
+        $course->update(['prepaid_sessions' => 0]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم مسح رصيد الحصص المدفوعة مقدماً المتبقية',
+            'prepaid' => $course->fresh()->prepaidSummary(),
         ]);
     }
 
@@ -394,6 +468,7 @@ class CourseController extends Controller
                 return [
                     'id' => $meeting->id,
                     'is_paid' => (bool) $meeting->is_paid,
+                    'is_prepaid' => (bool) $meeting->is_prepaid,
                     'due_notice' => (bool) $meeting->due_notice,
                     'session_price' => $price,
                     'session_price_format' => number_format($price, 2) . ' ر.س',
@@ -446,6 +521,9 @@ class CourseController extends Controller
             }
 
             // حذف الاجتماع من قاعدة البيانات
+            if ($meeting->is_prepaid) {
+                $course->restorePrepaidFromMeeting($meeting);
+            }
             $meeting->delete();
 
             DB::commit();
