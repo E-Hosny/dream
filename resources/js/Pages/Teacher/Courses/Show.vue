@@ -29,8 +29,9 @@ const assignmentForm = ref({
     meeting_id: null,
     title: '',
     description: '',
-    selectedFile: null,
-    currentFileName: ''
+    selectedFiles: [],
+    existingFiles: [],
+    removeFileIds: [],
 });
 const assignmentLoading = ref(false);
 
@@ -68,12 +69,15 @@ const t = (key) => {
             description: 'Description',
             optional: 'Optional',
             assignment_description_placeholder: 'Enter assignment description...',
-            assignment_file: 'Assignment File',
-            update_file: 'Update File',
-            click_to_upload: 'Click to upload',
-            max_10mb: 'Max 10MB',
+            assignment_file: 'Assignment Files',
+            update_file: 'Add / Update Files',
+            click_to_upload: 'Click to upload files',
+            max_10mb: 'Max 10MB each, up to 10 files',
             remove: 'Remove',
-            change_file: 'Change File',
+            change_file: 'Add more files',
+            files_count: 'files',
+            existing_files: 'Current files',
+            new_files: 'New files',
             update: 'Update',
             upload: 'Upload',
             view: 'View',
@@ -114,12 +118,15 @@ const t = (key) => {
             description: 'الوصف',
             optional: 'اختياري',
             assignment_description_placeholder: 'أدخل وصف الواجب...',
-            assignment_file: 'ملف الواجب',
-            update_file: 'تحديث الملف',
-            click_to_upload: 'اضغط للرفع',
-            max_10mb: 'حد أقصى 10 ميجابايت',
+            assignment_file: 'ملفات الواجب',
+            update_file: 'إضافة / تحديث الملفات',
+            click_to_upload: 'اضغط لرفع الملفات',
+            max_10mb: 'حد أقصى 10 ميجابايت لكل ملف، حتى 10 ملفات',
             remove: 'إزالة',
-            change_file: 'تغيير الملف',
+            change_file: 'إضافة ملفات أخرى',
+            files_count: 'ملفات',
+            existing_files: 'الملفات الحالية',
+            new_files: 'ملفات جديدة',
             update: 'تحديث',
             upload: 'رفع',
             view: 'عرض',
@@ -236,8 +243,15 @@ const openAssignmentModal = (meeting) => {
         meeting_id: meeting.id,
         title: meeting.assignment?.title || '',
         description: meeting.assignment?.description || '',
-        selectedFile: null,
-        currentFileName: meeting.assignment?.file_name || ''
+        selectedFiles: [],
+        existingFiles: [...(meeting.assignment?.files || (meeting.assignment?.file_name ? [{
+            id: null,
+            file_name: meeting.assignment.file_name,
+            formatted_file_size: meeting.assignment.formatted_file_size,
+            download_url: `/assignments/${meeting.assignment.id}/download`,
+            view_url: `/assignments/${meeting.assignment.id}/view`,
+        }] : []))],
+        removeFileIds: [],
     };
     showAssignmentModal.value = true;
 };
@@ -250,45 +264,56 @@ const closeAssignmentModal = () => {
         meeting_id: null,
         title: '',
         description: '',
-        selectedFile: null,
-        currentFileName: ''
+        selectedFiles: [],
+        existingFiles: [],
+        removeFileIds: [],
     };
 };
 
-// التعامل مع اختيار الملف
 const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        // تحقق من حجم الملف (10MB max)
+    const picked = Array.from(event.target.files || []);
+    if (!picked.length) return;
+
+    const next = [...assignmentForm.value.selectedFiles];
+    for (const file of picked) {
         if (file.size > 10 * 1024 * 1024) {
-            alert(currentLocale.value === 'ar' ? 'حجم الملف أكبر من 10 ميجابايت' : 'File size is larger than 10MB');
-            event.target.value = '';
-            return;
+            alert(currentLocale.value === 'ar' ? `حجم الملف ${file.name} أكبر من 10 ميجابايت` : `File ${file.name} is larger than 10MB`);
+            continue;
         }
-        
-        assignmentForm.value.selectedFile = file;
-        assignmentForm.value.currentFileName = '';
+        if (assignmentForm.value.existingFiles.length + next.length >= 10) {
+            alert(currentLocale.value === 'ar' ? 'الحد الأقصى 10 ملفات' : 'Maximum 10 files allowed');
+            break;
+        }
+        next.push(file);
     }
+    assignmentForm.value.selectedFiles = next;
+    event.target.value = '';
 };
 
-// إزالة الملف المحدد
-const removeSelectedFile = () => {
-    assignmentForm.value.selectedFile = null;
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) {
-        fileInput.value = '';
-    }
+const removeSelectedFile = (index) => {
+    assignmentForm.value.selectedFiles.splice(index, 1);
 };
 
-// إرسال الواجب
+const removeExistingFile = (file, index) => {
+    if (file.id) {
+        assignmentForm.value.removeFileIds.push(file.id);
+    }
+    assignmentForm.value.existingFiles.splice(index, 1);
+};
+
 const submitAssignment = async () => {
     if (!assignmentForm.value.title.trim()) {
         alert(currentLocale.value === 'ar' ? 'يرجى إدخال عنوان الواجب' : 'Please enter assignment title');
         return;
     }
-    
-    if (!assignmentForm.value.id && !assignmentForm.value.selectedFile) {
-        alert(currentLocale.value === 'ar' ? 'يرجى اختيار ملف الواجب' : 'Please select assignment file');
+
+    const totalFiles = assignmentForm.value.existingFiles.length + assignmentForm.value.selectedFiles.length;
+    if (!assignmentForm.value.id && assignmentForm.value.selectedFiles.length < 1) {
+        alert(currentLocale.value === 'ar' ? 'يرجى اختيار ملف واحد على الأقل' : 'Please select at least one file');
+        return;
+    }
+    if (assignmentForm.value.id && totalFiles < 1) {
+        alert(currentLocale.value === 'ar' ? 'يجب الإبقاء على ملف واحد على الأقل' : 'Keep at least one file');
         return;
     }
 
@@ -298,19 +323,21 @@ const submitAssignment = async () => {
         const formData = new FormData();
         formData.append('title', assignmentForm.value.title);
         formData.append('description', assignmentForm.value.description || '');
-        
-        if (assignmentForm.value.selectedFile) {
-            formData.append('assignment_file', assignmentForm.value.selectedFile);
-        }
+
+        assignmentForm.value.selectedFiles.forEach((file) => {
+            formData.append('assignment_files[]', file);
+        });
+
+        assignmentForm.value.removeFileIds.forEach((id) => {
+            formData.append('remove_file_ids[]', id);
+        });
 
         let url, method;
         if (assignmentForm.value.id) {
-            // تحديث واجب موجود
             url = `/assignments/${assignmentForm.value.id}`;
             method = 'POST';
             formData.append('_method', 'PUT');
         } else {
-            // رفع واجب جديد
             url = '/assignments';
             method = 'POST';
             formData.append('meeting_id', assignmentForm.value.meeting_id);
@@ -324,7 +351,6 @@ const submitAssignment = async () => {
             }
         });
 
-        // فحص نوع المحتوى قبل parse
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
@@ -335,22 +361,22 @@ const submitAssignment = async () => {
         const data = await response.json();
 
         if (data.success) {
-            alert(currentLocale.value === 'ar' ? 
-                (assignmentForm.value.id ? 'تم تحديث الواجب بنجاح!' : 'تم رفع الواجب بنجاح!') : 
+            alert(currentLocale.value === 'ar' ?
+                (assignmentForm.value.id ? 'تم تحديث الواجب بنجاح!' : 'تم رفع الواجب بنجاح!') :
                 (assignmentForm.value.id ? 'Assignment updated successfully!' : 'Assignment uploaded successfully!')
             );
             closeAssignmentModal();
-            window.location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
         } else {
-            const errorMsg = data.errors ? 
-                Object.values(data.errors).flat().join('\n') : 
+            const errorMsg = data.errors ?
+                Object.values(data.errors).flat().join('\n') :
                 (data.message || 'حدث خطأ أثناء حفظ الواجب');
             alert(errorMsg);
         }
     } catch (error) {
         console.error('Error saving assignment:', error);
-        alert(currentLocale.value === 'ar' ? 
-            `حدث خطأ أثناء حفظ الواجب: ${error.message}` : 
+        alert(currentLocale.value === 'ar' ?
+            `حدث خطأ أثناء حفظ الواجب: ${error.message}` :
             `Error saving assignment: ${error.message}`
         );
     } finally {
@@ -358,14 +384,37 @@ const submitAssignment = async () => {
     }
 };
 
-// عرض ملف الواجب
-const viewAssignment = (assignment) => {
-    window.open(`/assignments/${assignment.id}/view`, '_blank');
+const assignmentFiles = (assignment) => {
+    if (assignment?.files?.length) return assignment.files;
+    if (assignment?.file_name) {
+        return [{
+            id: null,
+            file_name: assignment.file_name,
+            formatted_file_size: assignment.formatted_file_size,
+            download_url: `/assignments/${assignment.id}/download`,
+            view_url: `/assignments/${assignment.id}/view`,
+        }];
+    }
+    return [];
 };
 
-// تحميل ملف الواجب
+const viewAssignmentFile = (file, assignment) => {
+    window.open(file.view_url || `/assignments/${assignment.id}/view`, '_blank');
+};
+
+const downloadAssignmentFile = (file, assignment) => {
+    window.open(file.download_url || `/assignments/${assignment.id}/download`, '_blank');
+};
+
+// عرض ملف الواجب (للتوافق)
+const viewAssignment = (assignment) => {
+    const files = assignmentFiles(assignment);
+    if (files[0]) viewAssignmentFile(files[0], assignment);
+};
+
 const downloadAssignment = (assignment) => {
-    window.open(`/assignments/${assignment.id}/download`, '_blank');
+    const files = assignmentFiles(assignment);
+    if (files[0]) downloadAssignmentFile(files[0], assignment);
 };
 
 // تعديل الواجب
@@ -542,15 +591,26 @@ const viewSubmissions = (assignment) => {
                             <div v-if="meeting.assignment" class="bg-gray-50 p-3 rounded-lg">
                                 <div class="flex items-center justify-between mb-2">
                                     <h5 class="font-medium text-gray-900">{{ meeting.assignment.title }}</h5>
-                                    <span class="text-xs text-gray-500">{{ meeting.assignment.formatted_file_size }}</span>
+                                    <span class="text-xs text-gray-500">{{ assignmentFiles(meeting.assignment).length }} {{ t('files_count') }}</span>
                                 </div>
                                 <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-2">
                                     {{ meeting.assignment.description }}
                                 </p>
-                                <div class="flex items-center justify-between text-xs text-gray-500">
-                                    <span>{{ meeting.assignment.file_name }}</span>
-                                    <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
+                                <div class="space-y-2">
+                                    <div
+                                        v-for="(file, idx) in assignmentFiles(meeting.assignment)"
+                                        :key="file.id || idx"
+                                        class="flex items-center justify-between gap-2 text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5"
+                                    >
+                                        <span class="truncate text-gray-700">{{ file.file_name }}</span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <span class="text-gray-400">{{ file.formatted_file_size }}</span>
+                                            <button type="button" class="text-indigo-600 hover:text-indigo-800" @click="viewAssignmentFile(file, meeting.assignment)">{{ t('view') }}</button>
+                                            <button type="button" class="text-blue-600 hover:text-blue-800" @click="downloadAssignmentFile(file, meeting.assignment)">{{ t('download') }}</button>
+                                        </div>
+                                    </div>
                                 </div>
+                                <div class="text-xs text-gray-500 mt-2">{{ formatDateTime(meeting.assignment.created_at) }}</div>
                             </div>
                             
                             <!-- No Assignment Message -->
@@ -650,51 +710,41 @@ const viewSubmissions = (assignment) => {
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 {{ assignmentForm.id ? t('update_file') + ' (' + t('optional') + ')' : t('assignment_file') }}
                             </label>
-                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
-                                <input ref="assignmentFileInput" @change="handleFileSelect" type="file" 
+                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4 space-y-3">
+                                <input ref="assignmentFileInput" @change="handleFileSelect" type="file" multiple
                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                        class="hidden" />
-                                
-                                <div v-if="!assignmentForm.selectedFile && !assignmentForm.currentFileName" 
-                                     class="text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <div class="mt-2">
-                                        <button type="button" @click="$refs.assignmentFileInput.click()"
-                                                class="text-blue-600 hover:text-blue-500">
-                                            {{ t('click_to_upload') }}
-                                        </button>
+
+                                <div v-if="assignmentForm.existingFiles.length" class="space-y-2">
+                                    <p class="text-xs font-medium text-gray-600">{{ t('existing_files') }}</p>
+                                    <div
+                                        v-for="(file, index) in assignmentForm.existingFiles"
+                                        :key="file.id || ('existing-' + index)"
+                                        class="flex items-center justify-between gap-2 text-sm bg-green-50 border border-green-100 rounded px-2 py-1.5"
+                                    >
+                                        <span class="truncate">{{ file.file_name }}</span>
+                                        <button type="button" class="text-red-600 text-xs shrink-0" @click="removeExistingFile(file, index)">{{ t('remove') }}</button>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
 
-                                <div v-else-if="assignmentForm.selectedFile" class="text-center">
-                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
-                                        <svg class="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span class="text-sm text-gray-700">{{ assignmentForm.selectedFile.name }}</span>
+                                <div v-if="assignmentForm.selectedFiles.length" class="space-y-2">
+                                    <p class="text-xs font-medium text-gray-600">{{ t('new_files') }}</p>
+                                    <div
+                                        v-for="(file, index) in assignmentForm.selectedFiles"
+                                        :key="'new-' + index + '-' + file.name"
+                                        class="flex items-center justify-between gap-2 text-sm bg-blue-50 border border-blue-100 rounded px-2 py-1.5"
+                                    >
+                                        <span class="truncate">{{ file.name }}</span>
+                                        <button type="button" class="text-red-600 text-xs shrink-0" @click="removeSelectedFile(index)">{{ t('remove') }}</button>
                                     </div>
-                                    <button type="button" @click="removeSelectedFile()"
-                                            class="mt-2 text-red-600 hover:text-red-500 text-sm">
-                                        {{ t('remove') }}
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="button" @click="$refs.assignmentFileInput.click()"
+                                            class="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                                        {{ assignmentForm.existingFiles.length || assignmentForm.selectedFiles.length ? t('change_file') : t('click_to_upload') }}
                                     </button>
-                                </div>
-
-                                <div v-else-if="assignmentForm.currentFileName" class="text-center">
-                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
-                                        <svg class="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span class="text-sm text-gray-700">{{ assignmentForm.currentFileName }}</span>
-                                    </div>
-                                    <div class="mt-2 space-x-2 rtl:space-x-reverse">
-                                        <button type="button" @click="$refs.assignmentFileInput.click()"
-                                                class="text-blue-600 hover:text-blue-500 text-sm">
-                                            {{ t('change_file') }}
-                                        </button>
-                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
                             </div>
                         </div>

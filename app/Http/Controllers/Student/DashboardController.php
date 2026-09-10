@@ -367,9 +367,12 @@ class DashboardController extends Controller
         ZoomMeeting::cleanupOldMeetings();
         
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات وحلول الطالب (الأحدث أولاً)
-        $meetings = ZoomMeeting::with(['assignments.submissions' => function ($query) use ($user) {
-                $query->where('student_id', $user->id);
-            }])
+        $meetings = ZoomMeeting::with([
+                'assignments.files',
+                'assignments.submissions' => function ($query) use ($user) {
+                    $query->where('student_id', $user->id)->with('files');
+                },
+            ])
             ->where('course_id', $courseId)
             ->whereIn('status', ['started', 'ended', 'scheduled']) // الطالب يرى الاجتماعات المنتهية أيضاً
             ->orderByRaw('COALESCE(actual_start_time, start_time) DESC')
@@ -415,16 +418,19 @@ class DashboardController extends Controller
                         'file_type' => $assignment->file_type,
                         'file_size' => $assignment->file_size,
                         'formatted_file_size' => $assignment->formatted_file_size,
+                        'files' => $assignment->filesPayload(),
                         'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
                         'submission' => $submission ? [
                             'id' => $submission->id,
                             'submission_file_name' => $submission->submission_file_name,
                             'submission_file_size' => $submission->submission_file_size,
                             'formatted_submission_file_size' => $submission->formatted_submission_file_size,
+                            'submission_files' => $submission->filesPayload(\App\Models\AssignmentSubmissionFile::KIND_SUBMISSION),
                             'submitted_at' => $submission->submitted_at ? $submission->submitted_at->format('Y-m-d H:i:s') : null,
                             'correction_file_name' => $submission->correction_file_name,
                             'correction_file_size' => $submission->correction_file_size,
                             'formatted_correction_file_size' => $submission->formatted_correction_file_size,
+                            'correction_files' => $submission->filesPayload(\App\Models\AssignmentSubmissionFile::KIND_CORRECTION),
                             'corrected_at' => $submission->corrected_at ? $submission->corrected_at->format('Y-m-d H:i:s') : null,
                             'rating' => $submission->rating,
                             'stars' => $submission->stars,

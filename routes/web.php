@@ -180,6 +180,8 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/assignments/{assignment}', [\App\Http\Controllers\AssignmentController::class, 'destroy'])->name('assignments.destroy');
     Route::get('/assignments/{assignment}/download', [\App\Http\Controllers\AssignmentController::class, 'download'])->name('assignments.download');
     Route::get('/assignments/{assignment}/view', [\App\Http\Controllers\AssignmentController::class, 'view'])->name('assignments.view');
+    Route::get('/assignments/{assignment}/files/{file}/download', [\App\Http\Controllers\AssignmentController::class, 'downloadFile'])->name('assignments.files.download');
+    Route::get('/assignments/{assignment}/files/{file}/view', [\App\Http\Controllers\AssignmentController::class, 'viewFile'])->name('assignments.files.view');
     Route::get('/assignments/{assignment}/submissions', [\App\Http\Controllers\AssignmentController::class, 'showSubmissions'])->name('assignments.submissions');
     
     // Student Assignment Submission Routes
@@ -188,6 +190,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/submissions/{submission}/correct', [\App\Http\Controllers\AssignmentSubmissionController::class, 'correct'])->name('submissions.correct');
     Route::get('/submissions/{type}/{submission}/download', [\App\Http\Controllers\AssignmentSubmissionController::class, 'download'])->name('submissions.download');
     Route::get('/submissions/{type}/{submission}/view', [\App\Http\Controllers\AssignmentSubmissionController::class, 'view'])->name('submissions.view');
+    Route::get('/submissions/{submission}/files/{file}/download', [\App\Http\Controllers\AssignmentSubmissionController::class, 'downloadFile'])->name('submissions.files.download');
+    Route::get('/submissions/{submission}/files/{file}/view', [\App\Http\Controllers\AssignmentSubmissionController::class, 'viewFile'])->name('submissions.files.view');
     Route::get('/assignments/{assignment}/my-submission', [\App\Http\Controllers\AssignmentSubmissionController::class, 'show'])->name('assignments.my-submission');
     
     // Notification Routes

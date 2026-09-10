@@ -198,24 +198,75 @@ const showSubmissionModal = ref(false);
 const submissionForm = ref({
     assignmentId: null,
     hasExisting: false,
-    selectedFile: null
+    selectedFiles: []
 });
 const submissionLoading = ref(false);
 
-// دوال الواجبات
+const assignmentFilesList = (assignment) => {
+    if (assignment?.files?.length) return assignment.files;
+    if (assignment?.file_name) {
+        return [{
+            id: null,
+            file_name: assignment.file_name,
+            formatted_file_size: assignment.formatted_file_size,
+            download_url: `/assignments/${assignment.id}/download`,
+            view_url: `/assignments/${assignment.id}/view`,
+        }];
+    }
+    return [];
+};
+
+const submissionFilesList = (submission) => {
+    if (submission?.submission_files?.length) return submission.submission_files;
+    if (submission?.submission_file_name) {
+        return [{
+            id: null,
+            file_name: submission.submission_file_name,
+            formatted_file_size: submission.formatted_submission_file_size,
+            download_url: `/submissions/submission/${submission.id}/download`,
+            view_url: `/submissions/submission/${submission.id}/view`,
+        }];
+    }
+    return [];
+};
+
+const correctionFilesList = (submission) => {
+    if (submission?.correction_files?.length) return submission.correction_files;
+    if (submission?.correction_file_name) {
+        return [{
+            id: null,
+            file_name: submission.correction_file_name,
+            formatted_file_size: submission.formatted_correction_file_size,
+            download_url: `/submissions/correction/${submission.id}/download`,
+            view_url: `/submissions/correction/${submission.id}/view`,
+        }];
+    }
+    return [];
+};
+
 const viewAssignment = (assignment) => {
-    window.open(`/assignments/${assignment.id}/view`, '_blank');
+    const files = assignmentFilesList(assignment);
+    if (files[0]) window.open(files[0].view_url || `/assignments/${assignment.id}/view`, '_blank');
 };
 
 const downloadAssignment = (assignment) => {
-    window.open(`/assignments/${assignment.id}/download`, '_blank');
+    const files = assignmentFilesList(assignment);
+    if (files[0]) window.open(files[0].download_url || `/assignments/${assignment.id}/download`, '_blank');
+};
+
+const viewAssignmentFile = (file, assignment) => {
+    window.open(file.view_url || `/assignments/${assignment.id}/view`, '_blank');
+};
+
+const downloadAssignmentFile = (file, assignment) => {
+    window.open(file.download_url || `/assignments/${assignment.id}/download`, '_blank');
 };
 
 const openSubmissionModal = (assignment) => {
     submissionForm.value = {
         assignmentId: assignment.id,
         hasExisting: assignment.submission && assignment.submission.status !== 'not_submitted',
-        selectedFile: null
+        selectedFiles: []
     };
     showSubmissionModal.value = true;
 };
@@ -225,35 +276,37 @@ const closeSubmissionModal = () => {
     submissionForm.value = {
         assignmentId: null,
         hasExisting: false,
-        selectedFile: null
+        selectedFiles: []
     };
 };
 
 const handleSubmissionFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        // تحقق من حجم الملف (10MB max)
+    const picked = Array.from(event.target.files || []);
+    if (!picked.length) return;
+
+    const next = [...submissionForm.value.selectedFiles];
+    for (const file of picked) {
         if (file.size > 10 * 1024 * 1024) {
-            alert(currentLocale.value === 'ar' ? 'حجم الملف أكبر من 10 ميجابايت' : 'File size is larger than 10MB');
-            event.target.value = '';
-            return;
+            alert(currentLocale.value === 'ar' ? `حجم الملف ${file.name} أكبر من 10 ميجابايت` : `File ${file.name} is larger than 10MB`);
+            continue;
         }
-        
-        submissionForm.value.selectedFile = file;
+        if (next.length >= 10) {
+            alert(currentLocale.value === 'ar' ? 'الحد الأقصى 10 ملفات' : 'Maximum 10 files allowed');
+            break;
+        }
+        next.push(file);
     }
+    submissionForm.value.selectedFiles = next;
+    event.target.value = '';
 };
 
-const removeSubmissionFile = () => {
-    submissionForm.value.selectedFile = null;
-    const fileInput = document.querySelector('#submissionFileInput, input[type="file"]');
-    if (fileInput) {
-        fileInput.value = '';
-    }
+const removeSubmissionFile = (index) => {
+    submissionForm.value.selectedFiles.splice(index, 1);
 };
 
 const submitSolution = async () => {
-    if (!submissionForm.value.selectedFile) {
-        alert(currentLocale.value === 'ar' ? 'يرجى اختيار ملف الحل' : 'Please select solution file');
+    if (!submissionForm.value.selectedFiles.length) {
+        alert(currentLocale.value === 'ar' ? 'يرجى اختيار ملف واحد على الأقل' : 'Please select at least one file');
         return;
     }
 
@@ -261,9 +314,10 @@ const submitSolution = async () => {
 
     try {
         const formData = new FormData();
-        formData.append('submission_file', submissionForm.value.selectedFile);
+        submissionForm.value.selectedFiles.forEach((file) => {
+            formData.append('submission_files[]', file);
+        });
 
-        // استخدام CSRF token من Inertia props بدلاً من meta tag
         const csrfToken = page.props.csrfToken || document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
         const response = await fetch(`/assignments/${submissionForm.value.assignmentId}/submit`, {
@@ -279,10 +333,10 @@ const submitSolution = async () => {
         if (data.success) {
             alert(currentLocale.value === 'ar' ? 'تم رفع الحل بنجاح!' : 'Solution uploaded successfully!');
             closeSubmissionModal();
-            window.location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
         } else {
-            const errorMsg = data.errors ? 
-                Object.values(data.errors).flat().join('\n') : 
+            const errorMsg = data.errors ?
+                Object.values(data.errors).flat().join('\n') :
                 (data.message || 'حدث خطأ أثناء رفع الحل');
             alert(errorMsg);
         }
@@ -294,12 +348,22 @@ const submitSolution = async () => {
     }
 };
 
+const viewSubmissionFile = (file, submission, type = 'submission') => {
+    window.open(file.view_url || `/submissions/${type}/${submission.id}/view`, '_blank');
+};
+
+const downloadSubmissionFile = (file, submission, type = 'submission') => {
+    window.open(file.download_url || `/submissions/${type}/${submission.id}/download`, '_blank');
+};
+
 const viewSubmission = (submission, type) => {
-    window.open(`/submissions/${type}/${submission.id}/view`, '_blank');
+    const files = type === 'correction' ? correctionFilesList(submission) : submissionFilesList(submission);
+    if (files[0]) viewSubmissionFile(files[0], submission, type);
 };
 
 const downloadSubmission = (submission, type) => {
-    window.open(`/submissions/${type}/${submission.id}/download`, '_blank');
+    const files = type === 'correction' ? correctionFilesList(submission) : submissionFilesList(submission);
+    if (files[0]) downloadSubmissionFile(files[0], submission, type);
 };
 
 const deleteSubmission = async (submission) => {
@@ -626,24 +690,24 @@ const getSessionHeaderColor = (index) => {
                                             <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-3">
                                                 {{ meeting.assignment.description }}
                                             </p>
-                                            <div class="flex items-center space-x-4 rtl:space-x-reverse text-xs text-gray-500">
-                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
-                                                    <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                    </svg>
-                                                    <span>{{ meeting.assignment.file_name }}</span>
-                                                </div>
+                                            <div class="space-y-2 text-xs text-gray-500 mb-3">
                                                 <div class="flex items-center space-x-1 rtl:space-x-reverse">
                                                     <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                     </svg>
                                                     <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
                                                 </div>
-                                                <div class="flex items-center space-x-1 rtl:space-x-reverse">
-                                                    <svg class="h-2.5 w-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                                    </svg>
-                                                    <span>{{ meeting.assignment.formatted_file_size }}</span>
+                                                <div
+                                                    v-for="(file, idx) in assignmentFilesList(meeting.assignment)"
+                                                    :key="file.id || idx"
+                                                    class="flex items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5"
+                                                >
+                                                    <span class="truncate text-gray-700">{{ file.file_name }}</span>
+                                                    <div class="flex items-center gap-2 shrink-0">
+                                                        <span>{{ file.formatted_file_size }}</span>
+                                                        <button type="button" class="text-indigo-600" @click="viewAssignmentFile(file, meeting.assignment)">{{ t('view') }}</button>
+                                                        <button type="button" class="text-blue-600" @click="downloadAssignmentFile(file, meeting.assignment)">{{ t('download') }}</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -700,43 +764,26 @@ const getSessionHeaderColor = (index) => {
                                             {{ t('my_solution') }}
                                         </h6>
                                         
-                                        <!-- Submitted File -->
-                                        <div class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-3">
-                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                <div class="flex items-center space-x-3 rtl:space-x-reverse flex-1 min-w-0">
-                                                    <div class="flex items-center justify-center h-8 w-8 sm:h-6 sm:w-6 rounded-full bg-gray-100 flex-shrink-0">
-                                                        <svg class="h-4 w-4 sm:h-3 sm:w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                        </svg>
-                                                    </div>
+                                        <!-- Submitted Files -->
+                                        <div class="space-y-2 mb-3">
+                                            <div
+                                                v-for="(file, idx) in submissionFilesList(meeting.assignment.submission)"
+                                                :key="file.id || ('sub-' + idx)"
+                                                class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4"
+                                            >
+                                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                     <div class="min-w-0 flex-1">
-                                                        <div class="text-sm font-medium text-gray-900 truncate">{{ meeting.assignment.submission.submission_file_name }}</div>
-                                                        <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_submission_file_size }}</div>
+                                                        <div class="text-sm font-medium text-gray-900 truncate">{{ file.file_name }}</div>
+                                                        <div class="text-xs text-gray-500">{{ file.formatted_file_size }}</div>
                                                     </div>
-                                                </div>
-                                                <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 rtl:space-x-reverse w-full sm:w-auto">
-                                                    <button @click="viewSubmission(meeting.assignment.submission, 'submission')"
-                                                            class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center">
-                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                        </svg>
-                                                        {{ t('view') }}
-                                                    </button>
-                                                    <button @click="downloadSubmission(meeting.assignment.submission, 'submission')"
-                                                            class="flex-1 sm:flex-none px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center">
-                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                        </svg>
-                                                        {{ t('download') }}
-                                                    </button>
-                                                    <button @click="deleteSubmission(meeting.assignment.submission)"
-                                                            class="flex-1 sm:flex-none px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center justify-center">
-                                                        <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                        </svg>
-                                                        {{ t('delete') }}
-                                                    </button>
+                                                    <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                                        <button @click="viewSubmissionFile(file, meeting.assignment.submission, 'submission')"
+                                                                class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">{{ t('view') }}</button>
+                                                        <button @click="downloadSubmissionFile(file, meeting.assignment.submission, 'submission')"
+                                                                class="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">{{ t('download') }}</button>
+                                                        <button v-if="idx === 0" @click="deleteSubmission(meeting.assignment.submission)"
+                                                                class="px-3 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">{{ t('delete') }}</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -762,36 +809,23 @@ const getSessionHeaderColor = (index) => {
                                                 </div>
                                             </div>
                                             
-                                            <div v-if="meeting.assignment.submission.correction_file_name" 
-                                                 class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 mb-3">
-                                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                    <div class="flex items-center space-x-3 rtl:space-x-reverse flex-1 min-w-0">
-                                                        <div class="flex items-center justify-center h-8 w-8 sm:h-6 sm:w-6 rounded-full bg-gray-100 flex-shrink-0">
-                                                            <svg class="h-4 w-4 sm:h-3 sm:w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                            </svg>
-                                                        </div>
+                                            <div v-if="correctionFilesList(meeting.assignment.submission).length" class="space-y-2 mb-3">
+                                                <div
+                                                    v-for="(file, idx) in correctionFilesList(meeting.assignment.submission)"
+                                                    :key="file.id || ('corr-' + idx)"
+                                                    class="bg-white rounded-lg border border-gray-200 p-3 sm:p-4"
+                                                >
+                                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                                         <div class="min-w-0 flex-1">
-                                                            <div class="text-sm font-medium text-gray-900 truncate">{{ meeting.assignment.submission.correction_file_name }}</div>
-                                                            <div class="text-xs text-gray-500">{{ meeting.assignment.submission.formatted_correction_file_size }}</div>
+                                                            <div class="text-sm font-medium text-gray-900 truncate">{{ file.file_name }}</div>
+                                                            <div class="text-xs text-gray-500">{{ file.formatted_file_size }}</div>
                                                         </div>
-                                                    </div>
-                                                    <div class="flex flex-col sm:flex-row gap-2 sm:space-x-2 rtl:space-x-reverse w-full sm:w-auto">
-                                                        <button @click="viewSubmission(meeting.assignment.submission, 'correction')"
-                                                                class="flex-1 sm:flex-none px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center">
-                                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                            </svg>
-                                                            {{ t('view') }}
-                                                        </button>
-                                                        <button @click="downloadSubmission(meeting.assignment.submission, 'correction')"
-                                                                class="flex-1 sm:flex-none px-3 py-2 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark transition-colors font-medium flex items-center justify-center">
-                                                            <svg class="w-4 h-4 mr-1.5 rtl:mr-0 rtl:ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                            </svg>
-                                                            {{ t('download') }}
-                                                        </button>
+                                                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                                            <button @click="viewSubmissionFile(file, meeting.assignment.submission, 'correction')"
+                                                                    class="px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">{{ t('view') }}</button>
+                                                            <button @click="downloadSubmissionFile(file, meeting.assignment.submission, 'correction')"
+                                                                    class="px-3 py-2 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark">{{ t('download') }}</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -879,42 +913,28 @@ const getSessionHeaderColor = (index) => {
                         <!-- File Upload -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-2">{{ t('solution_file') }}</label>
-                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
-                                <input ref="submissionFileInput" @change="handleSubmissionFileSelect" type="file" 
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors space-y-3">
+                                <input ref="submissionFileInput" @change="handleSubmissionFileSelect" type="file" multiple
                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                        class="hidden" />
-                                
-                                <div v-if="!submissionForm.selectedFile" class="text-center">
-                                    <div class="flex items-center justify-center h-12 w-12 mx-auto mb-3 rounded-full bg-gray-100">
-                                        <svg class="h-6 w-6 text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                        </svg>
+
+                                <div v-if="submissionForm.selectedFiles.length" class="space-y-2">
+                                    <div
+                                        v-for="(file, index) in submissionForm.selectedFiles"
+                                        :key="'sel-' + index + '-' + file.name"
+                                        class="flex items-center justify-between gap-2 text-sm bg-green-50 border border-green-100 rounded px-2 py-1.5"
+                                    >
+                                        <span class="truncate">{{ file.name }}</span>
+                                        <button type="button" class="text-red-600 text-xs shrink-0" @click="removeSubmissionFile(index)">{{ t('remove') }}</button>
                                     </div>
-                                    <div class="mb-2">
-                                        <button type="button" @click="$refs.submissionFileInput.click()"
-                                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                                            {{ t('click_to_upload') }}
-                                        </button>
-                                    </div>
-                                    <p class="text-xs text-gray-500">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
 
-                                <div v-else class="text-center">
-                                    <div class="flex items-center justify-center space-x-3 rtl:space-x-reverse mb-3">
-                                        <div class="flex items-center justify-center h-10 w-10 rounded-full bg-green-100">
-                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="text-left rtl:text-right">
-                                            <div class="text-sm font-medium text-gray-900">{{ submissionForm.selectedFile.name }}</div>
-                                            <div class="text-xs text-gray-500">{{ (submissionForm.selectedFile.size / 1024 / 1024).toFixed(2) }} MB</div>
-                                        </div>
-                                    </div>
-                                    <button type="button" @click="removeSubmissionFile()"
-                                            class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium">
-                                        {{ t('remove') }}
+                                <div class="text-center">
+                                    <button type="button" @click="$refs.submissionFileInput.click()"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                        {{ submissionForm.selectedFiles.length ? (currentLocale === 'ar' ? 'إضافة ملفات أخرى' : 'Add more files') : t('click_to_upload') }}
                                     </button>
+                                    <p class="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
                             </div>
                         </div>
@@ -925,7 +945,7 @@ const getSessionHeaderColor = (index) => {
                                     class="w-full sm:w-auto px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                                 {{ t('cancel') }}
                             </button>
-                            <button type="submit" :disabled="submissionLoading || !submissionForm.selectedFile"
+                            <button type="submit" :disabled="submissionLoading || !submissionForm.selectedFiles.length"
                                     class="w-full sm:w-auto px-4 py-2.5 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
                                 <span v-if="submissionLoading" class="flex items-center">
                                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">

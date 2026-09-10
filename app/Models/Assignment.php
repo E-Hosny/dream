@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Support\UploadedFileCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Assignment extends Model
 {
@@ -25,70 +27,122 @@ class Assignment extends Model
         'updated_at' => 'datetime',
     ];
 
-    // العلاقة مع الاجتماع
     public function meeting(): BelongsTo
     {
         return $this->belongsTo(ZoomMeeting::class, 'meeting_id');
     }
 
-    // العلاقة مع المنشئ
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    // العلاقة مع المحدث
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    // العلاقة مع حلول الطلاب
     public function submissions(): HasMany
     {
         return $this->hasMany(AssignmentSubmission::class);
     }
 
-    // الحصول على عدد الحلول المرسلة
+    public function files(): HasMany
+    {
+        return $this->hasMany(AssignmentFile::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function getSubmissionsCountAttribute()
     {
         return $this->submissions()->whereNotNull('submitted_at')->count();
     }
 
-    // الحصول على عدد الحلول المصححة
     public function getCorrectedSubmissionsCountAttribute()
     {
         return $this->submissions()->whereNotNull('corrected_at')->count();
     }
 
-    // تحقق من وجود ملف
     public function hasFile(): bool
     {
-        return !empty($this->file_path) && \Storage::disk('spaces')->exists($this->file_path);
+        if ($this->relationLoaded('files') ? $this->files->isNotEmpty() : $this->files()->exists()) {
+            return true;
+        }
+
+        return !empty($this->file_path) && Storage::disk('spaces')->exists($this->file_path);
     }
 
-    // الحصول على رابط تحميل الملف
     public function getDownloadUrlAttribute()
     {
         return route('assignments.download', $this->id);
     }
 
-    // تنسيق حجم الملف
     public function getFormattedFileSizeAttribute()
     {
-        $bytes = $this->file_size;
-        if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
-        } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
-        } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
-        } elseif ($bytes > 1) {
-            return $bytes . ' bytes';
-        } elseif ($bytes == 1) {
-            return $bytes . ' byte';
-        } else {
-            return '0 bytes';
+        return UploadedFileCollection::formatBytes($this->file_size);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function filesPayload(): array
+    {
+        $files = $this->relationLoaded('files')
+            ? $this->files
+            : $this->files()->get();
+
+        if ($files->isNotEmpty()) {
+            return $files->map(fn (AssignmentFile $file) => $file->toFrontendArray())->values()->all();
+        }
+
+        if (!empty($this->file_path)) {
+            return [[
+                'id' => null,
+                'file_name' => $this->file_name,
+                'file_type' => $this->file_type,
+                'file_size' => $this->file_size,
+                'formatted_file_size' => $this->formatted_file_size,
+                'download_url' => route('assignments.download', $this->id),
+                'view_url' => route('assignments.view', $this->id),
+            ]];
+        }
+
+        return [];
+    }
+
+    public function syncPrimaryFileFromChildren(): void
+    {
+        $first = $this->files()->orderBy('sort_order')->orderBy('id')->first();
+
+        if ($first) {
+            $this->forceFill([
+                'file_path' => $first->file_path,
+                'file_name' => $first->file_name,
+                'file_type' => $first->file_type,
+                'file_size' => $first->file_size,
+            ])->save();
+
+            return;
+        }
+
+        $this->forceFill([
+            'file_path' => '',
+            'file_name' => '',
+            'file_type' => '',
+            'file_size' => 0,
+        ])->save();
+    }
+
+    public function deleteAllStoredFiles(): void
+    {
+        foreach ($this->files as $file) {
+            $file->deleteFromStorage();
+        }
+
+        if ($this->file_path && Storage::disk('spaces')->exists($this->file_path)) {
+            $stillReferenced = $this->files()->where('file_path', $this->file_path)->exists();
+            if (!$stillReferenced) {
+                Storage::disk('spaces')->delete($this->file_path);
+            }
         }
     }
 }

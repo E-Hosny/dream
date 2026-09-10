@@ -280,7 +280,7 @@ class DashboardController extends Controller
         ZoomMeeting::cleanupOldMeetings();
         
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات (الأحدث أولاً)
-        $meetings = ZoomMeeting::with('assignments')
+        $meetings = ZoomMeeting::with('assignments.files')
             ->where('course_id', $courseId)
             ->orderByRaw('COALESCE(actual_start_time, start_time) DESC')
             ->orderByDesc('id')
@@ -312,6 +312,7 @@ class DashboardController extends Controller
                         'file_type' => $assignment->file_type,
                         'file_size' => $assignment->file_size,
                         'formatted_file_size' => $assignment->formatted_file_size,
+                        'files' => $assignment->filesPayload(),
                         'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
                         'submissions_count' => $assignment->submissions_count,
                         'corrected_submissions_count' => $assignment->corrected_submissions_count,

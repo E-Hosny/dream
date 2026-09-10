@@ -21,8 +21,9 @@ const props = defineProps({
 const showCorrectionModal = ref(false);
 const correctionForm = ref({
     submissionId: null,
-    selectedFile: null,
-    currentFileName: '',
+    selectedFiles: [],
+    existingFiles: [],
+    removeFileIds: [],
     rating: 0,
     notes: ''
 });
@@ -62,10 +63,15 @@ const t = (key) => {
             rating_placeholder: 'Rate from 1 to 5 stars',
             teacher_notes: 'Teacher Notes',
             notes_placeholder: 'Add your notes...',
-            click_to_upload: 'Click to upload',
-            max_10mb: 'Max 10MB',
+            click_to_upload: 'Click to upload files',
+            max_10mb: 'Max 10MB each, up to 10 files',
             remove: 'Remove',
-            change_file: 'Change File',
+            change_file: 'Add more files',
+            files: 'files',
+            existing_files: 'Current files',
+            new_files: 'New files',
+            open_file: 'Open',
+            download_file: 'Download',
             cancel: 'Cancel',
             save: 'Save',
             optional: 'Optional',
@@ -103,10 +109,15 @@ const t = (key) => {
             rating_placeholder: 'قيم من 1 إلى 5 نجوم',
             teacher_notes: 'ملاحظات المعلم',
             notes_placeholder: 'أضف ملاحظاتك...',
-            click_to_upload: 'اضغط للرفع',
-            max_10mb: 'حد أقصى 10 ميجابايت',
+            click_to_upload: 'اضغط لرفع الملفات',
+            max_10mb: 'حد أقصى 10 ميجابايت لكل ملف، حتى 10 ملفات',
             remove: 'إزالة',
-            change_file: 'تغيير الملف',
+            change_file: 'إضافة ملفات أخرى',
+            files: 'ملفات',
+            existing_files: 'الملفات الحالية',
+            new_files: 'ملفات جديدة',
+            open_file: 'فتح',
+            download_file: 'تحميل',
             cancel: 'إلغاء',
             save: 'حفظ',
             optional: 'اختياري',
@@ -133,28 +144,66 @@ const formatDateTime = (dateString) => {
     return date.toLocaleString(currentLocale.value === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-US', options);
 };
 
-// دوال التعامل مع الحلول
+const submissionFiles = (submission) => {
+    if (submission?.submission_files?.length) return submission.submission_files;
+    if (submission?.submission_file_name) {
+        return [{
+            id: null,
+            file_name: submission.submission_file_name,
+            download_url: `/submissions/submission/${submission.id}/download`,
+            view_url: `/submissions/submission/${submission.id}/view`,
+        }];
+    }
+    return [];
+};
+
+const correctionFiles = (submission) => {
+    if (submission?.correction_files?.length) return submission.correction_files;
+    if (submission?.correction_file_name) {
+        return [{
+            id: null,
+            file_name: submission.correction_file_name,
+            download_url: `/submissions/correction/${submission.id}/download`,
+            view_url: `/submissions/correction/${submission.id}/view`,
+        }];
+    }
+    return [];
+};
+
+const openFile = (file, fallbackUrl) => {
+    window.open(file.view_url || fallbackUrl, '_blank');
+};
+
+const downloadFile = (file, fallbackUrl) => {
+    window.open(file.download_url || fallbackUrl, '_blank');
+};
+
 const viewSubmission = (submission) => {
-    window.open(`/submissions/submission/${submission.id}/view`, '_blank');
+    const files = submissionFiles(submission);
+    if (files[0]) openFile(files[0], `/submissions/submission/${submission.id}/view`);
 };
 
 const downloadSubmission = (submission) => {
-    window.open(`/submissions/submission/${submission.id}/download`, '_blank');
+    const files = submissionFiles(submission);
+    if (files[0]) downloadFile(files[0], `/submissions/submission/${submission.id}/download`);
 };
 
 const viewCorrection = (submission) => {
-    window.open(`/submissions/correction/${submission.id}/view`, '_blank');
+    const files = correctionFiles(submission);
+    if (files[0]) openFile(files[0], `/submissions/correction/${submission.id}/view`);
 };
 
 const downloadCorrection = (submission) => {
-    window.open(`/submissions/correction/${submission.id}/download`, '_blank');
+    const files = correctionFiles(submission);
+    if (files[0]) downloadFile(files[0], `/submissions/correction/${submission.id}/download`);
 };
 
 const openCorrectionModal = (submission) => {
     correctionForm.value = {
         submissionId: submission.id,
-        selectedFile: null,
-        currentFileName: submission.correction_file_name || '',
+        selectedFiles: [],
+        existingFiles: [...correctionFiles(submission)],
+        removeFileIds: [],
         rating: submission.rating || 0,
         notes: submission.teacher_notes || ''
     };
@@ -165,34 +214,41 @@ const closeCorrectionModal = () => {
     showCorrectionModal.value = false;
     correctionForm.value = {
         submissionId: null,
-        selectedFile: null,
-        currentFileName: '',
+        selectedFiles: [],
+        existingFiles: [],
+        removeFileIds: [],
         rating: 0,
         notes: ''
     };
 };
 
 const handleCorrectionFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-        // تحقق من حجم الملف (10MB max)
+    const picked = Array.from(event.target.files || []);
+    if (!picked.length) return;
+
+    const next = [...correctionForm.value.selectedFiles];
+    for (const file of picked) {
         if (file.size > 10 * 1024 * 1024) {
-            alert(currentLocale.value === 'ar' ? 'حجم الملف أكبر من 10 ميجابايت' : 'File size is larger than 10MB');
-            event.target.value = '';
-            return;
+            alert(currentLocale.value === 'ar' ? `حجم الملف ${file.name} أكبر من 10 ميجابايت` : `File ${file.name} is larger than 10MB`);
+            continue;
         }
-        
-        correctionForm.value.selectedFile = file;
-        correctionForm.value.currentFileName = '';
+        if (correctionForm.value.existingFiles.length + next.length >= 10) {
+            alert(currentLocale.value === 'ar' ? 'الحد الأقصى 10 ملفات' : 'Maximum 10 files allowed');
+            break;
+        }
+        next.push(file);
     }
+    correctionForm.value.selectedFiles = next;
+    event.target.value = '';
 };
 
-const removeCorrectionFile = () => {
-    correctionForm.value.selectedFile = null;
-    const fileInput = document.querySelector('input[type="file"]');
-    if (fileInput) {
-        fileInput.value = '';
-    }
+const removeCorrectionSelectedFile = (index) => {
+    correctionForm.value.selectedFiles.splice(index, 1);
+};
+
+const removeCorrectionExistingFile = (file, index) => {
+    if (file.id) correctionForm.value.removeFileIds.push(file.id);
+    correctionForm.value.existingFiles.splice(index, 1);
 };
 
 const submitCorrection = async () => {
@@ -200,15 +256,18 @@ const submitCorrection = async () => {
 
     try {
         const formData = new FormData();
-        
-        if (correctionForm.value.selectedFile) {
-            formData.append('correction_file', correctionForm.value.selectedFile);
-        }
-        
+
+        correctionForm.value.selectedFiles.forEach((file) => {
+            formData.append('correction_files[]', file);
+        });
+        correctionForm.value.removeFileIds.forEach((id) => {
+            formData.append('remove_file_ids[]', id);
+        });
+
         if (correctionForm.value.rating > 0) {
             formData.append('rating', correctionForm.value.rating);
         }
-        
+
         if (correctionForm.value.notes) {
             formData.append('teacher_notes', correctionForm.value.notes);
         }
@@ -226,10 +285,10 @@ const submitCorrection = async () => {
         if (data.success) {
             alert(currentLocale.value === 'ar' ? 'تم حفظ التصحيح بنجاح!' : 'Correction saved successfully!');
             closeCorrectionModal();
-            window.location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+            window.location.reload();
         } else {
-            const errorMsg = data.errors ? 
-                Object.values(data.errors).flat().join('\n') : 
+            const errorMsg = data.errors ?
+                Object.values(data.errors).flat().join('\n') :
                 (data.message || 'حدث خطأ أثناء حفظ التصحيح');
             alert(errorMsg);
         }
@@ -401,7 +460,9 @@ const renderStars = (stars) => {
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex flex-wrap gap-1">
-                                    <template v-if="submission.submission_file_name">
+                                    <template v-if="submissionFiles(submission).length">
+                                        <span class="text-xs text-gray-500">{{ submissionFiles(submission).length }} {{ t('files') }}</span>
+                                        <span class="text-gray-300">|</span>
                                         <button @click="viewSubmission(submission)"
                                                 class="text-indigo-600 hover:text-indigo-900 text-xs">
                                             {{ t('view_submission') }}
@@ -414,7 +475,7 @@ const renderStars = (stars) => {
                                         <span class="text-gray-300">|</span>
                                     </template>
                                     
-                                    <template v-if="submission.correction_file_name">
+                                    <template v-if="correctionFiles(submission).length">
                                         <button @click="viewCorrection(submission)"
                                                 class="text-brand hover:text-brand-dark text-xs">
                                             {{ t('view_correction') }}
@@ -488,7 +549,7 @@ const renderStars = (stars) => {
 
                         <!-- Actions -->
                         <div class="flex flex-wrap gap-2 pt-2 border-t border-gray-200">
-                            <template v-if="submission.submission_file_name">
+                            <template v-if="submissionFiles(submission).length">
                                 <button @click="viewSubmission(submission)"
                                         class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-md hover:bg-indigo-200">
                                     {{ t('view_submission') }}
@@ -499,7 +560,7 @@ const renderStars = (stars) => {
                                 </button>
                             </template>
                             
-                            <template v-if="submission.corrected_at && submission.correction_file_name">
+                            <template v-if="correctionFiles(submission).length">
                                 <button @click="viewCorrection(submission)"
                                         class="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-md hover:bg-green-200">
                                     {{ t('view_correction') }}
@@ -570,55 +631,44 @@ const renderStars = (stars) => {
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 {{ t('upload_correction') }} ({{ t('optional') }})
                             </label>
-                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4">
-                                <input ref="correctionFileInput" @change="handleCorrectionFileSelect" type="file" 
+                            <div class="border-dashed border-2 border-gray-300 rounded-lg p-4 space-y-3">
+                                <input ref="correctionFileInput" @change="handleCorrectionFileSelect" type="file" multiple
                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                                        class="hidden" />
-                                
-                                <div v-if="!correctionForm.selectedFile && !correctionForm.currentFileName" 
-                                     class="text-center">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                    </svg>
-                                    <div class="mt-2">
-                                        <button type="button" @click="$refs.correctionFileInput.click()"
-                                                class="text-blue-600 hover:text-blue-500">
-                                            {{ t('click_to_upload') }}
-                                        </button>
+
+                                <div v-if="correctionForm.existingFiles.length" class="space-y-2">
+                                    <p class="text-xs font-medium text-gray-600">{{ t('existing_files') }}</p>
+                                    <div
+                                        v-for="(file, index) in correctionForm.existingFiles"
+                                        :key="file.id || ('existing-corr-' + index)"
+                                        class="flex items-center justify-between gap-2 text-sm bg-green-50 border border-green-100 rounded px-2 py-1.5"
+                                    >
+                                        <span class="truncate">{{ file.file_name }}</span>
+                                        <button type="button" class="text-red-600 text-xs shrink-0" @click="removeCorrectionExistingFile(file, index)">{{ t('remove') }}</button>
                                     </div>
-                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
 
-                                <div v-else-if="correctionForm.selectedFile" class="text-center">
-                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
-                                        <svg class="h-8 w-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span class="text-sm text-gray-700">{{ correctionForm.selectedFile.name }}</span>
+                                <div v-if="correctionForm.selectedFiles.length" class="space-y-2">
+                                    <p class="text-xs font-medium text-gray-600">{{ t('new_files') }}</p>
+                                    <div
+                                        v-for="(file, index) in correctionForm.selectedFiles"
+                                        :key="'new-corr-' + index"
+                                        class="flex items-center justify-between gap-2 text-sm bg-blue-50 border border-blue-100 rounded px-2 py-1.5"
+                                    >
+                                        <span class="truncate">{{ file.name }}</span>
+                                        <button type="button" class="text-red-600 text-xs shrink-0" @click="removeCorrectionSelectedFile(index)">{{ t('remove') }}</button>
                                     </div>
-                                    <button type="button" @click="removeCorrectionFile()"
-                                            class="mt-2 text-red-600 hover:text-red-500 text-sm">
-                                        {{ t('remove') }}
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="button" @click="$refs.correctionFileInput.click()"
+                                            class="text-blue-600 hover:text-blue-500 text-sm font-medium">
+                                        {{ correctionForm.existingFiles.length || correctionForm.selectedFiles.length ? t('change_file') : t('click_to_upload') }}
                                     </button>
-                                </div>
-
-                                <div v-else-if="correctionForm.currentFileName" class="text-center">
-                                    <div class="flex items-center justify-center space-x-2 rtl:space-x-reverse">
-                                        <svg class="h-8 w-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <span class="text-sm text-gray-700">{{ correctionForm.currentFileName }}</span>
-                                    </div>
-                                    <div class="mt-2 space-x-2 rtl:space-x-reverse">
-                                        <button type="button" @click="$refs.correctionFileInput.click()"
-                                                class="text-blue-600 hover:text-blue-500 text-sm">
-                                            {{ t('change_file') }}
-                                        </button>
-                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG ({{ t('max_10mb') }})</p>
                                 </div>
                             </div>
                         </div>
-
                         <!-- Buttons -->
                         <div class="flex items-center justify-end space-x-3 rtl:space-x-reverse">
                             <button type="button" @click="closeCorrectionModal"

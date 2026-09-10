@@ -2,44 +2,43 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ValidatesUploadedDocuments;
 use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
+use App\Models\AssignmentSubmissionFile;
 use App\Models\User;
 use App\Notifications\AssignmentSubmitted;
 use App\Notifications\AssignmentCorrected;
 use App\Notifications\AssignmentGradedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Notification;
 
 class AssignmentSubmissionController extends Controller
 {
-    /**
-     * رفع حل الواجب من قبل الطالب
-     */
+    use ValidatesUploadedDocuments;
+
     public function store(Request $request, Assignment $assignment)
     {
-        $validator = Validator::make($request->all(), [
-            'submission_file' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', // 10MB max
-        ]);
+        $files = $this->collectDocumentFiles($request, 'submission_files', 'submission_file');
+        $fileError = $this->validateDocumentFiles($files, true);
 
-        if ($validator->fails()) {
+        if ($fileError) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => ['submission_files' => [$fileError]],
             ], 422);
         }
 
         try {
             $user = Auth::user();
-            
-            // تحقق من أن المستخدم طالب ومسجل في الكورس
+
             if (!$user->hasRole('student')) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'هذه العملية مخصصة للطلاب فقط'
+                    'message' => 'هذه العملية مخصصة للطلاب فقط',
                 ], 403);
             }
 
@@ -51,43 +50,47 @@ class AssignmentSubmissionController extends Controller
             if (!$isEnrolled) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'غير مسموح لك برفع حل لهذا الواجب'
+                    'message' => 'غير مسموح لك برفع حل لهذا الواجب',
                 ], 403);
             }
 
-            // رفع الملف إلى DigitalOcean Spaces
-            $file = $request->file('submission_file');
-            $fileName = time() . '_' . $user->id . '_' . $file->getClientOriginalName();
-            $filePath = $file->storeAs('submissions', $fileName, 'spaces');
+            $submission = AssignmentSubmission::firstOrNew([
+                'assignment_id' => $assignment->id,
+                'student_id' => $user->id,
+            ]);
 
-            // البحث عن submission موجود أو إنشاء جديد
-            $submission = AssignmentSubmission::updateOrCreate(
-                [
-                    'assignment_id' => $assignment->id,
-                    'student_id' => $user->id,
-                ],
-                [
-                    'submission_file_path' => $filePath,
-                    'submission_file_name' => $file->getClientOriginalName(),
-                    'submission_file_type' => $file->getClientMimeType(),
-                    'submission_file_size' => $file->getSize(),
-                    'submitted_at' => now(),
-                    // إذا تم رفع حل جديد، قم بحذف التصحيح السابق
-                    'correction_file_path' => null,
-                    'correction_file_name' => null,
-                    'correction_file_type' => null,
-                    'correction_file_size' => null,
-                    'corrected_at' => null,
-                    'rating' => null,
-                    'teacher_notes' => null,
-                ]
-            );
+            $submission->fill([
+                'submitted_at' => now(),
+                'correction_file_path' => null,
+                'correction_file_name' => null,
+                'correction_file_type' => null,
+                'correction_file_size' => null,
+                'corrected_at' => null,
+                'rating' => null,
+                'teacher_notes' => null,
+            ]);
+            $submission->save();
 
-            // إرسال إشعار للمعلم صاحب الواجب
+            // استبدال ملفات الحل والتصحيح عند إعادة الرفع
+            $submission->deleteFilesByKind(AssignmentSubmissionFile::KIND_SUBMISSION);
+            $submission->deleteFilesByKind(AssignmentSubmissionFile::KIND_CORRECTION);
+
+            foreach ($files as $index => $file) {
+                AssignmentSubmissionFile::storeUploaded(
+                    $submission,
+                    $file,
+                    AssignmentSubmissionFile::KIND_SUBMISSION,
+                    $index
+                );
+            }
+
+            $submission->syncLegacyColumnsFromChildren();
+            $submission->load('files');
+
             $teacher = User::find($assignment->created_by);
             if ($teacher) {
                 $teacher->notify(new AssignmentSubmitted($submission, $user));
-                \Log::info("Assignment submission notification sent to teacher {$teacher->name} for assignment: {$assignment->title}");
+                Log::info("Assignment submission notification sent to teacher {$teacher->name} for assignment: {$assignment->title}");
             }
 
             return response()->json([
@@ -97,123 +100,130 @@ class AssignmentSubmissionController extends Controller
                     'id' => $submission->id,
                     'submission_file_name' => $submission->submission_file_name,
                     'submission_file_size' => $submission->formatted_submission_file_size,
+                    'submission_files' => $submission->filesPayload(AssignmentSubmissionFile::KIND_SUBMISSION),
                     'submitted_at' => $submission->submitted_at,
                     'status' => $submission->status,
-                ]
+                ],
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء رفع الحل: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء رفع الحل: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * حذف حل الطالب
-     */
     public function destroy(AssignmentSubmission $submission)
     {
-        // تحقق من الصلاحية
         if ($submission->student_id !== Auth::id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'غير مسموح لك بحذف هذا الحل'
+                'message' => 'غير مسموح لك بحذف هذا الحل',
             ], 403);
         }
 
         try {
-            // حذف ملف الحل من Spaces
-            if ($submission->submission_file_path && Storage::disk('spaces')->exists($submission->submission_file_path)) {
-                Storage::disk('spaces')->delete($submission->submission_file_path);
-            }
-
-            // حذف ملف التصحيح من Spaces (إن وجد)
-            if ($submission->correction_file_path && Storage::disk('spaces')->exists($submission->correction_file_path)) {
-                Storage::disk('spaces')->delete($submission->correction_file_path);
-            }
-
-            // حذف السجل من قاعدة البيانات
+            $submission->load('files');
+            $submission->deleteAllStoredFiles();
             $submission->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم حذف الحل بنجاح'
+                'message' => 'تم حذف الحل بنجاح',
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء حذف الحل: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء حذف الحل: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * رفع ملف التصحيح من قبل المعلم
-     */
     public function correct(Request $request, AssignmentSubmission $submission)
     {
+        $files = $this->collectDocumentFiles($request, 'correction_files', 'correction_file');
+        $fileError = $this->validateDocumentFiles($files, false);
+
+        if ($fileError) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['correction_files' => [$fileError]],
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
-            'correction_file' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240',
             'rating' => 'nullable|integer|min:1|max:5',
             'teacher_notes' => 'nullable|string|max:1000',
+            'remove_file_ids' => 'nullable|array',
+            'remove_file_ids.*' => 'integer',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors' => $validator->errors(),
             ], 422);
         }
 
         try {
-            // تحقق من أن المستخدم هو معلم الكورس
             $assignment = $submission->assignment;
             if ($assignment->created_by !== Auth::id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'غير مسموح لك بتصحيح هذا الحل'
+                    'message' => 'غير مسموح لك بتصحيح هذا الحل',
                 ], 403);
             }
 
-            $updateData = [
+            $removeIds = collect($request->input('remove_file_ids', []))
+                ->filter(fn ($id) => is_numeric($id))
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            if ($removeIds->isNotEmpty()) {
+                $toRemove = $submission->files()
+                    ->where('kind', AssignmentSubmissionFile::KIND_CORRECTION)
+                    ->whereIn('id', $removeIds)
+                    ->get();
+
+                foreach ($toRemove as $file) {
+                    $file->deleteFromStorage();
+                    $file->delete();
+                }
+            }
+
+            if (!empty($files)) {
+                $existingCount = $submission->files()
+                    ->where('kind', AssignmentSubmissionFile::KIND_CORRECTION)
+                    ->count();
+
+                foreach ($files as $index => $file) {
+                    AssignmentSubmissionFile::storeUploaded(
+                        $submission,
+                        $file,
+                        AssignmentSubmissionFile::KIND_CORRECTION,
+                        $existingCount + $index
+                    );
+                }
+            }
+
+            $submission->update([
                 'rating' => $request->rating,
                 'teacher_notes' => $request->teacher_notes,
                 'corrected_at' => now(),
-            ];
+            ]);
 
-            // إذا تم رفع ملف تصحيح
-            if ($request->hasFile('correction_file')) {
-                // حذف ملف التصحيح السابق من Spaces
-                if ($submission->correction_file_path && Storage::disk('spaces')->exists($submission->correction_file_path)) {
-                    Storage::disk('spaces')->delete($submission->correction_file_path);
-                }
+            $submission->syncLegacyColumnsFromChildren();
+            $submission->load('files');
 
-                $file = $request->file('correction_file');
-                $fileName = time() . '_correction_' . $submission->student_id . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('corrections', $fileName, 'spaces');
-
-                $updateData = array_merge($updateData, [
-                    'correction_file_path' => $filePath,
-                    'correction_file_name' => $file->getClientOriginalName(),
-                    'correction_file_type' => $file->getClientMimeType(),
-                    'correction_file_size' => $file->getSize(),
-                ]);
-            }
-
-            $submission->update($updateData);
-
-            // إرسال إشعار للطالب بالتصحيح
             $student = User::find($submission->student_id);
             $teacher = Auth::user();
             $course = $assignment->meeting->course;
-            
+
             if ($student) {
-                $student->notify(new AssignmentCorrected($submission, $teacher)); // للقاعدة
-                $student->notify(new AssignmentGradedNotification($submission, $assignment, $course)); // للبريد
-                \Log::info("Assignment correction notification sent to student {$student->name} for assignment: {$assignment->title}");
+                $student->notify(new AssignmentCorrected($submission, $teacher));
+                $student->notify(new AssignmentGradedNotification($submission, $assignment, $course));
+                Log::info("Assignment correction notification sent to student {$student->name} for assignment: {$assignment->title}");
             }
 
             return response()->json([
@@ -225,114 +235,135 @@ class AssignmentSubmissionController extends Controller
                     'stars' => $submission->stars,
                     'teacher_notes' => $submission->teacher_notes,
                     'correction_file_name' => $submission->correction_file_name,
+                    'correction_files' => $submission->filesPayload(AssignmentSubmissionFile::KIND_CORRECTION),
                     'corrected_at' => $submission->corrected_at,
                     'status' => $submission->status,
-                ]
+                ],
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء حفظ التصحيح: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء حفظ التصحيح: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * تحميل ملفات الحلول والتصحيحات
-     */
     public function download(Request $request, $type, AssignmentSubmission $submission)
     {
         return $this->handleSubmissionFileAccess($request, $type, $submission, 'download');
     }
 
-    /**
-     * عرض ملفات الحلول والتصحيحات في المتصفح
-     */
     public function view(Request $request, $type, AssignmentSubmission $submission)
     {
         return $this->handleSubmissionFileAccess($request, $type, $submission, 'view');
     }
 
-    /**
-     * دالة مساعدة للتعامل مع ملفات الحلول والتصحيحات
-     */
-    private function handleSubmissionFileAccess(Request $request, $type, AssignmentSubmission $submission, $action = 'download')
+    public function downloadFile(AssignmentSubmission $submission, AssignmentSubmissionFile $file)
+    {
+        return $this->handleChildFileAccess($submission, $file, 'download');
+    }
+
+    public function viewFile(AssignmentSubmission $submission, AssignmentSubmissionFile $file)
+    {
+        return $this->handleChildFileAccess($submission, $file, 'view');
+    }
+
+    private function userCanAccessSubmissionFile(AssignmentSubmission $submission, string $kind): bool
     {
         $user = Auth::user();
-        $disk = Storage::disk('spaces');
-        $filePath = null;
-        $fileName = null;
-        $hasAccess = false;
-        
-        // الأدمن يمكنه الوصول لجميع الملفات
+
         if ($user->hasRole('admin')) {
-            $hasAccess = true;
+            return true;
         }
-        
-        if ($type === 'submission') {
-            // ملف الحل
-            if (!$submission->submission_file_path || !$disk->exists($submission->submission_file_path)) {
-                abort(404, 'ملف الحل غير موجود');
-            }
 
-            $filePath = $submission->submission_file_path;
-            $fileName = $submission->submission_file_name;
-
-            // المعلم يمكنه الوصول لأي حل في كورساته
+        if ($kind === AssignmentSubmissionFile::KIND_SUBMISSION) {
             if ($user->hasRole('teacher') && $submission->assignment->created_by === $user->id) {
-                $hasAccess = true;
+                return true;
             }
-            
-            // الطالب يمكنه الوصول لحله فقط
+
             if ($user->hasRole('student') && $submission->student_id === $user->id) {
-                $hasAccess = true;
-            }
-
-        } elseif ($type === 'correction') {
-            // ملف التصحيح
-            if (!$submission->correction_file_path || !$disk->exists($submission->correction_file_path)) {
-                abort(404, 'ملف التصحيح غير موجود');
-            }
-
-            $filePath = $submission->correction_file_path;
-            $fileName = $submission->correction_file_name;
-
-            // المعلم والطالب المعني يمكنهما الوصول لملف التصحيح
-            if (($user->hasRole('teacher') && $submission->assignment->created_by === $user->id) ||
-                ($user->hasRole('student') && $submission->student_id === $user->id)) {
-                $hasAccess = true;
+                return true;
             }
         }
 
-        if (!$hasAccess) {
+        if ($kind === AssignmentSubmissionFile::KIND_CORRECTION) {
+            if (($user->hasRole('teacher') && $submission->assignment->created_by === $user->id)
+                || ($user->hasRole('student') && $submission->student_id === $user->id)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function handleSubmissionFileAccess(Request $request, $type, AssignmentSubmission $submission, $action = 'download')
+    {
+        $disk = Storage::disk('spaces');
+        $kind = $type === 'correction'
+            ? AssignmentSubmissionFile::KIND_CORRECTION
+            : AssignmentSubmissionFile::KIND_SUBMISSION;
+
+        if (!$this->userCanAccessSubmissionFile($submission, $kind)) {
             abort(403, 'غير مسموح لك بالوصول لهذا الملف');
         }
 
-        // إرجاع الملف حسب نوع العملية المطلوبة
-        if ($action === 'view') {
-            // للعرض، استخدم الرابط المباشر من Spaces
-            $url = $disk->url($filePath);
-            return redirect($url);
+        $file = $submission->files()->where('kind', $kind)->orderBy('sort_order')->orderBy('id')->first();
+
+        if ($file) {
+            $path = $file->file_path;
+            $name = $file->file_name;
+        } elseif ($kind === AssignmentSubmissionFile::KIND_SUBMISSION) {
+            $path = $submission->submission_file_path;
+            $name = $submission->submission_file_name;
         } else {
-            // للتحميل، استخدم الرابط المباشر من Spaces
-            return $disk->download($filePath, $fileName);
+            $path = $submission->correction_file_path;
+            $name = $submission->correction_file_name;
         }
+
+        if (!$path || !$disk->exists($path)) {
+            abort(404, $kind === AssignmentSubmissionFile::KIND_CORRECTION ? 'ملف التصحيح غير موجود' : 'ملف الحل غير موجود');
+        }
+
+        if ($action === 'view') {
+            return redirect($disk->url($path));
+        }
+
+        return $disk->download($path, $name);
     }
 
-    /**
-     * الحصول على حل الطالب لواجب معين
-     */
+    private function handleChildFileAccess(AssignmentSubmission $submission, AssignmentSubmissionFile $file, string $action = 'download')
+    {
+        if ($file->submission_id !== $submission->id) {
+            abort(404, 'الملف غير موجود');
+        }
+
+        if (!$this->userCanAccessSubmissionFile($submission, $file->kind)) {
+            abort(403, 'غير مسموح لك بالوصول لهذا الملف');
+        }
+
+        $disk = Storage::disk('spaces');
+        if (!$file->file_path || !$disk->exists($file->file_path)) {
+            abort(404, 'الملف غير موجود');
+        }
+
+        if ($action === 'view') {
+            return redirect($disk->url($file->file_path));
+        }
+
+        return $disk->download($file->file_path, $file->file_name);
+    }
+
     public function show(Assignment $assignment)
     {
         $user = Auth::user();
-        
+
         if (!$user->hasRole('student')) {
             abort(403, 'هذه العملية مخصصة للطلاب فقط');
         }
 
         $submission = AssignmentSubmission::where('assignment_id', $assignment->id)
             ->where('student_id', $user->id)
+            ->with('files')
             ->first();
 
         if (!$submission) {
@@ -348,9 +379,11 @@ class AssignmentSubmissionController extends Controller
                 'id' => $submission->id,
                 'submission_file_name' => $submission->submission_file_name,
                 'submission_file_size' => $submission->formatted_submission_file_size,
+                'submission_files' => $submission->filesPayload(AssignmentSubmissionFile::KIND_SUBMISSION),
                 'submitted_at' => $submission->submitted_at,
                 'correction_file_name' => $submission->correction_file_name,
                 'correction_file_size' => $submission->formatted_correction_file_size,
+                'correction_files' => $submission->filesPayload(AssignmentSubmissionFile::KIND_CORRECTION),
                 'corrected_at' => $submission->corrected_at,
                 'rating' => $submission->rating,
                 'stars' => $submission->stars,
@@ -358,7 +391,7 @@ class AssignmentSubmissionController extends Controller
                 'status' => $submission->status,
                 'submission_download_url' => $submission->submission_download_url,
                 'correction_download_url' => $submission->correction_download_url,
-            ]
+            ],
         ]);
     }
 }

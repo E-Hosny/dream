@@ -184,7 +184,7 @@ class CourseController extends Controller
         // جلب الاجتماعات المرتبطة بهذا الكورس مع الواجبات
         $sessionPrice = (float) ($course->price ?? 0);
 
-        $meetings = ZoomMeeting::with('assignments')
+        $meetings = ZoomMeeting::with('assignments.files')
             ->where('course_id', $course->id)
             ->orderBy('start_time', 'desc')
             ->get()
@@ -223,6 +223,7 @@ class CourseController extends Controller
                         'file_type' => $assignment->file_type,
                         'file_size' => $assignment->file_size,
                         'formatted_file_size' => $assignment->formatted_file_size,
+                        'files' => $assignment->filesPayload(),
                         'created_at' => $assignment->created_at->format('Y-m-d H:i:s'),
                         'submissions_count' => $assignment->submissions_count,
                         'corrected_submissions_count' => $assignment->corrected_submissions_count,

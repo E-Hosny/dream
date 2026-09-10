@@ -804,13 +804,15 @@ const deleteMeeting = async (meeting) => {
                             <div v-if="meeting.assignment" class="bg-gray-50 p-3 rounded-lg">
                                 <div class="flex items-center justify-between mb-2">
                                     <h5 class="font-medium text-gray-900">{{ meeting.assignment.title }}</h5>
-                                    <span class="text-xs text-gray-500">{{ meeting.assignment.formatted_file_size }}</span>
+                                    <span class="text-xs text-gray-500">{{ (meeting.assignment.files?.length || 1) }} ملف</span>
                                 </div>
                                 <p v-if="meeting.assignment.description" class="text-sm text-gray-600 mb-2">
                                     {{ meeting.assignment.description }}
                                 </p>
-                                <div class="flex items-center justify-between text-xs text-gray-500">
-                                    <span>{{ meeting.assignment.file_name }}</span>
+                                <div class="space-y-1 text-xs text-gray-500">
+                                    <div v-for="(file, idx) in (meeting.assignment.files || [{ file_name: meeting.assignment.file_name, formatted_file_size: meeting.assignment.formatted_file_size }])" :key="file.id || idx" class="truncate">
+                                        {{ file.file_name }} <span v-if="file.formatted_file_size">({{ file.formatted_file_size }})</span>
+                                    </div>
                                     <span>{{ formatDateTime(meeting.assignment.created_at) }}</span>
                                 </div>
                             </div>

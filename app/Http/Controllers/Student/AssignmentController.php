@@ -28,8 +28,9 @@ class AssignmentController extends Controller
         $query = Assignment::with([
             'meeting.course',
             'creator',
+            'files',
             'submissions' => function ($query) use ($user) {
-                $query->where('student_id', $user->id);
+                $query->where('student_id', $user->id)->with('files');
             }
         ])
         ->whereHas('meeting.course', function ($query) use ($enrolledCourseIds) {
@@ -71,6 +72,7 @@ class AssignmentController extends Controller
                 'description' => $assignment->description,
                 'file_name' => $assignment->file_name,
                 'file_size' => $assignment->file_size,
+                'files' => $assignment->filesPayload(),
                 'created_at' => $assignment->created_at->format('Y-m-d h:i A'),
                 'created_at_human' => $assignment->created_at->diffForHumans(),
                 'course' => [
@@ -90,7 +92,9 @@ class AssignmentController extends Controller
                     'corrected_at' => $submission->corrected_at?->format('Y-m-d h:i A'),
                     'status' => $submission->status,
                     'submission_file_name' => $submission->submission_file_name,
+                    'submission_files' => $submission->filesPayload(\App\Models\AssignmentSubmissionFile::KIND_SUBMISSION),
                     'correction_file_name' => $submission->correction_file_name,
+                    'correction_files' => $submission->filesPayload(\App\Models\AssignmentSubmissionFile::KIND_CORRECTION),
                 ] : null,
             ];
         });
